@@ -57,7 +57,9 @@ def _build_basic_auth(username: str, secret: str) -> str:
 
 
 class ALMBridge:
-    """Enterprise ALM/TMS sync connector supporting Jira, Xray, and TestRail."""
+    """Enterprise ALM/TMS sync connector supporting Jira, Xray, TestRail, Zephyr Scale, Qase.io, and ReportPortal."""
+
+    SUPPORTED_TMS_PLATFORMS = ("jira", "xray", "testrail", "zephyr", "qase", "reportportal")
 
     def __init__(self, platform: str = "jira", dry_run: bool = False):
         self.platform = platform.lower()
@@ -69,6 +71,16 @@ class ALMBridge:
         self.testrail_url = os.environ.get("TESTRAIL_BASE_URL", "https://testrail.example.com").rstrip("/")
         self.testrail_user = os.environ.get("TESTRAIL_USER", "qa@example.com")
         self.testrail_key = os.environ.get("TESTRAIL_API_KEY", "")
+        self.zephyr_url = os.environ.get("ZEPHYR_BASE_URL", "https://api.zephyrscale.smartbear.com").rstrip("/")
+        self.zephyr_token = os.environ.get("ZEPHYR_API_TOKEN", "")
+        self.zephyr_project = os.environ.get("ZEPHYR_PROJECT_KEY", self.jira_project)
+        self.qase_url = os.environ.get("QASE_BASE_URL", "https://api.qase.io").rstrip("/")
+        self.qase_token = os.environ.get("QASE_API_TOKEN", "")
+        self.qase_project = os.environ.get("QASE_PROJECT_CODE", self.jira_project)
+        self.qase_run_id = os.environ.get("QASE_RUN_ID", "1")
+        self.reportportal_url = os.environ.get("REPORTPORTAL_BASE_URL", "https://reportportal.example.com").rstrip("/")
+        self.reportportal_token = os.environ.get("REPORTPORTAL_API_TOKEN", "")
+        self.reportportal_project = os.environ.get("REPORTPORTAL_PROJECT", "default_personal")
 
     def _http_post_json(
         self,
@@ -125,6 +137,21 @@ class ALMBridge:
                 "base_url": self.testrail_url,
                 "user": self.testrail_user,
                 "configured": bool(self.testrail_key),
+            },
+            "zephyr": {
+                "base_url": self.zephyr_url,
+                "project_key": self.zephyr_project,
+                "configured": bool(self.zephyr_token),
+            },
+            "qase": {
+                "base_url": self.qase_url,
+                "project_code": self.qase_project,
+                "configured": bool(self.qase_token),
+            },
+            "reportportal": {
+                "base_url": self.reportportal_url,
+                "project": self.reportportal_project,
+                "configured": bool(self.reportportal_token),
             },
         }
 
@@ -351,6 +378,106 @@ class ALMBridge:
                     "message": resp["error_message"],
                 }
             exec_id = str(resp["data"].get("id") or "")
+        elif self.platform == "zephyr":
+            if not self.zephyr_token:
+                return {
+                    **base_summary,
+                    "status": "ERROR",
+                    "http_status": None,
+                    "execution_id": None,
+                    "error_message": "Missing ZEPHYR_API_TOKEN for live zephyr sync.",
+                    "message": "Missing ZEPHYR_API_TOKEN for live zephyr sync.",
+                }
+            endpoint = f"{self.zephyr_url}/v2/testexecutions"
+            headers = {"Authorization": f"Bearer {self.zephyr_token}"}
+            payload = {
+                "projectKey": self.zephyr_project,
+                "statusName": "Pass" if base_summary["failed"] == 0 else "Fail",
+                "comment": f"Synapse Hub JUnit sync ({os.path.basename(report_path)}): {base_summary['passed']}/{base_summary['total_tests']} passed",
+                "executions": [
+                    {
+                        "testCaseKey": c["name"],
+                        "statusName": "Pass" if c["status"] == "PASS" else ("Not Executed" if c["status"] == "SKIPPED" else "Fail"),
+                        "comment": c.get("failure", "")[:500],
+                    }
+                    for c in metrics.get("cases", [])[:500]
+                ],
+            }
+            resp = self._http_post_json(endpoint, payload, headers, timeout=DEFAULT_HTTP_TIMEOUT)
+            if not resp["ok"]:
+                return {
+                    **base_summary,
+                    "status": "ERROR",
+                    "http_status": resp["http_status"],
+                    "execution_id": None,
+                    "error_message": resp["error_message"],
+                    "message": resp["error_message"],
+                }
+            exec_id = str(resp["data"].get("key") or resp["data"].get("id") or "")
+        elif self.platform == "qase":
+            if not self.qase_token:
+                return {
+                    **base_summary,
+                    "status": "ERROR",
+                    "http_status": None,
+                    "execution_id": None,
+                    "error_message": "Missing QASE_API_TOKEN for live qase sync.",
+                    "message": "Missing QASE_API_TOKEN for live qase sync.",
+                }
+            endpoint = f"{self.qase_url}/v1/result/{self.qase_project}/{self.qase_run_id}/bulk"
+            headers = {"Token": self.qase_token}
+            payload = {
+                "results": [
+                    {
+                        "case": {"title": c["name"]},
+                        "status": "passed" if c["status"] == "PASS" else ("skipped" if c["status"] == "SKIPPED" else "failed"),
+                        "time_ms": int(float(c.get("time", 0.0)) * 1000),
+                        "comment": c.get("failure", "")[:500],
+                    }
+                    for c in metrics.get("cases", [])[:500]
+                ]
+            }
+            resp = self._http_post_json(endpoint, payload, headers, timeout=DEFAULT_HTTP_TIMEOUT)
+            if not resp["ok"]:
+                return {
+                    **base_summary,
+                    "status": "ERROR",
+                    "http_status": resp["http_status"],
+                    "execution_id": None,
+                    "error_message": resp["error_message"],
+                    "message": resp["error_message"],
+                }
+            exec_id = str(resp["data"].get("id") or resp["data"].get("hash") or (resp["data"].get("result", {}) if isinstance(resp["data"].get("result"), dict) else {}).get("hash") or "")
+        elif self.platform == "reportportal":
+            if not self.reportportal_token:
+                return {
+                    **base_summary,
+                    "status": "ERROR",
+                    "http_status": None,
+                    "execution_id": None,
+                    "error_message": "Missing REPORTPORTAL_API_TOKEN for live reportportal sync.",
+                    "message": "Missing REPORTPORTAL_API_TOKEN for live reportportal sync.",
+                }
+            endpoint = f"{self.reportportal_url}/api/v1/{self.reportportal_project}/launch"
+            headers = {"Authorization": f"Bearer {self.reportportal_token}"}
+            payload = {
+                "name": f"Synapse Launch ({os.path.basename(report_path)})",
+                "description": f"Passed: {base_summary['passed']}, Failed: {base_summary['failed']}",
+                "mode": "DEFAULT",
+                "attributes": [{"key": "source", "value": "synapse-hub"}],
+                "items": metrics.get("cases", [])[:500],
+            }
+            resp = self._http_post_json(endpoint, payload, headers, timeout=DEFAULT_HTTP_TIMEOUT)
+            if not resp["ok"]:
+                return {
+                    **base_summary,
+                    "status": "ERROR",
+                    "http_status": resp["http_status"],
+                    "execution_id": None,
+                    "error_message": resp["error_message"],
+                    "message": resp["error_message"],
+                }
+            exec_id = str(resp["data"].get("id") or resp["data"].get("number") or "")
         else:
             if not self.jira_token:
                 return {
@@ -429,9 +556,9 @@ def main():
     bug_parser.add_argument("--dry-run", action="store_true", help="Simulate creation without API call")
 
     # Command: sync-exec
-    exec_parser = subparsers.add_parser("sync-exec", help="Sync JUnit XML results to Xray or TestRail")
+    exec_parser = subparsers.add_parser("sync-exec", help="Sync JUnit XML results to Xray, TestRail, Zephyr Scale, Qase, or ReportPortal")
     exec_parser.add_argument("--report", required=True, help="Path to JUnit XML report")
-    exec_parser.add_argument("--platform", default="xray", choices=["xray", "testrail", "jira"], help="Target platform")
+    exec_parser.add_argument("--platform", default="xray", choices=["xray", "testrail", "jira", "zephyr", "qase", "reportportal"], help="Target platform")
     exec_parser.add_argument("--dry-run", action="store_true", help="Simulate execution sync without API call")
 
     args = parser.parse_args()

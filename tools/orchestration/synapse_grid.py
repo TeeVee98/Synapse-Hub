@@ -26,6 +26,9 @@ Usage:
   >>> report = grid.execute_all(test_runner_fn=my_test_runner)
 """
 
+import copy
+import os
+import re
 import sys
 import time
 import uuid
@@ -33,6 +36,137 @@ import queue
 import threading
 from typing import Dict, Any, List, Optional, Callable, Tuple
 from dataclasses import dataclass, field
+
+SUPPORTED_CLOUD_GRIDS: Tuple[str, ...] = ("browserstack", "saucelabs", "lambdatest")
+REDACTION_MASK: str = "***REDACTED***"
+_SECRET_KEY_SUBSTRINGS: Tuple[str, ...] = (
+    "key",
+    "token",
+    "secret",
+    "password",
+    "passwd",
+    "auth",
+    "accesskey",
+    "access_key",
+)
+_URL_CRED_RE = re.compile(r"(https?|wss?)://([^:@/\s]+):([^@/\s]+)@", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class EnterpriseTmsCloudGridDTO:
+    """Immutable certification contract for Enterprise TMS & Cloud Grid integration."""
+
+    supported_tms_platforms: Tuple[str, ...]
+    supported_cloud_grids: Tuple[str, ...]
+    secrets_redacted: bool
+    dry_run_verified: bool
+
+
+def build_cloud_capabilities(
+    provider: str,
+    browser_name: str = "chromium",
+    os_name: str = "Windows 11",
+    build_tag: str = "synapse-v5",
+) -> Dict[str, Any]:
+    """
+    Constructs W3C WebDriver & Playwright remote cloud grid connection capabilities
+    for BrowserStack, Sauce Labs, and LambdaTest strictly from environment variables.
+    """
+    norm = (provider or "").strip().lower().replace("-", "").replace("_", "").replace(" ", "")
+    alias_map = {
+        "browserstack": "browserstack",
+        "bstack": "browserstack",
+        "saucelabs": "saucelabs",
+        "sauce": "saucelabs",
+        "lambdatest": "lambdatest",
+        "lt": "lambdatest",
+    }
+    canonical = alias_map.get(norm)
+    if canonical is None:
+        raise ValueError(
+            f"Unsupported cloud grid provider '{provider}'. Supported: {', '.join(SUPPORTED_CLOUD_GRIDS)}"
+        )
+
+    if canonical == "browserstack":
+        user = os.environ.get("BROWSERSTACK_USERNAME", "")
+        key = os.environ.get("BROWSERSTACK_ACCESS_KEY", "")
+        return {
+            "provider": "browserstack",
+            "browserName": browser_name,
+            "platformName": os_name,
+            "build": build_tag,
+            "endpoint": "wss://cdp.browserstack.com/playwright",
+            "w3c_hub": "https://hub-cloud.browserstack.com/wd/hub",
+            "credentials_configured": bool(user and key),
+            "bstack:options": {
+                "os": os_name,
+                "buildName": build_tag,
+                "projectName": "Synapse Hub",
+                "userName": user,
+                "accessKey": key,
+            },
+        }
+
+    if canonical == "saucelabs":
+        user = os.environ.get("SAUCE_USERNAME", "")
+        key = os.environ.get("SAUCE_ACCESS_KEY", "")
+        region = os.environ.get("SAUCE_REGION", "us-west-1").strip() or "us-west-1"
+        hub = f"https://ondemand.{region}.saucelabs.com:443/wd/hub"
+        return {
+            "provider": "saucelabs",
+            "browserName": browser_name,
+            "platformName": os_name,
+            "build": build_tag,
+            "endpoint": hub,
+            "w3c_hub": hub,
+            "credentials_configured": bool(user and key),
+            "sauce:options": {
+                "username": user,
+                "accessKey": key,
+                "build": build_tag,
+                "name": f"Synapse Grid ({browser_name})",
+            },
+        }
+
+    user = os.environ.get("LT_USERNAME", "")
+    key = os.environ.get("LT_ACCESS_KEY", "")
+    return {
+        "provider": "lambdatest",
+        "browserName": browser_name,
+        "platformName": os_name,
+        "build": build_tag,
+        "endpoint": "wss://cdp.lambdatest.com/playwright",
+        "w3c_hub": "https://hub.lambdatest.com/wd/hub",
+        "credentials_configured": bool(user and key),
+        "LT:Options": {
+            "platform": os_name,
+            "build": build_tag,
+            "project": "Synapse Hub",
+            "user": user,
+            "accessKey": key,
+        },
+    }
+
+
+def redact_cloud_capabilities(caps: Dict[str, Any]) -> Dict[str, Any]:
+    """Deep-copies a cloud capability payload and masks all secret keys and URL credentials."""
+    def _scrub(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            out: Dict[str, Any] = {}
+            for k, v in obj.items():
+                k_low = str(k).lower()
+                if any(sub in k_low for sub in _SECRET_KEY_SUBSTRINGS):
+                    out[k] = REDACTION_MASK if v else ""
+                else:
+                    out[k] = _scrub(v)
+            return out
+        if isinstance(obj, list):
+            return [_scrub(item) for item in obj]
+        if isinstance(obj, str):
+            return _URL_CRED_RE.sub(rf"\1://\2:{REDACTION_MASK}@", obj)
+        return obj
+
+    return _scrub(copy.deepcopy(caps))
 
 if hasattr(sys.stdout, "reconfigure"):
     try:

@@ -123,7 +123,10 @@ The Hub equips 9 core FSM subagents (plus 6 specialist agents in `agents_manifes
 ### 5.1 Standalone CLI Utilities & Hub Infrastructure Tools (Non-Persona Scoped)
 
 The remaining 7 tools serve as global repository entry points and offline infrastructure services, callable directly without subagent persona routing:
-- `cli.py`: Central Agent-QA / Synapse CLI command router and entrypoint (`npx @teevee98/synapse-hub` / `agent-qa`).
+- `cli.py`: Central Agent-QA / Synapse CLI command router and entrypoint (`synapse` / `synapse-hub` / `agent-qa`, tiered into 12 Core commands + `synapse lab`).
+- `qa_lsp_server.py`: Zero-dependency Universal QA Language Server (LSP 3.17 over stdio JSON-RPC 2.0 for JetBrains, Neovim, Cursor, and VS Code).
+- `pom_assertion_indexer.py`: Cross-file Page Object assertion symbol indexer (call depth <= 3, with optional `tree-sitter-language-pack` AST integration).
+- `alm_bridge.py` & `synapse_grid.py`: Enterprise TMS sync adapters (`Jira`, `Xray`, `TestRail`, `Zephyr Scale`, `Qase.io`, `ReportPortal`) and Cloud Grid profiles (`BrowserStack`, `Sauce Labs`, `LambdaTest`).
 - `output_formatter.py`: ANSI terminal color styling, status badges, and table formatting utility.
 - `welcome_page.py`: Visual HTML onboarding and landing page generator (`agent-qa welcome`).
 - `bump_version.py`: Atomic polyglot semantic version bumper for releases (`agent-qa bump`).
@@ -138,8 +141,8 @@ The remaining 7 tools serve as global repository entry points and offline infras
 To ensure consistency across various distribution registries and developer interfaces:
 - **Ecosystem / Project Name:** Synapse Hub (`Synapse-Hub` on GitHub)
 - **NPM Package & Antigravity Plugin:** `@teevee98/synapse-hub` (distributed on NPM Registry and Antigravity Marketplace)
-- **Python Package & Universal CLI:** `agent-qa` (PEP 621 package on PyPI providing the `agent-qa` CLI binary)
-- **MCP Server Protocol Services:** `enterprise-agent-qa` (Core QA MCP server) and `synapse-mcp-excel` (Excel tool server)
+- **Python Package & Universal CLI:** `synapse-hub` (PEP 621 package on PyPI providing the `synapse`, `synapse-hub`, and `agent-qa` CLI binaries)
+- **MCP & LSP Protocol Services:** `enterprise-agent-qa` (Core QA MCP server), `synapse-qa-lsp` (Universal QA LSP 3.17 stdio server), and `synapse-mcp-excel` (Excel tool server)
 - **Skill Catalog Manifest:** `enterprise-agent-skills-hub` (internal catalog schema identifier in `skills_manifest.json`) and `agentskills.json` (AgentSkills v1 open standard)
 
 ---
@@ -198,7 +201,7 @@ To maintain strict engineering rigor (**Truth Anchor**), Synapse Hub discloses a
 2. **Empirical Benchmarks (Self-Reported Baseline):**  
    The metrics (45/45 challenges resolved across 11 domains, 93.8 tokens/bug) reflect author-measured internal baselines on curated challenges (`benchmarks/qa_eval`) rather than independent third-party double-blind audits. Metrics may vary on real-world enterprise suites depending on architectural complexity and test coverage.
 3. **Hub-Spoke Version Pinning (Blast-Radius Isolation):**  
-   When mounting or referencing Synapse Hub in downstream Spoke projects, downstream repositories should pin a specific Git Submodule commit or release tag (`git checkout v4.8.1`) rather than tracking unpinned `main` HEAD, preventing upstream Hub changes from unexpectedly breaking downstream CI/CD pipelines.
+   When mounting or referencing Synapse Hub in downstream Spoke projects, downstream repositories should pin a specific Git Submodule commit or release tag (`git checkout v4.9.0`) rather than tracking unpinned `main` HEAD, preventing upstream Hub changes from unexpectedly breaking downstream CI/CD pipelines.
 4. **Supported Runners:**  
    First-class runner adapters for **Playwright, Pytest, Katalon Studio/Groovy, and Cypress**. Selenium WebDriver is supported via Clean POM architecture patterns, smart-wait primitives, and Universal IR transpilation.
 5. **Environment Prerequisites:**  

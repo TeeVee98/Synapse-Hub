@@ -245,6 +245,107 @@ def cmd_fix(args):
     sys.argv = forwarded
     sys.exit(lint_main())
 
+
+CORE_12_COMMANDS: tuple[str, ...] = (
+    "lint",
+    "fix",
+    "verify",
+    "mutate",
+    "distill",
+    "analyze",
+    "export-excel",
+    "scaffold-tc",
+    "mcp-serve",
+    "lsp",
+    "doctor",
+    "new",
+)
+
+_CLI_FALLBACK_HELP = {
+    "cmd_lsp": {
+        "en": "Start the JSON-RPC 2.0 stdio Universal QA Language Server (JetBrains/Neovim/VS Code)",
+        "vi": "Khoi dong Universal QA Language Server (LSP 3.17 stdio cho JetBrains/Neovim/VS Code)",
+    },
+    "cmd_lab": {
+        "en": "Access ~180 specialized contrib/research commands (`synapse lab --list` or `synapse lab <cmd>`)",
+        "vi": "Truy cap ~180 lenh chuyen sau/nghien cuu (`synapse lab --list` hoac `synapse lab <cmd>`)",
+    },
+    "cmd_fpr_bench": {
+        "en": "Run empirical real-world False-Positive Rate (FPR <= 5.0%) & latency benchmark",
+        "vi": "Chay benchmark ty le canh bao gia (FPR <= 5.0%) va do tre thuc te",
+    },
+}
+
+
+def cmd_lsp(args):
+    """Starts the zero-dependency Universal QA Language Server (LSP 3.17 over stdio)."""
+    import importlib
+    mod = importlib.import_module("tools.mcp.qa_lsp_server")
+    sys.argv = _forward_subcommand_args("lsp")
+    res = mod.main()
+    sys.exit(res if isinstance(res, int) else 0)
+
+
+def cmd_fpr_bench(args):
+    """Runs the empirical real-world False-Positive Rate & latency benchmark runner."""
+    import importlib
+    mod = importlib.import_module("benchmarks.real_world_fpr_runner")
+    sys.argv = _forward_subcommand_args("fpr-bench")
+    res = mod.main()
+    sys.exit(res if isinstance(res, int) else 0)
+
+
+def cmd_lab(args):
+    """Two-tier router exposing specialized contrib/research tools via `synapse lab <cmd>`."""
+    core_set = set(CORE_12_COMMANDS) | {"lab", "help", "version"}
+    lab_specs = [
+        spec for spec in _CLI_BUNDLE.get("commands", [])
+        if spec.get("name") not in core_set
+    ]
+    lab_names = sorted(spec["name"] for spec in lab_specs)
+
+    target_cmd = getattr(args, "lab_cmd", None)
+    list_flag = bool(getattr(args, "list_lab", False))
+    json_flag = bool(getattr(args, "json_output", False))
+
+    if list_flag or not target_cmd:
+        payload = {
+            "core_commands_count": len(CORE_12_COMMANDS),
+            "lab_commands_count": len(lab_names),
+            "legacy_aliases_preserved": True,
+            "lsp_registered": any(s.get("name") == "lsp" for s in _CLI_BUNDLE.get("commands", [])),
+            "core_commands": list(CORE_12_COMMANDS),
+            "lab_commands": lab_names,
+        }
+        if json_flag:
+            print(json.dumps(payload, indent=2, sort_keys=True))
+            return 0
+        print(f"\n{BOLD}{CYAN}Synapse Hub Lab — Specialized & Research Commands ({len(lab_names)} available){RESET}")
+        print("Usage: synapse lab <command> [args...]  (all legacy top-level aliases remain 100% active)\n")
+        for idx in range(0, len(lab_names), 4):
+            row = "  ".join(f"{name:<22}" for name in lab_names[idx:idx + 4])
+            print(f"  {row}")
+        print()
+        return 0
+
+    # Resolve target command or alias against declarative command table
+    matched_spec = None
+    for spec in _CLI_BUNDLE.get("commands", []):
+        if spec.get("name") == target_cmd or target_cmd in spec.get("aliases", []):
+            matched_spec = spec
+            break
+    if matched_spec is None:
+        sys.stderr.write(f"[ERROR] Unknown lab command: '{target_cmd}'. Run 'synapse lab --list' to view available tools.\n")
+        sys.exit(2)
+
+    handler_name = matched_spec["handler"]
+    handler_fn = globals().get(handler_name) or _dispatch(handler_name)
+    extra_args = list(getattr(args, "lab_args", None) or [])
+    sys.argv = [sys.argv[0], target_cmd] + _strip_interface_lang_flags(extra_args)
+    args.subcommand = target_cmd
+    res = handler_fn(args)
+    sys.exit(res if isinstance(res, int) else 0)
+
 def cmd_clean(args):
     """Cleans temporary build files, __pycache__, and compiled bytecode across the repository."""
     import shutil
@@ -429,7 +530,7 @@ def cmd_update(args):
     update_sentinel.perform_update()
 
 def cmd_release(args):
-    """1-Click atomic release: bumps version across all files, runs 10 Quality Gates, tags & pushes to trigger NPM Trusted Publishing."""
+    """1-Click atomic release: bumps version across all files, runs 11 Quality Gates, tags & pushes to trigger NPM/PyPI Trusted Publishing."""
     from bump_version import main as bump_main
     forwarded = _forward_subcommand_args(args)
     if "--no-push" not in forwarded and "--push" not in forwarded:
@@ -572,11 +673,18 @@ def _render_tiered_cli_help(lang: str) -> str:
     ]
 
     for cmd, msg_key in CORE_COMMAND_SPECS:
-        lines.append(f"  {BOLD}{GREEN}{cmd:<14}{RESET} {t(msg_key, lang=lang)}")
+        desc = t(msg_key, lang=lang)
+        if desc == msg_key and msg_key in _CLI_FALLBACK_HELP:
+            desc = _CLI_FALLBACK_HELP[msg_key].get(lang, _CLI_FALLBACK_HELP[msg_key]["en"])
+        desc = desc.replace("10 Quality Gates", "11 Quality Gates").replace("10 Cổng Chất Lượng", "11 Cổng Chất Lượng")
+        lines.append(f"  {BOLD}{GREEN}{cmd:<14}{RESET} {desc}")
 
     lines.append(f"\n{BOLD}{t('advanced_highlights_title', lang=lang)}{RESET}")
     for cmd, msg_key in ADVANCED_HIGHLIGHT_SPECS:
-        lines.append(f"  {CYAN}{cmd:<14}{RESET} {t(msg_key, lang=lang)}")
+        desc = t(msg_key, lang=lang)
+        if desc == msg_key and msg_key in _CLI_FALLBACK_HELP:
+            desc = _CLI_FALLBACK_HELP[msg_key].get(lang, _CLI_FALLBACK_HELP[msg_key]["en"])
+        lines.append(f"  {CYAN}{cmd:<14}{RESET} {desc}")
 
     lines.append(f"\n{BOLD}{t('general_options_title', lang=lang)}{RESET}")
     lines.append(f"  {BOLD}-a, --all{RESET}      {t('opt_all', lang=lang)}")
@@ -768,7 +876,7 @@ def _handle_interactive_wizard(parser, args):
             print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - Thiết lập bảo vệ 1-click cho dự án kiểm thử mục tiêu")
             print(f"  {BOLD}3.{RESET} ⚙️  {BOLD}Init-Config{RESET}  - Khởi tạo file cấu hình .synapse.json chuẩn hóa cho dự án Spoke")
             print(f"  {BOLD}4.{RESET} 🔍 {BOLD}Lint{RESET}         - Quét phát hiện test pass ảo, 0 assert, sleep cứng")
-            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 10 Cổng Chất Lượng DoD")
+            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Chạy kiểm tra 11 Cổng Chất Lượng DoD")
             print(f"  {BOLD}6.{RESET} 📊 {BOLD}Export-Excel{RESET} - Xuất test cases Markdown sang file Excel (.xlsx)")
             print(f"  {BOLD}7.{RESET} 🌐 {BOLD}Welcome{RESET}      - Mở trang Landing Page trực quan")
             print(f"  {BOLD}8.{RESET} ❓ {BOLD}Help{RESET}         - Xem danh sách đầy đủ tất cả các lệnh CLI")
@@ -780,7 +888,7 @@ def _handle_interactive_wizard(parser, args):
             print(f"  {BOLD}2.{RESET} 🚀 {BOLD}Setup{RESET}        - 1-click bootstrap & protection for target test project")
             print(f"  {BOLD}3.{RESET} ⚙️  {BOLD}Init-Config{RESET}  - Initialize standardized .synapse.json config for Spoke project")
             print(f"  {BOLD}4.{RESET} 🔍 {BOLD}Lint{RESET}         - AST scan catching fake-passes, 0 asserts, hard sleeps")
-            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Execute 10 Quality Gates Definition of Done (DoD)")
+            print(f"  {BOLD}5.{RESET} 🛡️  {BOLD}Verify{RESET}       - Execute 11 Quality Gates Definition of Done (DoD)")
             print(f"  {BOLD}6.{RESET} 📊 {BOLD}Export-Excel{RESET} - Export Markdown test cases to enterprise Excel (.xlsx)")
             print(f"  {BOLD}7.{RESET} 🌐 {BOLD}Welcome{RESET}      - Launch interactive visual landing page")
             print(f"  {BOLD}8.{RESET} ❓ {BOLD}Help{RESET}         - Display full list of CLI commands")

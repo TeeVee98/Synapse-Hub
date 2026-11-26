@@ -569,6 +569,123 @@ class TestInferLinter8Cases(unittest.TestCase):
             self.assertEqual(cdata["total_scripts"], 1)
             self.assertEqual(cdata["critical_defects"], 1)
 
+    def test_v5_cross_file_ts_and_java_pom_assertions_zero_false_positives(self):
+        """M3: Cross-file TS & Java POM assertion helpers yield 0 false positives while action-only calls still fail."""
+        with tempfile.TemporaryDirectory() as td:
+            pages_dir = os.path.join(td, "pages")
+            tests_dir = os.path.join(td, "tests")
+            os.makedirs(pages_dir, exist_ok=True)
+            os.makedirs(tests_dir, exist_ok=True)
+
+            # TS Page Object with non-verify-prefixed assertion method + action-only method
+            with open(os.path.join(pages_dir, "CheckoutPage.ts"), "w", encoding="utf-8") as f:
+                f.write(
+                    "import { expect, Page } from '@playwright/test';\n"
+                    "export class CheckoutPage {\n"
+                    "  constructor(private page: Page) {}\n"
+                    "  async confirmOrderComplete() {\n"
+                    "    await expect(this.page.locator('#receipt')).toBeVisible();\n"
+                    "  }\n"
+                    "  async clickSubmit() {\n"
+                    "    await this.page.click('#submit');\n"
+                    "  }\n"
+                    "}\n"
+                )
+
+            # Clean TS spec calling POM assertion helper (non-verify name)
+            clean_ts = os.path.join(tests_dir, "checkout_ok.spec.ts")
+            with open(clean_ts, "w", encoding="utf-8") as f:
+                f.write(
+                    "import { test } from '@playwright/test';\n"
+                    "import { CheckoutPage } from '../pages/CheckoutPage';\n"
+                    "test('order succeeds', async ({ page }) => {\n"
+                    "  const checkoutPage = new CheckoutPage(page);\n"
+                    "  await checkoutPage.clickSubmit();\n"
+                    "  await checkoutPage.confirmOrderComplete();\n"
+                    "});\n"
+                )
+
+            # Fake-pass TS spec calling ONLY action helper
+            fake_ts = os.path.join(tests_dir, "checkout_fake.spec.ts")
+            with open(fake_ts, "w", encoding="utf-8") as f:
+                f.write(
+                    "import { test } from '@playwright/test';\n"
+                    "import { CheckoutPage } from '../pages/CheckoutPage';\n"
+                    "test('fake pass', async ({ page }) => {\n"
+                    "  const checkoutPage = new CheckoutPage(page);\n"
+                    "  await checkoutPage.clickSubmit();\n"
+                    "});\n"
+                )
+
+            # Java Page Object + Test
+            with open(os.path.join(pages_dir, "DashboardPage.java"), "w", encoding="utf-8") as f:
+                f.write(
+                    "import static org.junit.jupiter.api.Assertions.assertTrue;\n"
+                    "public class DashboardPage {\n"
+                    "  public void ensureHeaderReady() {\n"
+                    "    assertTrue(isVisible());\n"
+                    "  }\n"
+                    "}\n"
+                )
+            java_test = os.path.join(tests_dir, "DashboardTest.java")
+            with open(java_test, "w", encoding="utf-8") as f:
+                f.write(
+                    "public class DashboardTest {\n"
+                    "  @Test public void testDashboard() {\n"
+                    "    dashboardPage.open();\n"
+                    "    dashboardPage.ensureHeaderReady();\n"
+                    "  }\n"
+                    "}\n"
+                )
+
+            res_clean = infer_linter.analyze_script(clean_ts)
+            self.assertTrue(res_clean["is_clean"], f"Expected 0 false positives, got: {res_clean['defects']}")
+            self.assertGreaterEqual(res_clean["cross_file_assertions_resolved"], 1)
+
+            res_fake = infer_linter.analyze_script(fake_ts)
+            fake_types = [d["type"] for d in res_fake["defects"]]
+            self.assertIn("FAKE_PASS_NO_ASSERTION", fake_types)
+
+            res_java = infer_linter.analyze_script(java_test)
+            self.assertTrue(res_java["is_clean"], f"Expected Java POM test clean, got: {res_java['defects']}")
+
+    def test_v5_multiline_expect_chains_and_defects(self):
+        """M3: Multiline awaited expect chains are clean; multiline unawaited or dangling expects are caught."""
+        valid_multiline = (
+            "import { test, expect } from '@playwright/test';\n"
+            "test('multiline valid', async ({ page }) => {\n"
+            "  await page.click('#calc');\n"
+            "  await expect(\n"
+            "    page.locator('#total')\n"
+            "  )\n"
+            "    .toHaveText('$42.00');\n"
+            "});\n"
+        )
+        res_ok = self._analyze_code(valid_multiline, ".ts")
+        self.assertTrue(res_ok["is_clean"], f"Multiline awaited expect should be clean: {res_ok['defects']}")
+
+        unawaited_multiline = (
+            "import { test, expect } from '@playwright/test';\n"
+            "test('multiline unawaited', async ({ page }) => {\n"
+            "  expect(\n"
+            "    page.locator('#banner')\n"
+            "  ).toBeVisible();\n"
+            "});\n"
+        )
+        res_unawaited = self._analyze_code(unawaited_multiline, ".ts")
+        self.assertIn("UNAWAITED_ASYNC_ASSERTION", [d["type"] for d in res_unawaited["defects"]])
+
+        dangling_multiline = (
+            "import { test, expect } from '@playwright/test';\n"
+            "test('multiline dangling', async ({ page }) => {\n"
+            "  expect(\n"
+            "    page.locator('#banner')\n"
+            "  );\n"
+            "});\n"
+        )
+        res_dangling = self._analyze_code(dangling_multiline, ".ts")
+        self.assertIn("DANGLING_ASSERTION_NO_MATCHER", [d["type"] for d in res_dangling["defects"]])
+
 
 if __name__ == "__main__":
     unittest.main()

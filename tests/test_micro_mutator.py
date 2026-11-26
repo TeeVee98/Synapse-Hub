@@ -635,3 +635,61 @@ def test_m4_red_phase_four_scenario_and_target_binding():
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
+def test_v5_cross_file_pom_assertion_sensitivity_and_multiline_expect():
+    """M3: Cross-file POM assertion helpers register static mutant kill sensitivity; action-only helpers survive."""
+    from micro_mutator import evaluate_mutants_statically
+    from tools.context.pom_assertion_indexer import CrossFileAssertionMapDTO
+
+    pom_map = CrossFileAssertionMapDTO(
+        repo_root="/tmp/demo",
+        indexed_files_count=2,
+        assertion_methods={"confirmOrderComplete"},
+        qualified_class_methods={"CheckoutPage": {"confirmOrderComplete"}},
+        max_call_depth=3,
+        used_tree_sitter=False,
+    )
+
+    # Test with POM-wrapped assertion helper (non-verify name)
+    ts_with_pom_assert = (
+        "async function runOrder(checkoutPage, qty) {\n"
+        "  const ready = qty >= 1;\n"
+        "  if (ready == true) {\n"
+        "    await checkoutPage.clickSubmit(ready);\n"
+        "    await checkoutPage.confirmOrderComplete(ready);\n"
+        "  }\n"
+        "}\n"
+    )
+    mutants = generate_mutants_for_code(ts_with_pom_assert, file_path="checkout.spec.ts", assertion_map=pom_map)
+    assert len(mutants) >= 1
+    evaluated, score = evaluate_mutants_statically(ts_with_pom_assert, mutants, assertion_map=pom_map)
+    assert score > 0.0, f"Expected cross-file POM assertion to kill mutants, got {evaluated}"
+    assert any(m["status"] == "KILLED" for m in evaluated)
+
+    # Action-only test without any local or POM assertion must report 0.0%
+    ts_action_only = (
+        "async function runFake(checkoutPage, qty) {\n"
+        "  if (qty >= 1) {\n"
+        "    await checkoutPage.clickSubmit();\n"
+        "  }\n"
+        "}\n"
+    )
+    fake_mutants = generate_mutants_for_code(ts_action_only, file_path="fake.spec.ts", assertion_map=pom_map)
+    _, fake_score = evaluate_mutants_statically(ts_action_only, fake_mutants, assertion_map=pom_map)
+    assert fake_score == 0.0
+
+    # Multiline chained expect kills mutants cleanly
+    ts_multiline = (
+        "async function checkTotal(page, total) {\n"
+        "  const ok = total == 42;\n"
+        "  await expect(\n"
+        "    page.locator(ok)\n"
+        "  )\n"
+        "    .toBeVisible();\n"
+        "}\n"
+    )
+    ml_mutants = generate_mutants_for_code(ts_multiline, file_path="ml.spec.ts")
+    ml_eval, ml_score = evaluate_mutants_statically(ts_multiline, ml_mutants)
+    assert ml_score > 0.0 and any(m["status"] == "KILLED" for m in ml_eval)
+
+
+

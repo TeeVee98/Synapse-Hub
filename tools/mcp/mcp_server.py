@@ -74,11 +74,21 @@ MCP_TOOLS = [
     },
     {
         "name": "synapse_verify",
-        "description": "Validates the 10 Definition-of-Done (DoD) Quality Gates (UTF-8, paths, Clean POM, AI docs, blacklist, credentials, infer linter, mutation, collisions, SLA).",
+        "description": "Validates the 11 Definition-of-Done (DoD) Quality Gates (UTF-8, paths, Clean POM, AI docs, blacklist, credentials, infer linter, mutation, collisions, SLA, author provenance).",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "repo_path": {"type": "string", "description": "Absolute or relative path to target repository. Defaults to CWD."}
+            }
+        }
+    },
+    {
+        "name": "synapse_lsp_health",
+        "description": "Runs diagnostic health check on the Universal QA Language Server (LSP 3.17 stdio) and returns protocol version and latency telemetry.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repo_path": {"type": "string", "description": "Workspace root directory for cross-file POM indexing. Defaults to CWD."}
             }
         }
     },
@@ -117,7 +127,7 @@ MCP_TOOLS = [
     },
     {
         "name": "verify_all_gates",
-        "description": "Validates the 10 Quality Gates Definition of Done (UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator, skill collision, performance SLA) with pre-flight integrity check.",
+        "description": "Validates the 11 Quality Gates Definition of Done (UTF-8, paths, Clean POM, AI docs, blacklist, security, infer linter, micro-mutator, skill collision, performance SLA, author provenance) with pre-flight integrity check.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -765,9 +775,19 @@ def _handle_synapse_security_scan(arguments: Dict[str, Any]) -> str:
         return f"[SECURITY_SCAN ERROR] {exc}"
 
 
+def _handle_synapse_lsp_health(arguments: Dict[str, Any]) -> str:
+    repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+    try:
+        from tools.mcp.qa_lsp_server import check_lsp_health
+        return json.dumps(check_lsp_health(repo), indent=2, sort_keys=True)
+    except Exception as exc:
+        return f"[LSP_HEALTH ERROR] {exc}"
+
+
 TOOL_DISPATCH_TABLE: Dict[str, Any] = {
     "synapse_lint": _handle_synapse_lint,
     "synapse_verify": _handle_verify_all_gates,
+    "synapse_lsp_health": _handle_synapse_lsp_health,
     "synapse_mutate": _handle_run_micro_mutation,
     "synapse_distill_logs": _handle_distill_log,
     "synapse_security_scan": _handle_synapse_security_scan,

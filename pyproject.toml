@@ -34,9 +34,9 @@ Issues = "https://github.com/TeeVee98/Synapse-Hub/issues"
 [project.optional-dependencies]
 excel = ["openpyxl>=3.1.0"]
 vision = ["Pillow>=10.0.0"]
-treesitter = ["tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0"]
+treesitter = ["tree-sitter>=0.23.0", "tree-sitter-language-pack>=0.6.0"]
 ai-optimizer = ["dspy-ai>=2.5.0", "textgrad>=0.1.0"]
-all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0", "pytest-xdist>=3.5.0", "tree-sitter>=0.21.0", "tree-sitter-languages>=1.10.0", "dspy-ai>=2.5.0", "textgrad>=0.1.0"]
+all = ["openpyxl>=3.1.0", "Pillow>=10.0.0", "pytest>=8.0.0", "pytest-xdist>=3.5.0", "tree-sitter>=0.23.0", "tree-sitter-language-pack>=0.6.0", "dspy-ai>=2.5.0", "textgrad>=0.1.0"]
 
 [project.scripts]
 agent-qa = "tools.core.cli:main"
@@ -90,8 +90,8 @@ omit = [
 ]
 
 [tool.coverage.report]
-# Calibrated baseline floor: 60% (60.00% with precision=2, matches measured 60.61% baseline). Progression step-ladder targeting 80% full-suite coverage.
-fail_under = 60
+# Calibrated baseline floor: 65% (progression step-ladder targeting 80% full-suite coverage; >= 85% on core-12 modules).
+fail_under = 65
 precision = 2
 show_missing = true
 skip_covered = false
@@ -168,6 +168,10 @@ module = [
     "tools.core.skill_router",
     "tools.lint.invariant_checker",
     "tools.reasoning.formal_contract_verifier",
+    "tools.context.pom_assertion_indexer",
+    "tools.mcp.qa_lsp_server",
+    "tools.lint.plan_schema_sentinel",
+    "tools.lint.cli_schema_sentinel",
 ]
 disable_error_code = []
 disallow_untyped_defs = false

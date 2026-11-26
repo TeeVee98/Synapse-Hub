@@ -2,7 +2,7 @@
   "schema_version": "1.1.0",
   "harness_architecture": "Anthropic-Compliant Dual-State Anchor",
   "project": "Synapse Hub",
-  "last_sync": "2026-11-26 13:13:12",
+  "last_sync": "2026-11-26 16:51:56",
   "overall_status": "READY",
   "active_goal": "Continue autonomous QA workflow",
   "tasks": [
@@ -26,13 +26,13 @@
     },
     {
       "id": "task-4",
-      "title": "Codebase regression test suite verified (2,582 passed tests)",
+      "title": "Codebase regression test suite verified (2,618 passed tests)",
       "completed": true,
       "status": "COMPLETED"
     },
     {
       "id": "task-5",
-      "title": "Autonomous Solo-Swarm Upgrade & 4-Weapon Rigor (M1-M4 Verified)",
+      "title": "v5.0 Polyglot AST, RAM LSP 3.17, Qualified POM & PyPI OIDC Certified",
       "completed": true,
       "status": "COMPLETED"
     }

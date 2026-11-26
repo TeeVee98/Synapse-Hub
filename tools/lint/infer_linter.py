@@ -176,38 +176,209 @@ def format_mentorship_card(defect, file_rel):
     card.append(f"  {BOLD}╰──────────────────────────────────────────────────────────────────────────{RESET}\n")
     return "\n".join(card)
 
-# Optional Tree-Sitter Integration for compiler-grade AST parsing across TS/Java/C#
 try:
-    import tree_sitter  # type: ignore # noqa: F401
-    HAS_TREE_SITTER = True
+    from tools.context.pom_assertion_indexer import (
+        CrossFileAssertionMapDTO,
+        build_pom_assertion_index,
+        load_optional_tree_sitter_parser,
+    )
 except ImportError:
-    HAS_TREE_SITTER = False
-
+    try:
+        from context.pom_assertion_indexer import (
+            CrossFileAssertionMapDTO,
+            build_pom_assertion_index,
+            load_optional_tree_sitter_parser,
+        )
+    except ImportError:
+        CrossFileAssertionMapDTO = None
+        build_pom_assertion_index = None
+        load_optional_tree_sitter_parser = None
 
 def parse_with_tree_sitter(file_path, content):
     """
-    Optional compiler-grade AST parsing via tree-sitter when installed.
-    Extracts syntactic AST nodes for TypeScript, JavaScript, Java, and C#.
-    Returns None if tree-sitter is unavailable or grammar is not installed.
+    Optional compiler-grade AST parsing via tree-sitter-language-pack when installed.
+    Extracts syntactic AST trees for TypeScript, JavaScript, Java, Groovy, and C#.
+    Returns None cleanly if tree-sitter-language-pack is unavailable or grammar is unsupported.
     """
-    if not HAS_TREE_SITTER:
+    if load_optional_tree_sitter_parser is None:
         return None
     try:
-        from tree_sitter_languages import get_parser  # type: ignore
         ext = os.path.splitext(file_path)[1].lower()
-        lang_map = {
-            ".ts": "typescript",
-            ".js": "javascript",
-            ".java": "java",
-            ".cs": "c_sharp",
-        }
-        lang_name = lang_map.get(ext)
-        if not lang_name:
+        parser = load_optional_tree_sitter_parser(ext)
+        if parser is None:
             return None
-        parser = get_parser(lang_name)
         return parser.parse(bytes(content, "utf-8"))
     except Exception:
         return None
+
+
+GENERIC_COLLISION_METHOD_NAMES = frozenset({
+    "validate", "check", "verify", "ensure", "run", "execute", "process", "handle", "test", "init", "setup",
+})
+
+_JS_NEW_RE = re.compile(
+    r"\b(?:const|let|var|final)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[A-Za-z_][A-Za-z0-9_<>]*\s*)?=\s*new\s+([A-Za-z_][A-Za-z0-9_]*)\s*\("
+)
+_JAVA_NEW_RE = re.compile(
+    r"\b([A-Z][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+[A-Za-z_][A-Za-z0-9_]*\s*\("
+)
+_PY_CALL_NEW_RE = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Z][A-Za-z0-9_]*)\s*\("
+)
+_RECEIVER_TYPE_ANNOT_RE = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Z][A-Za-z0-9_]*)\b"
+)
+
+
+def _extract_receiver_class_bindings(clean_code):
+    """Infers local/fixture variable -> ClassName bindings from instantiations and type annotations."""
+    if not clean_code:
+        return {}
+    bindings = {}
+    for m in _RECEIVER_TYPE_ANNOT_RE.finditer(clean_code):
+        bindings[m.group(1)] = m.group(2)
+    for m in _JS_NEW_RE.finditer(clean_code):
+        bindings[m.group(1)] = m.group(2)
+    for m in _JAVA_NEW_RE.finditer(clean_code):
+        bindings[m.group(2)] = m.group(1)
+    for m in _PY_CALL_NEW_RE.finditer(clean_code):
+        bindings[m.group(1)] = m.group(2)
+    return bindings
+
+
+def _receiver_matches_class_stem(receiver, class_name):
+    """True when `receiver` (e.g. `orderPage`, `my_order_page`) matches `class_name` (`OrderPage`)."""
+    r_norm = receiver.replace("_", "").lower()
+    c_norm = class_name.replace("_", "").lower()
+    return bool(c_norm) and r_norm.endswith(c_norm)
+
+
+def extract_tree_sitter_test_spans(ts_tree, source_bytes):
+    """
+    Walks a Tree-Sitter CST/AST tree to extract `(start_line_1_based, block_text)`
+    for top-level/nested `test(...)`, `it(...)`, and `@Test` method declarations.
+    """
+    if ts_tree is None:
+        return []
+    root = getattr(ts_tree, "root_node", None)
+    if root is None or bool(getattr(root, "has_error", False)):
+        return []
+
+    spans = []
+    seen = set()
+
+    def _slice(node):
+        return source_bytes[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
+
+    def _walk(node):
+        ntype = getattr(node, "type", "")
+        if ntype == "call_expression":
+            child_by_field = getattr(node, "child_by_field_name", None)
+            fn_node = child_by_field("function") if callable(child_by_field) else None
+            if fn_node is not None:
+                fn_txt = _slice(fn_node).strip()
+                if fn_txt in ("test", "it", "test.only", "it.only", "test.skip", "it.skip"):
+                    sp = getattr(node, "start_point", None)
+                    line_1 = (int(sp[0]) + 1) if (isinstance(sp, tuple) and len(sp) >= 1) else (
+                        source_bytes[: int(getattr(node, "start_byte", 0))].count(b"\n") + 1
+                    )
+                    key = (line_1, int(getattr(node, "start_byte", 0)))
+                    if key not in seen:
+                        seen.add(key)
+                        spans.append((line_1, _slice(node)))
+                    return
+        elif ntype == "method_declaration":
+            txt = _slice(node)
+            if "@Test" in txt or re.search(r"\b(?:void|def)\s+test[A-Za-z0-9_]*\s*\(", txt):
+                sp = getattr(node, "start_point", None)
+                line_1 = (int(sp[0]) + 1) if (isinstance(sp, tuple) and len(sp) >= 1) else (
+                    source_bytes[: int(getattr(node, "start_byte", 0))].count(b"\n") + 1
+                )
+                key = (line_1, int(getattr(node, "start_byte", 0)))
+                if key not in seen:
+                    seen.add(key)
+                    spans.append((line_1, txt))
+                return
+
+        for child in getattr(node, "children", None) or ():
+            _walk(child)
+
+    _walk(root)
+    return spans
+
+
+def _match_cross_file_assertions(clean_code, assertion_map, file_clean_code=None):
+    """
+    Counts invocations of verified cross-file Page Object assertion helpers in `clean_code`
+    with receiver-class disambiguation to prevent unqualified method collisions.
+    """
+    if not assertion_map or not getattr(assertion_map, "assertion_methods", None):
+        return 0
+    methods = assertion_map.assertion_methods
+    if not methods:
+        return 0
+    qualified_map = getattr(assertion_map, "qualified_class_methods", None) or {}
+    unqualified_set = getattr(assertion_map, "unqualified_assertion_methods", None)
+    bindings = _extract_receiver_class_bindings(file_clean_code if file_clean_code is not None else clean_code)
+
+    hits = 0
+    call_re = re.compile(r'(?:(\b[A-Za-z_][A-Za-z0-9_]*)\s*\.\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\(')
+    for m in call_re.finditer(clean_code):
+        receiver = m.group(1)
+        callee = m.group(2)
+        if callee not in methods:
+            continue
+
+        if not qualified_map:
+            hits += 1
+            continue
+
+        owning_classes = [cls_name for cls_name, cls_methods in qualified_map.items() if callee in cls_methods]
+
+        if not receiver:
+            if unqualified_set is not None and callee in unqualified_set:
+                hits += 1
+            elif not owning_classes and callee not in GENERIC_COLLISION_METHOD_NAMES:
+                hits += 1
+            continue
+
+        if receiver in ("this", "self", "super"):
+            hits += 1
+            continue
+
+        bound_cls = bindings.get(receiver)
+        if bound_cls:
+            if callee in qualified_map.get(bound_cls, set()):
+                hits += 1
+            continue
+
+        if any(_receiver_matches_class_stem(receiver, cls_name) for cls_name in owning_classes):
+            hits += 1
+            continue
+
+        if callee not in GENERIC_COLLISION_METHOD_NAMES and owning_classes:
+            hits += 1
+
+    return hits
+
+
+def _discover_lazy_assertion_map(file_path):
+    """Lazily builds a small local POM assertion index for standalone analyze_script() calls."""
+    if build_pom_assertion_index is None:
+        return None
+    import tempfile
+    abs_file = os.path.abspath(file_path)
+    parent = os.path.dirname(abs_file)
+    sys_tmp = os.path.abspath(tempfile.gettempdir())
+    if not parent or parent == sys_tmp or parent == os.path.dirname(parent) or parent == REPO_ROOT:
+        return None
+    base_name = os.path.basename(parent).lower()
+    candidate_root = parent
+    if base_name in ("tests", "test", "e2e", "specs", "spec", "cypress", "scripts"):
+        grandparent = os.path.dirname(parent)
+        if grandparent and grandparent != sys_tmp and grandparent != REPO_ROOT and grandparent != os.path.dirname(grandparent):
+            candidate_root = grandparent
+    return build_pom_assertion_index(candidate_root, max_depth=3, max_files=200)
 
 # Generic Detection regexes (including Cypress .should and .and assertions)
 # Note: Standalone expect(...) without chained matcher is caught as DANGLING_ASSERTION_NO_MATCHER.
@@ -252,7 +423,7 @@ TAUTOLOGY_PATTERN = re.compile(
 def find_dangling_expects(clean_code, raw_lines):
     """
     Detects dangling expect(...) calls lacking chained matchers (e.g. expect(page) without .toBeVisible()).
-    Correctly handles nested parentheses like expect(page.locator('#id')).
+    Correctly handles nested parentheses and multiline expect(...) chains.
     """
     dangling = []
     pattern = re.compile(r'(?:await\s+)?\bexpect(?:\.soft|\.poll)?\s*\(')
@@ -260,14 +431,15 @@ def find_dangling_expects(clean_code, raw_lines):
         start_idx = m.end()
         depth = 1
         pos = start_idx
-        while pos < len(clean_code) and depth > 0:
+        max_scan = min(len(clean_code), start_idx + 1200)
+        while pos < max_scan and depth > 0:
             ch = clean_code[pos]
             if ch == '(':
                 depth += 1
             elif ch == ')':
                 depth -= 1
-            elif ch in (';', '\n') and depth > 0:
-                # Malformed unclosed expect
+            elif ch == ';' and depth > 0:
+                # Malformed unclosed expect terminated by statement semicolon
                 break
             pos += 1
         if depth == 0:
@@ -279,15 +451,15 @@ def find_dangling_expects(clean_code, raw_lines):
     return dangling
 
 # Rule L4: Unawaited Playwright assertions in JS/TS
-# Expanded with all standard Playwright async matchers and optional .not modifier
+# Expanded with all standard Playwright async matchers, optional .not modifier, and multiline chains
 PLAYWRIGHT_ASYNC_MATCHERS = (
     r'(?:toBeVisible|toBeHidden|toHaveText|toHaveValue|toHaveCount|toBeEnabled|toBeDisabled|'
     r'toBeChecked|toHaveURL|toContainText|toHaveTitle|toHaveAttribute|toHaveClass|toHaveId|'
     r'toBeFocused|toBeEmpty|toBeAttached|toBeInViewport|toBeOK)'
 )
 UNAWAITED_EXPECT_PATTERN = re.compile(
-    r'\bexpect\s*\([^;\n]+\)\s*(?:\.\s*not)?\s*\.\s*' + PLAYWRIGHT_ASYNC_MATCHERS + r'\s*\(',
-    re.MULTILINE
+    r'\bexpect(?:\.soft|\.poll)?\s*\([^;]{1,300}?\)\s*(?:\.\s*not)?\s*\.\s*' + PLAYWRIGHT_ASYNC_MATCHERS + r'\s*\(',
+    re.MULTILINE | re.DOTALL
 )
 
 # Rule 3: Flaky Static Delays across Groovy, Java, Playwright (JS/TS/Python), Pytest/Python, Cypress
@@ -554,15 +726,18 @@ def classify_file_role(file_path: str, content: str = "") -> str:
     return "TEST_SCRIPT"
 
 
-def analyze_script(file_path, baseline_set=None, disabled_rules=None):
-    """Performs static rule scanning on a single test script or automation asset."""
+def analyze_script(file_path, baseline_set=None, disabled_rules=None, assertion_map=None, source_content=None):
+    """Performs static rule scanning on a single test script or automation asset (on-disk or in-memory)."""
     try:
         rel_path = os.path.relpath(file_path, REPO_ROOT)
     except ValueError:
         rel_path = os.path.abspath(file_path)
 
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-        content = f.read()
+    if source_content is not None:
+        content = source_content
+    else:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
 
     role = classify_file_role(file_path, content=content)
 
@@ -572,7 +747,9 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
             "file": rel_path,
             "role": role,
             "defects": [],
-            "is_clean": True
+            "is_clean": True,
+            "ast_backend": "none",
+            "cross_file_assertions_resolved": 0,
         }
 
     defects = []
@@ -583,6 +760,16 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
     clean_lines = [line.strip() for line in clean_code.splitlines()]
 
     raw_lines = content.splitlines()
+
+        # Optional Tree-Sitter AST pass for non-Python polyglot languages
+    ast_backend = "python_ast" if file_ext == ".py" else "stdlib_state_machine"
+    ts_tree = None
+    if file_ext in (".ts", ".tsx", ".js", ".jsx", ".java", ".groovy", ".cs"):
+        ts_tree = parse_with_tree_sitter(file_path, content)
+        if ts_tree is not None:
+            ast_backend = "tree_sitter"
+
+    cross_file_resolved = 0
 
     # Code quality checks across all automation assets (Test Scripts, Page Objects, Helpers)
     # Rule 2: Swallowed Exceptions (empty catch blocks)
@@ -799,7 +986,7 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
                     "message": f"Unawaited async Playwright assertion detected: '{line_text}'. Without 'await', assertion returns a Pending Promise that never validates."
                 })
 
-        # Rule 6 (L2 & L6): Missing Assertions / Fake-Pass
+        # Rule 6 (L2 & L6): Missing Assertions / Fake-Pass (with Cross-File POM Assertion Indexer)
         assert_matches = list(ASSERTION_PATTERN.finditer(clean_code))
         tautology_matches = list(TAUTOLOGY_PATTERN.finditer(clean_code))
         has_real_assert = any(
@@ -807,26 +994,60 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
             for am in assert_matches
         )
 
-        # F06: Check test cases per function block if multiple tests exist
+        resolved_map = assertion_map
+        if not has_real_assert and resolved_map is None:
+            resolved_map = _discover_lazy_assertion_map(file_path)
+        if resolved_map is not None:
+            file_pom_hits = _match_cross_file_assertions(clean_code, resolved_map, file_clean_code=clean_code)
+            if file_pom_hits > 0:
+                cross_file_resolved += file_pom_hits
+                has_real_assert = True
+
+        # F06: Check test cases per function block if multiple tests exist (Tree-Sitter CST spans preferred)
+        ts_block_spans = (
+            extract_tree_sitter_test_spans(ts_tree, content.encode("utf-8"))
+            if ts_tree is not None
+            else []
+        )
         TEST_BLOCK_PATTERN = re.compile(
             r'(?m)^[ \t]*(?:(?:test|it)(?:\.(?:only|skip))?\s*\(|def\s+test_[a-zA-Z0-9_]+\s*\(|(?:@Test\s+)?(?:public\s+)?(?:void|def)\s+test[a-zA-Z0-9_]*\s*\()'
         )
-        test_matches = list(TEST_BLOCK_PATTERN.finditer(clean_code))
-        if len(test_matches) >= 2:
-            for i, tm in enumerate(test_matches):
-                b_start = tm.start()
-                b_end = test_matches[i + 1].start() if i + 1 < len(test_matches) else len(clean_code)
-                block_code = clean_code[b_start:b_end]
+        if len(ts_block_spans) >= 2:
+            block_entries = [
+                (b_line, strip_comments_and_strings(b_raw, preserve_newlines=True, file_ext=file_ext))
+                for b_line, b_raw in ts_block_spans
+            ]
+        else:
+            test_matches = list(TEST_BLOCK_PATTERN.finditer(clean_code))
+            block_entries = [
+                (
+                    clean_code[: tm.start()].count("\n") + 1,
+                    clean_code[tm.start() : (test_matches[i + 1].start() if i + 1 < len(test_matches) else len(clean_code))],
+                )
+                for i, tm in enumerate(test_matches)
+            ] if len(test_matches) >= 2 else []
+
+        if len(block_entries) >= 2:
+            for b_line, block_code in block_entries:
                 b_asserts = list(ASSERTION_PATTERN.finditer(block_code))
                 b_tauts = list(TAUTOLOGY_PATTERN.finditer(block_code))
                 block_has_real_assert = any(
                     not any(tt.start() <= ta.start() < tt.end() for tt in b_tauts)
                     for ta in b_asserts
                 )
+                if not block_has_real_assert:
+                    if resolved_map is None:
+                        resolved_map = _discover_lazy_assertion_map(file_path)
+                    if resolved_map is not None:
+                        b_pom_hits = _match_cross_file_assertions(
+                            block_code, resolved_map, file_clean_code=clean_code
+                        )
+                        if b_pom_hits > 0:
+                            cross_file_resolved += b_pom_hits
+                            block_has_real_assert = True
                 b_has_interactions = any(
                     kw in block_code for kw in ["click", "select", "save", "delete", "create", "search", "navigate", "open", "fill", "goto", "post", "get"]
                 )
-                b_line = clean_code[:b_start].count("\n") + 1
                 if b_has_interactions and not block_has_real_assert:
                     defects.append({
                         "type": "FAKE_PASS_NO_ASSERTION",
@@ -906,7 +1127,9 @@ def analyze_script(file_path, baseline_set=None, disabled_rules=None):
         "file": rel_path,
         "role": role,
         "defects": defects,
-        "is_clean": len(defects) == 0
+        "is_clean": len(defects) == 0,
+        "ast_backend": ast_backend,
+        "cross_file_assertions_resolved": cross_file_resolved,
     }
 
 
@@ -1004,15 +1227,27 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
         mode_str = "Previewed (Dry-run)" if dry_run else "Successfully applied"
         print(f"{GREEN}✨ {mode_str} {total_fixes_count} fix(es) across {fixed_files_count} file(s).{RESET}\n")
 
+    # Build cross-file POM assertion map once for the scan root
+    assertion_map = None
+    if build_pom_assertion_index is not None and script_files and os.path.isdir(scan_dir):
+        index_root = scan_dir
+        if os.path.basename(os.path.abspath(scan_dir)).lower() in ("tests", "test", "e2e", "specs", "spec", "cypress", "scripts"):
+            parent_dir = os.path.dirname(os.path.abspath(scan_dir))
+            if parent_dir and parent_dir != os.path.dirname(parent_dir) and parent_dir != REPO_ROOT:
+                index_root = parent_dir
+        assertion_map = build_pom_assertion_index(index_root, max_depth=3)
+
     results = []
     critical_count = 0
     warning_count = 0
     clean_count = 0
+    total_cross_file_resolved = 0
     all_defects = []
 
     for s in sorted(set(script_files)):
-        res = analyze_script(s, baseline_set=baseline_set, disabled_rules=disabled_rules)
+        res = analyze_script(s, baseline_set=baseline_set, disabled_rules=disabled_rules, assertion_map=assertion_map)
         results.append(res)
+        total_cross_file_resolved += int(res.get("cross_file_assertions_resolved", 0))
         crit = sum(1 for d in res["defects"] if d["severity"] == "CRITICAL")
         warn = sum(1 for d in res["defects"] if d["severity"] == "WARNING")
         critical_count += crit
@@ -1058,6 +1293,7 @@ def run_infer_linter(target_dir=None, output_path=None, strict: bool = False,
         "critical_defects": critical_count,
         "warnings": warning_count,
         "health_score_pct": health_score,
+        "cross_file_assertions_resolved": total_cross_file_resolved,
         "defect_details": defect_scripts,
         "all_defects": all_defects
     }

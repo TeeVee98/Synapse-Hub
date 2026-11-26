@@ -124,7 +124,10 @@ Hệ thống điều phối 9 subagent FSM cốt lõi (cùng 6 specialist agents
 ### 5.1 Các Tiện Ích Dùng Trực Tiếp (Không Cần Phân Quyền Subagent)
 
 7 công cụ hạ tầng dưới đây có thể gọi trực tiếp từ dòng lệnh:
-- `cli.py`: Điểm điều phối lệnh trung tâm (`synapse-hub` / `agent-qa`).
+- `cli.py`: Điểm điều phối lệnh trung tâm (`synapse` / `synapse-hub` / `agent-qa`, phân tầng 12 lệnh Core + `synapse lab`).
+- `qa_lsp_server.py`: Universal QA Language Server (LSP 3.17 qua stdio JSON-RPC 2.0, hỗ trợ JetBrains, Neovim, Cursor, VS Code).
+- `pom_assertion_indexer.py`: Bộ lập chỉ mục hàm assertion xuyên tệp Page Object (độ sâu gọi <= 3, hỗ trợ tùy chọn `tree-sitter-language-pack`).
+- `alm_bridge.py` & `synapse_grid.py`: Bộ kết nối Enterprise TMS (`Jira`/`Xray`/`TestRail`/`Zephyr Scale`/`Qase.io`/`ReportPortal`) và cấu hình Cloud Grid (`BrowserStack`/`Sauce Labs`/`LambdaTest`).
 - `output_formatter.py`: Định dạng màu sắc ANSI và bảng biểu trên terminal.
 - `welcome_page.py`: Khởi tạo trang hướng dẫn trực quan dạng HTML (`agent-qa welcome`).
 - `bump_version.py`: Bộ nâng số phiên bản semver đồng loạt trên toàn bộ repo (`agent-qa bump`).
@@ -139,8 +142,8 @@ Hệ thống điều phối 9 subagent FSM cốt lõi (cùng 6 specialist agents
 Để thuận tiện khi sử dụng trên nhiều nền tảng:
 - **Tên Dự Án / Hệ Sinh Thái:** Synapse Hub (`Synapse-Hub` trên GitHub)
 - **Gói NPM & Plugin Antigravity:** `@teevee98/synapse-hub` (trên NPM Registry và Antigravity Marketplace)
-- **Gói Python & Universal CLI:** `agent-qa` (gói PyPI cung cấp binary lệnh `agent-qa`)
-- **Dịch Vụ MCP Server:** `enterprise-agent-qa` (MCP server cho QA) và `synapse-mcp-excel` (server công cụ Excel)
+- **Gói Python & Universal CLI:** `synapse-hub` (gói PEP 621 trên PyPI cung cấp các lệnh `synapse`, `synapse-hub`, `agent-qa`)
+- **Dịch Vụ MCP & LSP Server:** `enterprise-agent-qa` (MCP server cho QA), `synapse-qa-lsp` (LSP 3.17 stdio), và `synapse-mcp-excel` (server công cụ Excel)
 - **Định Danh Kỹ Năng:** `enterprise-agent-skills-hub` (trong `skills_manifest.json`) và `agentskills.json` (chuẩn AgentSkills v1)
 
 ---
@@ -199,7 +202,7 @@ flowchart TD
 2. **Kết Quả Benchmark Thực Nghiệm (Self-Reported Baseline):**  
    Các chỉ số 45/45 bài toán trên 11 nhóm miền lỗi (100.0%) và 93.8 token / lỗi là kết quả đo lường nội bộ do tác giả thực hiện trên bộ benchmark curated nội bộ (`benchmarks/qa_eval`), chưa qua kiểm chứng độc lập của bên thứ ba (third-party double-blind benchmark). Khi áp dụng vào dự án thực tế với kiến trúc phức tạp, các chỉ số có thể thay đổi tùy thuộc vào độ bao phủ của bộ test.
 3. **Cơ Chế Pin Version Hub-Spoke (Chống Lỗi Lan Truyền):**  
-   Khi tích hợp Synapse Hub vào các dự án Spoke, khuyến nghị bắt buộc pin phiên bản qua Git Submodule commit cụ thể hoặc git release tag (`git checkout v4.8.1`), tránh kéo trực tiếp nhánh `main` tự động để không làm ảnh hưởng pipeline của các Spoke khi Hub có cập nhật chưa kiểm duyệt.
+   Khi tích hợp Synapse Hub vào các dự án Spoke, khuyến nghị bắt buộc pin phiên bản qua Git Submodule commit cụ thể hoặc git release tag (`git checkout v4.9.0`), tránh kéo trực tiếp nhánh `main` tự động để không làm ảnh hưởng pipeline của các Spoke khi Hub có cập nhật chưa kiểm duyệt.
 4. **Test Framework Được Hỗ Trợ Tốt Nhất:**  
    Tối ưu tốt nhất cho **Playwright, Pytest, Katalon Studio/Groovy, và Cypress**. Hỗ trợ Selenium WebDriver thông qua chuẩn kiến trúc Clean POM, smart wait và chuyển ngữ Universal IR.
 5. **Yêu Cầu Môi Trường:**  

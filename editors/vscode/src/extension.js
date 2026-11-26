@@ -110,7 +110,7 @@ function activate(context) {
   function updateStatusBar(editor) {
     if (!editor || !diagnosticCollection) {
       statusBarItem.text = '$(shield) Synapse: Ready';
-      statusBarItem.tooltip = 'Synapse Hub: Click to Run 10 Quality Gates DoD';
+      statusBarItem.tooltip = 'Synapse Hub: Click to Run 11 Quality Gates DoD';
       statusBarItem.command = 'synapse.runVerify';
       return;
     }
@@ -128,13 +128,13 @@ function activate(context) {
       statusBarItem.command = 'synapse.fixCurrentFile';
     } else {
       statusBarItem.text = '$(shield-check) Synapse: 100% Clean';
-      statusBarItem.tooltip = 'Synapse Hub: Active file conforms to 10/10 DoD. Click to Run 10 Gates.';
+      statusBarItem.tooltip = 'Synapse Hub: Active file conforms to 11/11 DoD. Click to Run 11 Quality Gates.';
       statusBarItem.command = 'synapse.runVerify';
     }
   }
 
   statusBarItem.text = '$(shield) Synapse: Ready';
-  statusBarItem.tooltip = 'Synapse Hub: Click to Run 10 Quality Gates DoD';
+  statusBarItem.tooltip = 'Synapse Hub: Click to Run 11 Quality Gates DoD';
   statusBarItem.command = 'synapse.runVerify';
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);

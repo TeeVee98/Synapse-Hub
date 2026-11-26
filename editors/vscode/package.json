@@ -65,7 +65,7 @@
     "commands": [
       {
         "command": "synapse.runVerify",
-        "title": "Synapse Hub: Run 10 Quality Gates DoD Verification",
+        "title": "Synapse Hub: Run 11 Quality Gates DoD Verification",
         "category": "Synapse Hub",
         "icon": "$(shield)"
       },
@@ -194,6 +194,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable real-time in-editor AST scanning for fake passes, static sleeps, and Clean POM violations."
+        },
+        "synapse.enableLspMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use the Universal QA Language Server (synapse lsp, LSP 3.17 stdio) for cross-file POM diagnostics and Quick-Fix WorkspaceEdits."
         },
         "synapse.strictCleanPom": {
           "type": "boolean",

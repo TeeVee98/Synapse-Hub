@@ -160,14 +160,14 @@ class TestCoverageFloorCalibration(unittest.TestCase):
         with open(pyproject_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Verify fail_under = 60
+        # Verify monotonic coverage ratchet floor >= 65% (stepped up from 60% toward 80%)
         match = re.search(r'\[tool\.coverage\.report\][^\[]*?fail_under\s*=\s*(\d+)', content, re.DOTALL)
         self.assertIsNotNone(match, "Could not find [tool.coverage.report] fail_under in pyproject.toml")
         fail_under_val = int(match.group(1))
-        self.assertEqual(fail_under_val, 60, f"fail_under should be 60, but got {fail_under_val}")
+        self.assertGreaterEqual(fail_under_val, 65, f"fail_under should be >= 65, but got {fail_under_val}")
 
         # Verify progression comments
-        self.assertIn("60%", content)
+        self.assertIn("65%", content)
         self.assertIn("80%", content)
 
     def test_pyproject_coverage_precision(self):

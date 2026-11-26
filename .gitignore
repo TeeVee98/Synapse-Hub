@@ -96,9 +96,12 @@ desktop.ini
 *.swp
 *.swo
 *.vsix
+editors/vscode/dist/*.vsix
 
 # Local reference clones of third-party ecosystem repos (never commit)
 claude-ecosystem-repos/
 reference_repos/
 scratch/
+decisions.tsv
+
 

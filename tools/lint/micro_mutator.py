@@ -194,10 +194,38 @@ ACTION_STATEMENT_PATTERN = re.compile(
     re.IGNORECASE
 )
 
+try:
+    from tools.context.pom_assertion_indexer import (
+        CrossFileAssertionMapDTO,
+        build_pom_assertion_index,
+    )
+except ImportError:
+    try:
+        from context.pom_assertion_indexer import (
+            CrossFileAssertionMapDTO,
+            build_pom_assertion_index,
+        )
+    except ImportError:
+        CrossFileAssertionMapDTO = None  # type: ignore
+        build_pom_assertion_index = None  # type: ignore
+
 # Assertion and verification patterns
 ASSERTION_PATTERN = re.compile(
     r'\b(verify[A-Za-z0-9_]*|assert[A-Za-z0-9_]*|waitForToast|checkStatus|assertEquals|assertTrue|assertFalse|assertThat|expect|ensure[A-Z][A-Za-z0-9_]*Exists)\b'
 )
+
+
+def _line_matches_assertion(text: str, assertion_map: Optional[Any] = None) -> bool:
+    """Returns True if `text` contains a direct assertion or verified cross-file POM assertion call."""
+    if ASSERTION_PATTERN.search(text):
+        return True
+    if assertion_map is not None:
+        methods = getattr(assertion_map, "assertion_methods", None)
+        if methods:
+            for m in re.finditer(r'(?:\b[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\(', text):
+                if m.group(1) in methods:
+                    return True
+    return False
 
 # Tautological / fake assertions that do not test application logic
 TAUTOLOGY_PATTERN = re.compile(
@@ -605,6 +633,7 @@ def generate_mutants_for_code(
     code: str,
     file_path: str = "",
     target_lines: Optional[Set[int]] = None,
+    assertion_map: Optional[Any] = None,
 ) -> List[Dict[str, Any]]:
     """
     Generates single-point syntactic mutants from source code string.
@@ -672,7 +701,7 @@ def generate_mutants_for_code(
             continue
 
         # Statement Deletion Mutant (Simulates omitted UI action or bypassed step)
-        if ACTION_STATEMENT_PATTERN.search(stripped) and not ASSERTION_PATTERN.search(stripped):
+        if ACTION_STATEMENT_PATTERN.search(stripped) and not _line_matches_assertion(stripped, assertion_map):
             indent = line[:len(line) - len(line.lstrip())]
             if file_path.endswith((".py", ".pyw")):
                 mutated_line = f"{indent}pass  # MUTANT_DELETED: {stripped}\n"
@@ -843,12 +872,16 @@ def evaluate_adaptive_mutation_score(
     return (score >= min_score), score, "STANDARD_RATIO"
 
 
-def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], float]:
+def evaluate_mutants_statically(
+    code: str,
+    mutants: List[Dict[str, Any]],
+    assertion_map: Optional[Any] = None,
+) -> Tuple[List[Dict[str, Any]], float]:
     """
     Static assertion sensitivity evaluation:
     - If file has zero assertions or only tautological assertions (e.g. assert true): all mutants SURVIVE.
     - If mutant alters an assertion directly: mutant is KILLED.
-    - If mutant alters logic that is verified downstream by an active assertion: mutant is KILLED.
+    - If mutant alters logic that is verified downstream by an active assertion (including cross-file POM helpers): mutant is KILLED.
     - If mutant is inside an unasserted block or swallowed exception: mutant SURVIVES.
     """
     if not mutants:
@@ -857,13 +890,13 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
     lines = code.splitlines()
     has_empty_catch = bool(EMPTY_CATCH_PATTERN.search(code))
 
-    # Identify lines containing assertions (including multiline calls)
+    # Identify lines containing assertions (including multiline calls & cross-file POM assertion helpers)
     assertion_entries = []
     for idx, line in enumerate(lines, start=1):
         s = line.strip()
         if s.startswith(("//", "#", "/*")):
             continue
-        if ASSERTION_PATTERN.search(s) and not TAUTOLOGY_PATTERN.search(s):
+        if _line_matches_assertion(s, assertion_map) and not TAUTOLOGY_PATTERN.search(s):
             full_text = [s]
             open_parens = s.count('(') - s.count(')') + s.count('[') - s.count(']')
             j = idx
@@ -872,6 +905,8 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
                 full_text.append(next_line)
                 open_parens += next_line.count('(') - next_line.count(')') + next_line.count('[') - next_line.count(']')
                 j += 1
+            if j < len(lines) and lines[j].strip().startswith("."):
+                full_text.append(lines[j].strip())
             assertion_entries.append((idx, ' '.join(full_text)))
 
     # Zero valid assertions across code -> all mutants survive (Fake Pass!)
@@ -899,7 +934,11 @@ def evaluate_mutants_statically(code: str, mutants: List[Dict[str, Any]]) -> Tup
         line_text = lines[m_line - 1].strip() if 1 <= m_line <= len(lines) else ""
 
         # Case 1: Mutation directly in an assertion statement
-        if ASSERTION_PATTERN.search(snippet) or m_line in assertion_line_set or ASSERTION_PATTERN.search(line_text):
+        if (
+            _line_matches_assertion(snippet, assertion_map)
+            or m_line in assertion_line_set
+            or _line_matches_assertion(line_text, assertion_map)
+        ):
             if TAUTOLOGY_PATTERN.search(snippet) or TAUTOLOGY_PATTERN.search(line_text):
                 m["status"] = "SURVIVED"
                 m["reason"] = "Mutant in tautological/dummy assertion - cannot kill mutant without genuine assertion logic"

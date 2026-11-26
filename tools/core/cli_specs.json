@@ -678,26 +678,6 @@
   },
   "core_commands": [
     [
-      "doctor",
-      "cmd_doctor"
-    ],
-    [
-      "new",
-      "cmd_new"
-    ],
-    [
-      "scaffold-tc",
-      "cmd_scaffold_tc"
-    ],
-    [
-      "setup",
-      "cmd_setup"
-    ],
-    [
-      "init-config",
-      "cmd_init_config"
-    ],
-    [
       "lint",
       "cmd_lint"
     ],
@@ -710,46 +690,54 @@
       "cmd_verify"
     ],
     [
-      "export-excel",
-      "cmd_export_excel"
+      "mutate",
+      "cmd_mutate"
     ],
     [
-      "welcome",
-      "cmd_welcome"
-    ],
-    [
-      "onboard",
-      "cmd_onboard"
-    ],
-    [
-      "ui",
-      "cmd_ui"
-    ],
-    [
-      "dashboard",
-      "cmd_dashboard"
+      "distill",
+      "cmd_distill"
     ],
     [
       "analyze",
       "cmd_analyze"
     ],
     [
-      "set-lang",
-      "cmd_set_lang"
+      "export-excel",
+      "cmd_export_excel"
+    ],
+    [
+      "scaffold-tc",
+      "cmd_scaffold_tc"
+    ],
+    [
+      "mcp-serve",
+      "cmd_mcp_serve"
+    ],
+    [
+      "lsp",
+      "cmd_lsp"
+    ],
+    [
+      "doctor",
+      "cmd_doctor"
+    ],
+    [
+      "new",
+      "cmd_new"
     ]
   ],
   "advanced_highlights": [
     [
-      "mutate",
-      "cmd_mutate"
+      "lab",
+      "cmd_lab"
+    ],
+    [
+      "fpr-bench",
+      "cmd_fpr_bench"
     ],
     [
       "auto-heal",
       "cmd_auto_heal"
-    ],
-    [
-      "som",
-      "cmd_som"
     ],
     [
       "fuzz-api",
@@ -4996,6 +4984,122 @@
         "$vi": "Ghi hoặc kiểm tra nhật ký quyết định append-only decisions.tsv theo phiên"
       },
       "handler": "cmd_decision_log"
+    },
+    {
+      "name": "lsp",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "--check-health"
+          ],
+          "action": "store_true",
+          "help": "Run LSP server self-diagnostics and exit"
+        },
+        {
+          "flags": [
+            "--root"
+          ],
+          "default": ".",
+          "help": "Workspace root directory for cross-file POM indexing"
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": "Emit health diagnostics as JSON"
+        }
+      ],
+      "help": {
+        "$en": "Start the JSON-RPC 2.0 stdio Universal QA Language Server (JetBrains, Neovim, VS Code)",
+        "$vi": "Start the JSON-RPC 2.0 stdio Universal QA Language Server (JetBrains, Neovim, VS Code)"
+      },
+      "handler": "cmd_lsp"
+    },
+    {
+      "name": "lab",
+      "group": "platform_and_tools",
+      "args": [
+        {
+          "flags": [
+            "lab_cmd"
+          ],
+          "nargs": "?",
+          "default": null,
+          "help": "Specialized lab subcommand name to execute"
+        },
+        {
+          "flags": [
+            "lab_args"
+          ],
+          "nargs": "...",
+          "help": "Arguments forwarded to the lab subcommand"
+        },
+        {
+          "flags": [
+            "--list"
+          ],
+          "action": "store_true",
+          "dest": "list_lab",
+          "help": "List all specialized lab commands"
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "dest": "json_output",
+          "help": "Output stratified CLI command registry as JSON"
+        }
+      ],
+      "help": {
+        "$en": "Execute or list specialized contrib/research commands (legacy top-level aliases remain active)",
+        "$vi": "Execute or list specialized contrib/research commands (legacy top-level aliases remain active)"
+      },
+      "handler": "cmd_lab"
+    },
+    {
+      "name": "fpr-bench",
+      "group": "testing_and_execution",
+      "args": [
+        {
+          "flags": [
+            "--root"
+          ],
+          "default": ".",
+          "help": "Repository root to benchmark"
+        },
+        {
+          "flags": [
+            "--max-fpr"
+          ],
+          "type": "$float",
+          "default": 5.0,
+          "help": "Maximum allowed false-positive rate percentage (default: 5.0)"
+        },
+        {
+          "flags": [
+            "--max-p95-ms"
+          ],
+          "type": "$float",
+          "default": 50.0,
+          "help": "Maximum allowed P95 scan latency in milliseconds (default: 50.0)"
+        },
+        {
+          "flags": [
+            "--json"
+          ],
+          "action": "store_true",
+          "help": "Emit benchmark receipt as JSON"
+        }
+      ],
+      "help": {
+        "$en": "Run empirical real-world False-Positive Rate (FPR <= 5.0%) & latency benchmark",
+        "$vi": "Run empirical real-world False-Positive Rate (FPR <= 5.0%) & latency benchmark",
+        "$pct": true
+      },
+      "handler": "cmd_fpr_bench"
     }
   ]
 }

@@ -26,7 +26,7 @@ except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
 
 import os
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from tools.transpiler.universal_ir import (
@@ -141,13 +141,121 @@ class OmniParser:
 
         return cls.parse_code(content, file_path)
 
+    @staticmethod
+    def _extract_brace_body(content: str, open_brace_idx: int) -> Tuple[str, int]:
+        """Extracts a balanced `{ ... }` block skipping braces inside quotes and comments."""
+        depth = 0
+        n = len(content)
+        in_single = False
+        in_double = False
+        in_backtick = False
+        in_line_comment = False
+        in_block_comment = False
+        escaped = False
+        i = open_brace_idx
+
+        while i < n:
+            ch = content[i]
+            nxt = content[i + 1] if i + 1 < n else ""
+            if in_line_comment:
+                if ch == "\n":
+                    in_line_comment = False
+                i += 1
+                continue
+            if in_block_comment:
+                if ch == "*" and nxt == "/":
+                    in_block_comment = False
+                    i += 2
+                    continue
+                i += 1
+                continue
+            if in_single or in_double or in_backtick:
+                if escaped:
+                    escaped = False
+                elif ch == "\\":
+                    escaped = True
+                elif in_single and ch == "'":
+                    in_single = False
+                elif in_double and ch == '"':
+                    in_double = False
+                elif in_backtick and ch == "`":
+                    in_backtick = False
+                i += 1
+                continue
+
+            if ch == "/" and nxt == "/":
+                in_line_comment = True
+                i += 2
+                continue
+            if ch == "/" and nxt == "*":
+                in_block_comment = True
+                i += 2
+                continue
+            if ch == "'":
+                in_single = True
+                i += 1
+                continue
+            if ch == '"':
+                in_double = True
+                i += 1
+                continue
+            if ch == "`":
+                in_backtick = True
+                i += 1
+                continue
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return content[open_brace_idx + 1 : i], i
+            i += 1
+        return "", -1
+
+    @staticmethod
+    def _try_optional_tree_sitter(language: str, content: str) -> Optional[Any]:
+        """Optional Tree-Sitter CST parse via pom_assertion_indexer when installed."""
+        try:
+            from tools.context.pom_assertion_indexer import load_optional_tree_sitter_parser
+
+            parser = load_optional_tree_sitter_parser(language)
+            if parser is not None:
+                return parser.parse(content.encode("utf-8"))
+        except Exception:
+            return None
+        return None
+
+    @staticmethod
+    def _extract_class_name_from_ts_tree(ts_tree: Any, content_bytes: bytes) -> Optional[str]:
+        """Walks a Tree-Sitter CST root node to extract the primary class declaration identifier."""
+        root = getattr(ts_tree, "root_node", None) if ts_tree is not None else None
+        if root is None or getattr(root, "has_error", False):
+            return None
+        stack = list(reversed(getattr(root, "children", None) or []))
+        while stack:
+            node = stack.pop()
+            if getattr(node, "type", "") in ("class_declaration", "abstract_class_declaration"):
+                cbf = getattr(node, "child_by_field_name", None)
+                name_node = cbf("name") if callable(cbf) else None
+                if name_node is not None:
+                    raw = content_bytes[int(name_node.start_byte) : int(name_node.end_byte)].decode(
+                        "utf-8", errors="replace"
+                    ).strip()
+                    if raw:
+                        return raw
+            for ch in reversed(getattr(node, "children", None) or []):
+                stack.append(ch)
+        return None
+
     # -------------------------------------------------------------------------
     # TypeScript / JavaScript Parser
     # -------------------------------------------------------------------------
     @classmethod
     def _parse_ts_js(cls, content: str, project: ProjectIR, framework: str):
+        ts_tree = cls._try_optional_tree_sitter("typescript", content)
+        ast_cls_name = cls._extract_class_name_from_ts_tree(ts_tree, content.encode("utf-8"))
         class_match = re.search(r"class\s+([A-Za-z0-9_]+)(?:\s+extends\s+([A-Za-z0-9_]+))?", content)
-        page_name = class_match.group(1) if class_match else f"{project.name}Page"
+        page_name = ast_cls_name or (class_match.group(1) if class_match else f"{project.name}Page")
         base_class = class_match.group(2) if (class_match and class_match.group(2)) else "BasePage"
 
         page = PageClassIR(name=page_name, base_class=base_class)
@@ -197,10 +305,19 @@ class OmniParser:
 
         page.locators = list(locators.values())
 
-        # Methods
-        method_blocks = re.findall(r"(async\s+)?([A-Za-z0-9_$]+)\s*\(([^)]*)\)\s*(?::\s*[^\{]+)?\s*\{([^}]+)\}", content, re.MULTILINE)
-        for _, m_name, params_str, body in method_blocks:
-            if m_name in ["constructor"]:
+        # Methods (brace-scoped multiline extraction supporting nested blocks)
+        ts_method_re = re.compile(
+            r"(?m)^[ \t]*(?:(?:public|private|protected|static|override)\s+)*(async\s+)?([A-Za-z0-9_$]+)\s*\(([^)]*)\)\s*(?::\s*[^\{;]+)?\s*\{"
+        )
+        ts_skip = {"constructor", "if", "for", "while", "switch", "catch", "function", "test", "it", "describe"}
+        for m in ts_method_re.finditer(content):
+            m_name = m.group(2)
+            params_str = m.group(3)
+            if m_name in ts_skip:
+                continue
+            open_idx = content.rfind("{", m.start(), m.end())
+            body, _ = cls._extract_brace_body(content, open_idx)
+            if not body:
                 continue
             params = [p.strip().split(":")[0].strip() for p in params_str.split(",") if p.strip()]
             steps = cls._extract_steps_from_body(body)
@@ -208,14 +325,14 @@ class OmniParser:
 
         project.pages.append(page)
 
-        # Test cases (Playwright `test(...)` or Cypress / Mocha `it(...)`)
-        test_blocks = re.findall(
-            r"(?:test|it)(?:\.only|\.skip)?\s*\(\s*(?:\"([^\"]*)\"|'([^']*)')\s*,\s*(?:async\s*)?(?:\([^)]*\)|function\s*\([^)]*\))\s*=>?\s*\{([^}]+)\}",
-            content,
-            re.MULTILINE
+        # Test cases (Playwright `test(...)` or Cypress / Mocha `it(...)`, brace-scoped)
+        ts_test_re = re.compile(
+            r"(?:test|it)(?:\.only|\.skip)?\s*\(\s*(?:\"([^\"]*)\"|'([^']*)')\s*,\s*(?:async\s*)?(?:\([^)]*\)|function\s*\([^)]*\))\s*=>?\s*\{"
         )
-        for idx, (t_m1, t_m2, t_body) in enumerate(test_blocks, 1):
-            t_title = t_m1 if t_m1 else t_m2
+        for idx, tm in enumerate(ts_test_re.finditer(content), 1):
+            t_title = tm.group(1) if tm.group(1) else tm.group(2)
+            open_idx = content.rfind("{", tm.start(), tm.end())
+            t_body, _ = cls._extract_brace_body(content, open_idx)
             steps = cls._extract_steps_from_body(t_body)
             project.test_cases.append(TestCaseIR(id=f"TC_{idx:03d}", title=t_title, steps=steps))
 
@@ -224,6 +341,7 @@ class OmniParser:
     # -------------------------------------------------------------------------
     @classmethod
     def _parse_java(cls, content: str, project: ProjectIR, framework: str):
+        cls._try_optional_tree_sitter("java", content)
         class_match = re.search(r"public\s+class\s+([A-Za-z0-9_]+)(?:\s+extends\s+([A-Za-z0-9_]+))?", content)
         page_name = class_match.group(1) if class_match else f"{project.name}Page"
         base_class = class_match.group(2) if (class_match and class_match.group(2)) else "BasePage"
@@ -257,10 +375,19 @@ class OmniParser:
 
         page.locators = list(locators.values())
 
-        # 3. Methods
-        method_blocks = re.findall(r"(?:public|protected|private)\s+([A-Za-z0-9_<>\s]+)\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*(?:throws\s+[A-Za-z0-9_,\s]+)?\s*\{([^}]+)\}", content, re.MULTILINE)
-        for ret_type, m_name, params_str, body in method_blocks:
+        # 3. Methods (brace-scoped multiline extraction)
+        java_method_re = re.compile(
+            r"(?:public|protected|private)\s+([A-Za-z0-9_<>\s]+?)\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*(?:throws\s+[A-Za-z0-9_,\s]+)?\s*\{"
+        )
+        for m in java_method_re.finditer(content):
+            ret_type = m.group(1)
+            m_name = m.group(2)
+            params_str = m.group(3)
             if m_name == page_name:
+                continue
+            open_idx = content.rfind("{", m.start(), m.end())
+            body, _ = cls._extract_brace_body(content, open_idx)
+            if not body:
                 continue
             params = [p.strip().split()[-1] for p in params_str.split(",") if p.strip()]
             steps = cls._extract_steps_from_body(body)
@@ -268,9 +395,12 @@ class OmniParser:
 
         project.pages.append(page)
 
-        # 4. TestNG / JUnit
-        test_matches = re.findall(r"@Test[^\n]*\s*(?:public|void|\s)+([A-Za-z0-9_]+)\s*\([^)]*\)[^{]*\{([^}]+)\}", content, re.MULTILINE)
-        for idx, (t_name, t_body) in enumerate(test_matches, 1):
+        # 4. TestNG / JUnit (brace-scoped)
+        java_test_re = re.compile(r"@Test[^\n]*\s*(?:public|void|\s)+([A-Za-z0-9_]+)\s*\([^)]*\)[^{]*\{")
+        for idx, tm in enumerate(java_test_re.finditer(content), 1):
+            t_name = tm.group(1)
+            open_idx = content.rfind("{", tm.start(), tm.end())
+            t_body, _ = cls._extract_brace_body(content, open_idx)
             steps = cls._extract_steps_from_body(t_body)
             project.test_cases.append(TestCaseIR(id=f"TC_{idx:03d}", title=t_name, steps=steps))
 
@@ -279,6 +409,7 @@ class OmniParser:
     # -------------------------------------------------------------------------
     @classmethod
     def _parse_groovy(cls, content: str, project: ProjectIR, framework: str):
+        cls._try_optional_tree_sitter("groovy", content)
         class_match = re.search(r"class\s+([A-Za-z0-9_]+)(?:\s+extends\s+([A-Za-z0-9_]+))?", content)
         page_name = class_match.group(1) if class_match else f"{project.name}Page"
         base_class = class_match.group(2) if (class_match and class_match.group(2)) else "BasePage"
@@ -299,10 +430,18 @@ class OmniParser:
 
         page.locators = list(locators.values())
 
-        # Methods
-        method_blocks = re.findall(r"(?:(?:public|private|protected|def|static|void|[A-Za-z0-9_<>]+)\s+)+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*\{([^}]+)\}", content, re.MULTILINE)
-        for m_name, params_str, body in method_blocks:
-            if m_name in [page_name, "main"]:
+        # Methods (brace-scoped multiline extraction)
+        groovy_method_re = re.compile(
+            r"(?m)^[ \t]*(?:(?:public|private|protected|def|static|void|[A-Za-z0-9_<>]+)\s+)+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*\{"
+        )
+        for m in groovy_method_re.finditer(content):
+            m_name = m.group(1)
+            params_str = m.group(2)
+            if m_name in [page_name, "main", "if", "for", "while", "switch", "catch"]:
+                continue
+            open_idx = content.rfind("{", m.start(), m.end())
+            body, _ = cls._extract_brace_body(content, open_idx)
+            if not body:
                 continue
             params = [p.strip().split()[-1] for p in params_str.split(",") if p.strip()]
             steps = cls._extract_steps_from_body(body)

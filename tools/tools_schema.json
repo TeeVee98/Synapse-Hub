@@ -1120,7 +1120,10 @@
           "choices": [
             "xray",
             "testrail",
-            "jira"
+            "jira",
+            "zephyr",
+            "qase",
+            "reportportal"
           ],
           "default": "xray",
           "required": false,
@@ -3859,6 +3862,79 @@
       },
       "examples": [
         "python3 tools/transpiler/traffic_session_converter.py --help"
+      ]
+    },
+    "pom_assertion_indexer": {
+      "path": "tools/context/pom_assertion_indexer.py",
+      "command": "python3 tools/context/pom_assertion_indexer.py",
+      "summary": "Cross-File Page Object & Fixture Assertion Symbol Indexer",
+      "args": {
+        "--root": {
+          "type": "string",
+          "default": ".",
+          "required": false,
+          "help": "Workspace root directory to index"
+        },
+        "--max-depth": {
+          "type": "integer",
+          "default": 3,
+          "required": false,
+          "help": "Max transitive call depth"
+        },
+        "--max-files": {
+          "type": "integer",
+          "default": 2000,
+          "required": false,
+          "help": "Maximum source files to scan"
+        },
+        "--no-tree-sitter": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Force deterministic stdlib parser even if tree-sitter-language-pack is installed"
+        },
+        "--check-file": {
+          "type": "string",
+          "required": false,
+          "help": "Optional single file path to emit PolyglotAstTreeResultDTO summary"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Emit JSON output"
+        }
+      },
+      "examples": [
+        "python3 tools/context/pom_assertion_indexer.py --root . --json"
+      ]
+    },
+    "qa_lsp_server": {
+      "path": "tools/mcp/qa_lsp_server.py",
+      "command": "python3 tools/mcp/qa_lsp_server.py",
+      "summary": "Universal QA Language Server (LSP 3.17 over JSON-RPC 2.0 stdio)",
+      "args": {
+        "--root": {
+          "type": "string",
+          "default": ".",
+          "required": false,
+          "help": "Workspace root for cross-file POM indexing"
+        },
+        "--check-health": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Run LSP server self-diagnostics and exit"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Emit health report as JSON"
+        }
+      },
+      "examples": [
+        "python3 tools/mcp/qa_lsp_server.py --check-health --json"
       ]
     }
   },
