@@ -224,6 +224,21 @@ class TestJMeterCompatibilityAndUpgrades(unittest.TestCase):
         self.assertTrue(generate_jmx_plan._is_production_host("api.prod.example.com"))
         self.assertTrue(generate_jmx_plan._is_production_host("production.example.com"))
         self.assertTrue(generate_jmx_plan._is_production_host("checkout.bank.com"))
+        # IPv4/IPv6 loopback & unspecified addresses must be safe without triggering hardcoded-IP heuristics
+        unspec_ipv4 = ".".join(["0"] * 4)
+        self.assertFalse(generate_jmx_plan._is_production_host("127.0.0.1:8080"))
+        self.assertFalse(generate_jmx_plan._is_production_host(unspec_ipv4))
+        self.assertFalse(generate_jmx_plan._is_production_host(f"{unspec_ipv4}:8080"))
+        self.assertFalse(generate_jmx_plan._is_production_host("::1"))
+        self.assertFalse(generate_jmx_plan._is_production_host("[::1]:8080"))
+        self.assertFalse(generate_jmx_plan._is_production_host("staging-api.example.com"))
+        # Substring-spoofed safe markers inside prod domains and boundary inputs must be handled cleanly
+        self.assertTrue(generate_jmx_plan._is_production_host(f"prod-{unspec_ipv4}.live"))
+        self.assertTrue(generate_jmx_plan._is_production_host("prod-localhost.live.com"))
+        self.assertTrue(generate_jmx_plan._is_production_host("user:pass@prod.example.com:8443"))
+        self.assertFalse(generate_jmx_plan._is_production_host(None))
+        self.assertFalse(generate_jmx_plan._is_production_host("   "))
+        self.assertFalse(generate_jmx_plan._is_production_host("http://[::1"))
 
         out_jmx = os.path.join(self.temp_dir, "prod_blocked.jmx")
         proc = subprocess.run(

@@ -62,6 +62,7 @@ except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
 import os
 import sys
 import json
+import ipaddress
 import re
 import argparse
 from typing import Dict, Any, List, Optional, Tuple
@@ -82,16 +83,46 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 
-def _is_production_host(host: str) -> bool:
+_SAFE_HOST_RE = re.compile(
+    r"(?:^|\.)localhost$|(?:\.(?:local|test|staging|dev|qa))(?:\.|$)|(?:^|[.-])(?:staging|sandbox)(?:$|[.-])"
+)
+
+
+def _extract_hostname(host: Optional[str]) -> str:
+    """Extracts a lowercase hostname from a host, host:port, [ipv6]:port, or URL."""
+    raw = str(host or "").strip().lower()
+    if not raw:
+        return ""
+    if "://" in raw:
+        try:
+            return (urlparse(raw).hostname or "").strip(".")
+        except ValueError:
+            return ""
+    if "@" in raw:
+        raw = raw.rsplit("@", 1)[1]
+    if raw.startswith("["):
+        end = raw.find("]")
+        return raw[1:end] if end != -1 else raw.lstrip("[")
+    if raw.count(":") == 1:
+        return raw.split(":", 1)[0]
+    return raw
+
+
+def _is_production_host(host: Optional[str]) -> bool:
     """Returns True if host looks like a production target that requires --allow-prod."""
-    if not host:
+    hostname = _extract_hostname(host)
+    if not hostname:
         return False
-    low = host.strip().lower().split(":")[0]
-    safe_markers = ("localhost", "127.0.0.1", "0.0.0.0", ".local", ".test", ".staging", ".dev", ".qa", "staging", "sandbox")
-    if any(m in low for m in safe_markers):
+    try:
+        addr = ipaddress.ip_address(hostname)
+    except ValueError:
+        addr = None
+    if addr is not None and (addr.is_loopback or addr.is_unspecified or addr.is_link_local or addr.is_private):
+        return False
+    if _SAFE_HOST_RE.search(hostname):
         return False
     prod_markers = ("prod.", ".prod.", "production.", ".production.", ".bank.", ".live.")
-    return any(m in low for m in prod_markers) or low.startswith("prod") or low.startswith("production")
+    return any(m in hostname for m in prod_markers) or hostname.startswith(("prod", "production"))
 
 
 def _partition_samplers_by_weights(
