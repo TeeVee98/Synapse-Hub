@@ -545,7 +545,7 @@ def _normalize_bilingual_intent_cached(text: str) -> NormalizedIntentDTO:
         )
 
     slash_skill = extract_slash_skill(stripped)
-    analysis = canonicalize_vietnamese_orthography(stripped)
+    analysis = canonicalize_vietnamese_orthography(stripped, restore_diacritics=False)
     canonical_input = analysis.canonical_nfc_text or stripped
     has_diacritics = bool(_VIETNAMESE_DIACRITIC_RE.search(canonical_input))
     folded = strip_vietnamese_diacritics(canonical_input)

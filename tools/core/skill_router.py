@@ -271,7 +271,7 @@ def classify_intent(prompt: str) -> str:
     p = (prompt or "").strip()
     if not p:
         return "INQUIRY"
-    canonical_p = canonicalize_vietnamese_orthography(p).canonical_nfc_text or p
+    canonical_p = canonicalize_vietnamese_orthography(p, restore_diacritics=False).canonical_nfc_text or p
     folded = strip_vietnamese_diacritics(canonical_p)
     targets = (canonical_p, folded)
 

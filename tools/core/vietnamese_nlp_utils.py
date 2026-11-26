@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+from functools import lru_cache
 import math
 import re
 from typing import Dict, List, Mapping, Optional, Sequence, Tuple
@@ -174,10 +175,9 @@ def _split_vi_onset(base_token: str) -> Tuple[str, str]:
     return "", base_token
 
 
-def is_valid_vietnamese_syllable(token: str) -> bool:
-    """Validates whether a token conforms to Vietnamese syllable phonotactics."""
-    if not token or not isinstance(token, str):
-        return False
+@lru_cache(maxsize=512)
+def _is_valid_vi_syllable_cached(token: str) -> bool:
+    """Cached phonotactic Vietnamese syllable validator for O(1) repeated-token lookups."""
     low = _canonicalize_tone_placement(token.strip()).lower()
     if not low or len(low) > 7 or not low.isalpha():
         return False
@@ -204,6 +204,13 @@ def is_valid_vietnamese_syllable(token: str) -> bool:
     if has_diacritics and tone is not None and rhyme.endswith(_STOP_CODAS):
         return tone in _STOP_CODA_ALLOWED_TONES
     return True
+
+
+def is_valid_vietnamese_syllable(token: str) -> bool:
+    """Validates whether a token conforms to Vietnamese syllable phonotactics."""
+    if not token or not isinstance(token, str):
+        return False
+    return _is_valid_vi_syllable_cached(token)
 
 
 # ------------------------------------------------------------------------------
@@ -589,6 +596,7 @@ def canonicalize_vietnamese_orthography(
     text: str,
     expand_shorthand: bool = True,
     expand_guarded_telex: bool = True,
+    restore_diacritics: bool = True,
 ) -> SyllabicAnalysisDTO:
     """Runs NFC/tone canonicalization, guarded Telex/shorthand expansion, and phonotactic scoring."""
     if not isinstance(text, str) or not text:
@@ -614,7 +622,11 @@ def canonicalize_vietnamese_orthography(
             had_expansion = had_expansion or seg_changed
 
     canonical_nfc = _canonicalize_tone_placement("".join(rebuilt))
-    restored = restore_qa_vietnamese_diacritics(canonical_nfc) if vi_context else canonical_nfc
+    restored = (
+        restore_qa_vietnamese_diacritics(canonical_nfc)
+        if (restore_diacritics and vi_context)
+        else canonical_nfc
+    )
 
     # Compute phonotactic syllable ratio across alpha tokens in canonical_nfc
     alpha_tokens = [tok for tok in re.findall(r"[A-Za-zÀ-ỹà-ỹđĐ]+", canonical_nfc)]
