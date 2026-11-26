@@ -74,7 +74,7 @@ flowchart LR
 
 ## ⚡ Quickstart in 3 Minutes by Persona (Universal Onboarding 🚀)
 
-You **never need to memorize 57 skills** or 166 internal tools. Choose the path tailored to your role:
+You **never need to memorize 57 skills** or 166 internal tools. For a 1-page team cheat sheet, open **[⚡ 1-Page QC Team Quickstart](docs/QC_QUICKSTART.en.md)** — or choose the path tailored to your role:
 
 ### 👔 1. Manual QA & QC (Zero-Code)
 > *Goal: Design test cases, verify business requirements, export 12-column Enterprise Excel spreadsheets, and transpile manual test cases into Clean POM automation code without writing code.*
@@ -119,9 +119,9 @@ npx @teevee98/synapse-hub setup --target .
 npx @teevee98/synapse-hub verify
 ```
 
-> 💡 **Node.js CLI vs Python CLI (`synapse-hub` / `synapse`):**  
-> - **Node.js / NPX (`npx @teevee98/synapse-hub` or `npm install -g @teevee98/synapse-hub`):** Ships the full Hub distribution (57 skills, `examples/`, templates, and IDE bridges), dispatching 153 allowlisted commands through `bin/agent-qa.js` to Python 3.10+.  
-> - **Python / PyPI (`pip install synapse-hub`):** Installs the pure-Python core CLI & SDK (`synapse` / `synapse-hub` / `agent-qa`) with optional extras (`[excel,vision,treesitter,ai-optimizer,all]`) without requiring Node.js. Standalone binaries are published on [GitHub Releases](https://github.com/TeeVee98/Synapse-Hub/releases/latest).
+> 💡 **Verified Installation Channels (Node.js CLI & Python GitHub Source):**  
+> - **Node.js / NPX (`npx @teevee98/synapse-hub` or `npm install -g @teevee98/synapse-hub`):** Recommended — ships the full Hub distribution (57 skills, `examples/`, templates, and IDE bridges), dispatching 153 allowlisted commands through `bin/agent-qa.js` to Python 3.10+.  
+> - **Python from GitHub (`pip install git+https://github.com/TeeVee98/Synapse-Hub.git`):** Installs the pure-Python core CLI & SDK (`synapse` / `synapse-hub` / `agent-qa`) directly from GitHub source with optional extras (`[excel,vision,treesitter,ai-optimizer,all]`) without requiring Node.js. Release artifacts are published on [GitHub Releases](https://github.com/TeeVee98/Synapse-Hub/releases/latest).
 >
 > 📦 **Enterprise Reference Test Suites:** Inspect working sample projects adhering to Clean POM & Guardrails in [`examples/`](examples/):  
 > [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite) • [📱 Mobile Appium](examples/mobile-crm-suite) • [⚡ Perf k6/Locust](examples/perf-backend-suite)

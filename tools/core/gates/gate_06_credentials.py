@@ -56,6 +56,7 @@ def gate_6_credential_security(repo_root: str, mode: str = "AUTO", fast: bool = 
         (re.compile(r'\bAIza[0-9A-Za-z-_]{35}\b'), "Google API Key"),
         (re.compile(r'-----BEGIN (?:RSA )?PRIVATE KEY-----'), "Private Key Header"),
         (re.compile(r'\beyJ[a-zA-Z0-9_-]{10,}\.eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\b'), "JSON Web Token (JWT)"),
+        (re.compile(r'\b\d{8,12}:AA[A-Za-z0-9_-]{33}\b'), "Telegram Bot Token"),
     ]
 
     password_patterns = [

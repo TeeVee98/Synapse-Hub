@@ -74,7 +74,7 @@ flowchart LR
 
 ## ⚡ Bắt Đầu Nhanh Trong 3 Phút Theo Vai Trò (Universal Onboarding 🚀)
 
-Bạn **không cần học hết 57 kỹ năng** hay 166 công cụ để bắt đầu. Hãy chọn ngay lối vào phù hợp nhất với bạn:
+Bạn **không cần học hết 57 kỹ năng** hay 166 công cụ để bắt đầu. Nếu bạn cần bản tóm tắt 1 trang cho đội QC, xem ngay **[⚡ Hướng Dẫn Nhanh 1 Trang Cho Đội QC](docs/QC_QUICKSTART.md)** — hoặc chọn lối vào phù hợp nhất với bạn:
 
 ### 👔 1. Bạn là Manual QA / QC (Zero-Code)
 > *Mục tiêu: Thiết kế test case, kiểm tra logic yêu cầu, xuất file Excel 12 cột chuẩn quốc tế và tự động chuyển đổi test case thủ công thành mã Clean POM mà không cần viết code.*
@@ -119,9 +119,9 @@ npx @teevee98/synapse-hub setup --target .
 npx @teevee98/synapse-hub verify
 ```
 
-> 💡 **Phân biệt Node.js CLI và Python CLI (`synapse-hub` / `synapse`):**  
-> - **Node.js / NPX (`npx @teevee98/synapse-hub` hoặc `npm install -g @teevee98/synapse-hub`):** Đóng gói đầy đủ toàn bộ kho kỹ năng, dự án mẫu `examples/`, và cầu nối AI IDE (gọi lõi Python 3.10+ qua `bin/agent-qa.js` với 153 lệnh cho phép).  
-> - **Python / PyPI (`pip install synapse-hub`):** Cài đặt lõi Python CLI + SDK (`synapse` / `synapse-hub` / `agent-qa`) với tùy chọn mở rộng `[excel,vision,treesitter,ai-optimizer,all]` (không cần Node.js). Các bản binary độc lập được phát hành tại [GitHub Releases](https://github.com/TeeVee98/Synapse-Hub/releases/latest).
+> 💡 **Các Kênh Cài Đặt Chính Thức (Node.js CLI & Python GitHub Source):**  
+> - **Node.js / NPX (`npx @teevee98/synapse-hub` hoặc `npm install -g @teevee98/synapse-hub`):** Khuyên dùng — đóng gói đầy đủ toàn bộ kho kỹ năng, dự án mẫu `examples/`, và cầu nối AI IDE (gọi lõi Python 3.10+ qua `bin/agent-qa.js` với 153 lệnh cho phép).  
+> - **Python từ GitHub (`pip install git+https://github.com/TeeVee98/Synapse-Hub.git`):** Cài đặt lõi Python CLI + SDK (`synapse` / `synapse-hub` / `agent-qa`) trực tiếp từ mã nguồn GitHub với tùy chọn mở rộng `[excel,vision,treesitter,ai-optimizer,all]` (không cần Node.js). Các bản phát hành khác được lưu tại [GitHub Releases](https://github.com/TeeVee98/Synapse-Hub/releases/latest).
 >
 > 📦 **Kho Dự Án Mẫu Doanh Nghiệp (Reference Suites):** Xem các dự án mẫu đã chuẩn hóa Clean POM & Guardrails tại [`examples/`](examples/):  
 > [🎭 Playwright TS](examples/playwright-crm-suite) • [🌲 Cypress E2E](examples/cypress-ecommerce-suite) • [🐍 Pytest API](examples/pytest-api-suite) • [☕ Katalon Studio](examples/katalon-suite) • [🌐 Selenium Java](examples/selenium-suite) • [📱 Mobile Appium](examples/mobile-crm-suite) • [⚡ Perf k6/Locust](examples/perf-backend-suite)

@@ -239,7 +239,8 @@ def test_no_indiscriminate_continue_on_error_in_workflows():
 
 
 def test_readme_install_recipe_parity():
-    """Verifies that README.md and README.en.md instruct 'pip install synapse-hub' rather than 'pip install agent-qa'."""
+    """Verifies that README.md and README.en.md use verified GitHub pip install instead of stale PyPI claims."""
+    expected_pip_recipe = "pip install git+https://github.com/TeeVee98/Synapse-Hub.git"
     for filename in ["README.md", "README.en.md"]:
         path = os.path.join(REPO_ROOT, filename)
         with open(path, "r", encoding="utf-8") as f:
@@ -247,8 +248,11 @@ def test_readme_install_recipe_parity():
         assert "pip install agent-qa" not in content, (
             f"{filename} contains outdated 'pip install agent-qa' reference"
         )
-        assert "pip install synapse-hub" in content, (
-            f"{filename} missing synchronized 'pip install synapse-hub' reference"
+        assert "pip install synapse-hub" not in content, (
+            f"{filename} contains unverified PyPI 'pip install synapse-hub' claim"
+        )
+        assert expected_pip_recipe in content, (
+            f"{filename} missing synchronized '{expected_pip_recipe}' reference"
         )
 
 

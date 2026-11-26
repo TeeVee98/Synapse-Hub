@@ -125,6 +125,40 @@ class TestGitPreCommitGuard(unittest.TestCase):
         self.assertGreaterEqual(len(violations), 1)
         self.assertIn("JSON Web Token (JWT)", violations[0][2])
 
+    def test_check_secrets_detects_telegram_bot_token_and_gate6_parity(self):
+        from tools.core.gates.gate_06_credentials import gate_6_credential_security
+
+        dummy_tg = "1234567890" + ":" + "AA" + ("A1b2C3d4E5f" * 3)
+        diff_text = f"""diff --git a/bot.py b/bot.py
+--- a/bot.py
++++ b/bot.py
+@@ -1,2 +1,3 @@
++BOT_TOKEN = "{dummy_tg}"
+"""
+        violations = git_pre_commit_guard.check_secrets(diff_text=diff_text)
+        self.assertGreaterEqual(len(violations), 1)
+        self.assertIn("Telegram Bot Token", violations[0][2])
+
+        # Boundary: short colon strings & env lookups must not false-positive
+        clean_diff = """diff --git a/bot.py b/bot.py
++++ b/bot.py
+@@ -1,2 +1,3 @@
++BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
++NOT_A_TOKEN = "12345678:short_value"
+"""
+        self.assertEqual(len(git_pre_commit_guard.check_secrets(diff_text=clean_diff)), 0)
+
+        # Gate 6 directory scan parity (blocks leaked token, allows # gate6-allowlist)
+        with tempfile.TemporaryDirectory() as td:
+            leaked = os.path.join(td, "leaked.py")
+            with open(leaked, "w", encoding="utf-8") as f:
+                f.write(f'TG = "{dummy_tg}"\n')
+            self.assertFalse(gate_6_credential_security(td, mode="TARGET"))
+
+            with open(leaked, "w", encoding="utf-8") as f:
+                f.write(f'TG = "{dummy_tg}"  # gate6-allowlist: synthetic test\n')
+            self.assertTrue(gate_6_credential_security(td, mode="TARGET"))
+
     def test_check_author_integrity_detects_missing_headers(self):
         with tempfile.TemporaryDirectory() as td:
             missing_header_file = os.path.join(td, "script.py")

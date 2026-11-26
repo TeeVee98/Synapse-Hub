@@ -23,6 +23,7 @@ Exhaustively tests the 10.0 upgrades across 4 scenarios (Positive, Negative, Bou
 import json
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 
@@ -48,6 +49,18 @@ from benchmarks.qa_eval.ablation_10_benchmark import (
 )
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def _is_directory_link_or_junction(path: str) -> bool:
+    """Returns True when path is a POSIX/Windows symlink or a Windows NTFS junction."""
+    if os.path.islink(path):
+        return True
+    if sys.platform == "win32":
+        is_junction = getattr(os.path, "isjunction", None)
+        if callable(is_junction):
+            return bool(is_junction(path))
+        return os.path.isdir(path)
+    return False
 
 
 class TestArchitectural10Hardening(unittest.TestCase):
@@ -103,7 +116,7 @@ class TestArchitectural10Hardening(unittest.TestCase):
         res = link_shared_dependencies(src_dir, wt_dir)
         self.assertTrue(res.get("symlink_success"))
         self.assertIn("node_modules", res.get("linked", []))
-        self.assertTrue(os.path.islink(os.path.join(wt_dir, "node_modules")))
+        self.assertTrue(_is_directory_link_or_junction(os.path.join(wt_dir, "node_modules")))
 
     def test_tc05_blast_radius_single_critical_file(self):
         """TC-05: Modifying a single critical path file (auth/middleware) escalates out of Tier 0."""

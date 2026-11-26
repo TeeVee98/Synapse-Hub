@@ -20,6 +20,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -721,13 +722,43 @@ def run_debate(
     }
 
 
+def _normalize_python_command(
+    cmd_parts: List[str],
+    platform_name: Optional[str] = None,
+    resolved_which: Optional[str] = None,
+    executable: Optional[str] = None,
+) -> List[str]:
+    """Rewrites Windows 'python3' / Store WindowsApps stub invocations to sys.executable.
+
+    Guarantees:
+      - Returns cmd_parts unchanged on non-win32 platforms or when cmd_parts is empty.
+      - Leaves non-python3 binaries (pytest, node, npx, python) untouched.
+      - Substitutes sys.executable on win32 when python3 is absent or resolves under WindowsApps.
+    """
+    if not cmd_parts:
+        return []
+    active_platform = sys.platform if platform_name is None else platform_name
+    if active_platform != "win32":
+        return list(cmd_parts)
+    binary_name = os.path.basename(cmd_parts[0]).lower()
+    if binary_name not in ("python3", "python3.exe"):
+        return list(cmd_parts)
+    effective_which = shutil.which(cmd_parts[0]) if resolved_which is None else resolved_which
+    if not effective_which or "windowsapps" in effective_which.lower() or "windowsapps" in cmd_parts[0].lower():
+        effective_executable = executable if executable is not None else sys.executable
+        return [effective_executable, *cmd_parts[1:]]
+    return list(cmd_parts)
+
+
 class BaseTestAdapter:
     """Abstract interface for test runners across languages and frameworks."""
 
     name: str = "base"
 
     def execute(self, test_cmd: str, cwd: str, timeout: float = 120.0) -> Tuple[int, str]:
-        cmd_parts = split_cmd_portable(test_cmd)
+        cmd_parts = _normalize_python_command(split_cmd_portable(test_cmd))
+        if not cmd_parts:
+            return 1, "Execution exception: Empty test command"
         try:
             proc = subprocess.run(
                 cmd_parts,

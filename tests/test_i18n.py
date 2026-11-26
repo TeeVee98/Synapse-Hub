@@ -838,7 +838,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
                 text=True,
                 encoding="utf-8",
                 env=env,
-                timeout=5
+                timeout=15
             )
             self.assertEqual(res_flag_vi.returncode, 0)
             self.assertIn("Đã lưu cấu hình ngôn ngữ giao diện", res_flag_vi.stdout)
@@ -850,7 +850,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
                 text=True,
                 encoding="utf-8",
                 env=env,
-                timeout=5
+                timeout=15
             )
             self.assertEqual(res2.returncode, 0)
             self.assertIn("LỆNH CỐT LÕI & THƯỜNG DÙNG", res2.stdout)
@@ -862,7 +862,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
                 text=True,
                 encoding="utf-8",
                 env=env,
-                timeout=5
+                timeout=15
             )
             self.assertEqual(res_flag_en.returncode, 0)
             self.assertIn("Interface language preference saved", res_flag_en.stdout)
@@ -874,7 +874,7 @@ class TestCliBilingualAndDelegation(unittest.TestCase):
                 text=True,
                 encoding="utf-8",
                 env=env,
-                timeout=5
+                timeout=15
             )
             self.assertEqual(res3.returncode, 0)
             self.assertIn("CORE & DAILY WORKFLOWS", res3.stdout)

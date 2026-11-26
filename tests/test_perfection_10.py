@@ -59,7 +59,10 @@ class TestPerfection10Battery(unittest.TestCase):
         with patch("os.symlink", wraps=os.symlink) as mock_sym:
             success, link_type = create_directory_link(src, dst)
             self.assertTrue(success)
-            self.assertEqual(link_type, "symlink")
+            if sys.platform == "win32":
+                self.assertIn(link_type, ("symlink", "junction"))
+            else:
+                self.assertEqual(link_type, "symlink")
             mock_sym.assert_called_once_with(src, dst, target_is_directory=True)
 
         self.assertTrue(os.path.exists(dst))

@@ -459,14 +459,21 @@ def detect_tautological_red(failure_output: str, test_cmd: str = "") -> Tuple[bo
         if m_file_line:
             fail_file, fail_line_s = m_file_line.group(1), m_file_line.group(2)
             fail_line = int(fail_line_s)
-            if os.path.isfile(fail_file):
+            resolved_fail_file = fail_file
+            if not os.path.isfile(resolved_fail_file):
+                for tok in split_cmd_portable(test_cmd):
+                    cand = tok.strip('"\'')
+                    if cand.endswith(".py") and os.path.isfile(cand) and os.path.basename(cand) == os.path.basename(fail_file):
+                        resolved_fail_file = cand
+                        break
+            if os.path.isfile(resolved_fail_file):
                 try:
-                    with open(fail_file, "r", encoding="utf-8", errors="replace") as f:
+                    with open(resolved_fail_file, "r", encoding="utf-8", errors="replace") as f:
                         file_code = f.read()
                     ast_findings = AstTautologyAnalyzer().analyze_source(file_code)
                     for finding_line, _, reason in ast_findings:
                         if abs(finding_line - fail_line) <= 2:
-                            return True, f"Tautological Red Violation: {reason} at {fail_file}:{finding_line}."
+                            return True, f"Tautological Red Violation: {reason} at {resolved_fail_file}:{finding_line}."
                 except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
                     pass
 

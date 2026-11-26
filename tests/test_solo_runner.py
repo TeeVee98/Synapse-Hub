@@ -104,8 +104,8 @@ class TestSoloSwarmRunner:
                     "    assert actual == expected\n"
                 )
             cmd = f"{sys.executable} -m pytest \"{test_file}\""
-            res = certify_red_phase(test_cmd=cmd, receipt_path=receipt)
-            assert res["status"] == "CERTIFIED_RED"
+            res = certify_red_phase(test_cmd=cmd, receipt_path=receipt, cwd=tmp_dir)
+            assert res["status"] == "CERTIFIED_RED", res
             assert res["passed"] is True
             assert os.path.exists(receipt)
 
@@ -122,8 +122,8 @@ class TestSoloSwarmRunner:
                     "    assert x == y\n"
                 )
             cmd = f"{sys.executable} -m pytest \"{test_file}\""
-            res = certify_red_phase(test_cmd=cmd, receipt_path=receipt)
-            assert res["status"] == "TAUTOLOGICAL_RED_REJECTED"
+            res = certify_red_phase(test_cmd=cmd, receipt_path=receipt, cwd=tmp_dir)
+            assert res["status"] == "TAUTOLOGICAL_RED_REJECTED", res.get("error")
             assert res["passed"] is False
             assert "AST Constant-Propagation" in res["error"]
             assert not os.path.exists(receipt)
@@ -2143,6 +2143,96 @@ class TestM3PluggableSandbox:
             with monkeypatch.context() as mp:
                 mp.setattr(subprocess, "run", lambda *a, **kw: fake_empty)
                 assert ts._is_git_repo(git_repo) is False
+
+    def test_normalize_python_command_scenarios(self, monkeypatch):
+        """4-scenario unit tests for Windows python3 / Store WindowsApps stub normalization."""
+        import shutil
+        import tools.orchestration.solo_runner as solo_runner_mod
+        from tools.orchestration.solo_runner import BaseTestAdapter
+
+        normalize_fn = getattr(solo_runner_mod, "_normalize_python_command", None)
+        assert callable(normalize_fn), "_normalize_python_command must be defined in solo_runner"
+
+        # 1. Positive: win32 WindowsApps stub (case-insensitive) rewrites to sys.executable without mutating input
+        stub_winapps = os.path.join("C:" + os.sep, "MockAppData", "Local", "Microsoft", "WindowsApps", "python3.exe")
+        orig_cmd = ["python3", "-c", "assert 1==2"]
+        res_stub = normalize_fn(
+            orig_cmd,
+            platform_name="win32",
+            resolved_which=stub_winapps,
+        )
+        assert res_stub == [sys.executable, "-c", "assert 1==2"]
+        assert orig_cmd == ["python3", "-c", "assert 1==2"]
+
+        # Positive: win32 missing python3 (shutil.which -> None) and explicit executable override
+        which_calls = []
+        with monkeypatch.context() as mp:
+            def _fake_which(bin_name):
+                which_calls.append(bin_name)
+                return None
+
+            mp.setattr(shutil, "which", _fake_which)
+            res_missing = normalize_fn(
+                ["python3.exe", "-V"],
+                platform_name="win32",
+                executable=r"C:\Custom\python.exe",
+            )
+        assert which_calls == ["python3.exe"]
+        assert res_missing == [r"C:\Custom\python.exe", "-V"]
+
+        # Positive: explicit WindowsApps path in cmd_parts[0] is rewritten even if resolved_which is non-stub
+        assert normalize_fn(
+            [stub_winapps, "-V"],
+            platform_name="win32",
+            resolved_which=r"C:\Python312\python3.exe",
+        ) == [sys.executable, "-V"]
+
+        # Positive: explicit empty resolved_which and uppercase PYTHON3 token
+        res_empty_which = normalize_fn(
+            ["PYTHON3", "-m", "pytest"],
+            platform_name="win32",
+            resolved_which="",
+        )
+        assert res_empty_which == [sys.executable, "-m", "pytest"]
+
+        # Positive integration: BaseTestAdapter.execute normalizes WindowsApps python3 stub to sys.executable
+        with monkeypatch.context() as mp:
+            mp.setattr(solo_runner_mod.sys, "platform", "win32")
+            mp.setattr(
+                solo_runner_mod.shutil,
+                "which",
+                lambda _bin: stub_winapps,
+            )
+            rc, out = BaseTestAdapter().execute('python3 -c "print(\'WIN_NORM_OK\')"', cwd=_REPO_ROOT)
+        assert rc == 0
+        assert "WIN_NORM_OK" in out
+
+        # 2. Negative: POSIX pass-through and non-python3 binaries untouched on win32
+        assert normalize_fn(["python3", "-m", "pytest"], platform_name="linux", resolved_which="") == [
+            "python3",
+            "-m",
+            "pytest",
+        ]
+        for non_py3 in (
+            ["pytest", "-q"],
+            ["npx", "playwright", "test"],
+            ["node", "app.js"],
+            ["python", "-c", "print(1)"],
+        ):
+            assert normalize_fn(non_py3, platform_name="win32", resolved_which="") == non_py3
+
+        # 3. Boundary: empty command list, BaseTestAdapter empty cmd, and real non-stub python3 (even if arg mentions WindowsApps)
+        assert normalize_fn([], platform_name="win32") == []
+        assert normalize_fn([], platform_name="linux") == []
+        empty_rc, empty_out = BaseTestAdapter().execute("   ", cwd=_REPO_ROOT)
+        assert empty_rc == 1
+        assert "Empty test command" in empty_out
+        assert normalize_fn(
+            ["python3", r"C:\WindowsApps\script.py"],
+            platform_name="win32",
+            resolved_which=r"C:\Python312\python3.exe",
+        ) == ["python3", r"C:\WindowsApps\script.py"]
+
 
 
 
