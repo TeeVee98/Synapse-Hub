@@ -3627,6 +3627,111 @@
         "python3 tools/heal/ci_healing_hook.py --help"
       ]
     },
+    "ci_auto_healer": {
+      "path": "tools/heal/ci_auto_healer.py",
+      "command": "python3 tools/heal/ci_auto_healer.py",
+      "summary": "CI/CD Failure Detection, Triage & Safe Auto-Heal Bridge",
+      "args": {
+        "--repo-root": {
+          "type": "string",
+          "required": false,
+          "help": "Target repository root directory"
+        },
+        "--artifacts-dir": {
+          "type": "string",
+          "default": "artifacts",
+          "required": false,
+          "help": "Directory containing downloaded CI JUnit XML and log artifacts"
+        },
+        "--xml": {
+          "type": "string",
+          "required": false,
+          "help": "Optional explicit path to a JUnit XML failure report"
+        },
+        "--error-log": {
+          "type": "string",
+          "required": false,
+          "help": "Optional explicit path to a CI failure log file"
+        },
+        "--run-id": {
+          "type": "string",
+          "required": false,
+          "help": "GitHub Actions workflow run ID for reporting or fetching"
+        },
+        "--fetch-gh": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Fetch failed CI logs and artifacts via GitHub CLI (`gh`)"
+        },
+        "--apply": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Apply eligible Clean-POM patches on disk (default is dry-run)"
+        },
+        "--dry-run": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Analyze and plan repairs without modifying files on disk"
+        },
+        "--max-fixes": {
+          "type": "integer",
+          "default": 5,
+          "required": false,
+          "help": "Maximum number of eligible failures to patch per CI run"
+        },
+        "--verify-cmd": {
+          "type": "string",
+          "required": false,
+          "help": "Verification command executed after patching (rolls back on failure)"
+        },
+        "--out-pr": {
+          "type": "string",
+          "required": false,
+          "help": "Write generated Pull Request markdown body to this file"
+        },
+        "--create-pr": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Create an auto-heal branch, commit, push, and open a PR via `gh`"
+        },
+        "--base-branch": {
+          "type": "string",
+          "default": "main",
+          "required": false,
+          "help": "Base branch targeted when opening an auto-heal Pull Request"
+        },
+        "--copilot-fallback": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Invoke GitHub Copilot CLI when deterministic healing leaves unresolved failures"
+        },
+        "--copilot-issue": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Open a GitHub Issue assigned to @copilot for unresolved CI failures or AUT defects"
+        },
+        "--out-copilot-prompt": {
+          "type": "string",
+          "required": false,
+          "help": "Write generated Copilot escalation prompt markdown to this file"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Emit machine-readable JSON healing report"
+        }
+      },
+      "examples": [
+        "python3 tools/heal/ci_auto_healer.py --artifacts-dir artifacts/ --dry-run --json"
+      ]
+    },
     "heal_pr_automator": {
       "path": "tools/heal/heal_pr_automator.py",
       "command": "python3 tools/heal/heal_pr_automator.py",

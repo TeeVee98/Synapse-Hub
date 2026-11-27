@@ -1,0 +1,227 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
+# SPDX-License-Identifier: MIT
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
+
+name: CI/CD Failure Auto-Heal & PR Sentinel
+
+on:
+  workflow_run:
+    workflows: ["Enterprise Automated Quality Gates & Multi-Tier Test CI/CD"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Failed CI workflow run ID to analyze and heal"
+        required: true
+        type: string
+      dry_run:
+        description: "Analyze and draft PR without pushing branch"
+        required: false
+        type: boolean
+        default: false
+      copilot_mode:
+        description: "Copilot escalation mode when deterministic heal cannot fix"
+        required: false
+        type: choice
+        default: "auto"
+        options:
+          - auto
+          - cli
+          - issue
+          - off
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+  copilot-requests: write
+
+jobs:
+  auto-heal-failed-ci:
+    name: "Auto-Heal Eligible CI Failures & Open PR"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'failure' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        !startsWith(github.event.workflow_run.head_branch, 'auto-heal/') &&
+        !startsWith(github.event.workflow_run.head_branch, 'copilot/') &&
+        github.actor != 'github-actions[bot]' &&
+        github.actor != 'Copilot'
+      )
+
+    steps:
+      - name: Resolve Target Run, Commit & Branch
+        id: target
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RUN_ID="${{ inputs.run_id }}"
+            HEAD_BRANCH=$(gh run view "$RUN_ID" --json headBranch -q '.headBranch')
+            HEAD_SHA=$(gh run view "$RUN_ID" --json headSha -q '.headSha')
+          else
+            RUN_ID="${{ github.event.workflow_run.id }}"
+            HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
+            HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+          fi
+          echo "run_id=${RUN_ID}" >> "$GITHUB_OUTPUT"
+          echo "head_branch=${HEAD_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "head_sha=${HEAD_SHA:-$HEAD_BRANCH}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Exact Failed Commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ steps.target.outputs.head_sha }}
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies (Hermetic Lockfile)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.lock
+
+      - name: Download Failed CI Artifacts & Logs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p artifacts reports
+          gh run download "${{ steps.target.outputs.run_id }}" --dir artifacts/ || true
+          gh run view "${{ steps.target.outputs.run_id }}" --log-failed > artifacts/ci_failed.log || true
+
+      - name: Run CI Auto-Healer & Quality Gate Verification
+        id: heal
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          EXTRA_FLAG="--apply"
+          if [ "$DRY_RUN" = "true" ]; then
+            EXTRA_FLAG="--dry-run"
+          fi
+          python tools/heal/ci_auto_healer.py \
+            --repo-root . \
+            --artifacts-dir artifacts/ \
+            --run-id "${{ steps.target.outputs.run_id }}" \
+            $EXTRA_FLAG \
+            --verify-cmd "python tools/core/verify_all.py --mode hub --tier impact" \
+            --out-pr reports/auto_heal_pr.md \
+            --out-copilot-prompt reports/copilot_heal_prompt.md \
+            --json > reports/auto_heal_report.json
+          APPLIED=$(python -c "import json; d=json.load(open('reports/auto_heal_report.json')); print(d.get('applied_count', 0))")
+          VERIFIED=$(python -c "import json; d=json.load(open('reports/auto_heal_report.json')); print(str(d.get('verified', False)).lower())")
+          NEEDS_AI=$(python -c "import json; d=json.load(open('reports/auto_heal_report.json')); print(str(d.get('needs_ai_escalation', False)).lower())")
+          SKIPPED_AUT=$(python -c "import json; d=json.load(open('reports/auto_heal_report.json')); print(len(d.get('skipped_aut_defects', [])))")
+          echo "applied_count=${APPLIED}" >> "$GITHUB_OUTPUT"
+          echo "verified=${VERIFIED}" >> "$GITHUB_OUTPUT"
+          echo "needs_ai_escalation=${NEEDS_AI}" >> "$GITHUB_OUTPUT"
+          echo "skipped_aut=${SKIPPED_AUT}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js 22 for Copilot CLI Fallback
+        if: >
+          (steps.heal.outputs.needs_ai_escalation == 'true') &&
+          (github.event_name != 'workflow_dispatch' || (inputs.dry_run != true && (inputs.copilot_mode == 'auto' || inputs.copilot_mode == 'cli')))
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: "22"
+
+      - name: Run Copilot CLI Fallback (If Deterministic Heal Unresolved)
+        id: copilot_cli
+        if: >
+          (steps.heal.outputs.needs_ai_escalation == 'true') &&
+          (github.event_name != 'workflow_dispatch' || (inputs.dry_run != true && (inputs.copilot_mode == 'auto' || inputs.copilot_mode == 'cli')))
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm install -g @github/copilot || true
+          python tools/heal/ci_auto_healer.py \
+            --repo-root . \
+            --artifacts-dir artifacts/ \
+            --run-id "${{ steps.target.outputs.run_id }}" \
+            --apply \
+            --copilot-fallback \
+            --verify-cmd "python tools/core/verify_all.py --mode hub --tier impact" \
+            --out-pr reports/copilot_cli_pr.md \
+            --out-copilot-prompt reports/copilot_heal_prompt.md \
+            --json > reports/copilot_cli_report.json || true
+          APPLIED=$(python -c "import json; d=json.load(open('reports/copilot_cli_report.json')); print(d.get('applied_count', 0))")
+          VERIFIED=$(python -c "import json; d=json.load(open('reports/copilot_cli_report.json')); print(str(d.get('verified', False)).lower())")
+          NEEDS_AI=$(python -c "import json; d=json.load(open('reports/copilot_cli_report.json')); print(str(d.get('needs_ai_escalation', False)).lower())")
+          echo "applied_count=${APPLIED}" >> "$GITHUB_OUTPUT"
+          echo "verified=${VERIFIED}" >> "$GITHUB_OUTPUT"
+          echo "needs_ai_escalation=${NEEDS_AI}" >> "$GITHUB_OUTPUT"
+
+      - name: Escalate Unresolved Failures to Copilot Coding Agent Issue
+        if: >
+          (
+            (steps.copilot_cli.outputs.needs_ai_escalation == 'true') ||
+            (steps.copilot_cli.outcome == 'skipped' && (steps.heal.outputs.needs_ai_escalation == 'true' || steps.heal.outputs.skipped_aut != '0'))
+          ) &&
+          (github.event_name != 'workflow_dispatch' || (inputs.dry_run != true && (inputs.copilot_mode == 'auto' || inputs.copilot_mode == 'issue')))
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python tools/heal/ci_auto_healer.py \
+            --repo-root . \
+            --artifacts-dir artifacts/ \
+            --run-id "${{ steps.target.outputs.run_id }}" \
+            --apply \
+            --copilot-issue \
+            --out-copilot-prompt reports/copilot_heal_prompt.md \
+            --json > reports/auto_heal_issue_report.json || true
+
+      - name: Create Auto-Heal Pull Request
+        if: >
+          (steps.heal.outputs.applied_count != '0' && steps.heal.outputs.verified == 'true') ||
+          (steps.copilot_cli.outputs.applied_count != '0' && steps.copilot_cli.outputs.verified == 'true')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "synapse-bot[bot]"
+          git config user.email "synapse-bot@users.noreply.github.com"
+          BRANCH="auto-heal/ci-${{ steps.target.outputs.run_id }}-$(date -u +%Y%m%d%H%M%S)"
+          git checkout -b "$BRANCH"
+          git add -u
+          python -c "import json, os, subprocess; files=[]; [files.extend(os.path.relpath(p['file'], '.') for p in json.load(open(rp)).get('applied_patches', []) if p.get('file')) for rp in ('reports/auto_heal_report.json', 'reports/copilot_cli_report.json') if os.path.isfile(rp)]; files=sorted({f for f in files if os.path.exists(f)}); (subprocess.check_call(['git', 'add', '--', *files]) if files else None)"
+          if git diff --cached --quiet; then
+            echo "No verified changes staged for PR."
+            exit 0
+          fi
+          if [ -f reports/copilot_cli_pr.md ] && [ "${{ steps.copilot_cli.outputs.verified }}" = "true" ]; then
+            cat reports/copilot_cli_pr.md >> reports/auto_heal_pr.md
+          fi
+          git commit -m "fix(ci): auto-heal eligible failures from run ${{ steps.target.outputs.run_id }}"
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --base "${{ steps.target.outputs.head_branch }}" \
+            --title "fix(ci): auto-heal eligible failures (run ${{ steps.target.outputs.run_id }})" \
+            --body-file reports/auto_heal_pr.md
+
+      - name: Publish Step Summary
+        if: always()
+        run: |
+          if [ -f reports/auto_heal_pr.md ]; then
+            cat reports/auto_heal_pr.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload Auto-Heal Reports
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: ci-auto-heal-report
+          path: |
+            reports/auto_heal_report.json
+            reports/auto_heal_pr.md
+            reports/copilot_cli_report.json
+            reports/copilot_cli_pr.md
+            reports/copilot_heal_prompt.md
+            reports/auto_heal_issue_report.json
+          retention-days: 14
+          if-no-files-found: ignore
