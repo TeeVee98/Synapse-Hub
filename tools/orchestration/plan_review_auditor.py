@@ -378,7 +378,7 @@ def _match_k_expression(
 
     def _matches_tok(fn: ast.FunctionDef | ast.AsyncFunctionDef, tok: str) -> bool:
         cls_name = class_map.get(id(fn), "")
-        return tok in fn.name or (cls_name and tok in cls_name)
+        return tok in fn.name or bool(cls_name and tok in cls_name)
 
     for grp in or_groups:
         and_tokens = [
