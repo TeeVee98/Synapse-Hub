@@ -73,6 +73,14 @@ TEST_COMMAND_PATTERNS = [
     re.compile(r"\b(?:pytest|playwright|mvn test|npm test)\b"),
 ]
 
+MANUAL_COMMAND_PATTERNS = [
+    re.compile(r"`(?:python3?\s+tools/(?:lint/manual_tc_linter|orchestration/goldfish_review|manual/checklist_query)\.py|agent-qa\s+(?:review-spec|solo\s+--profile\s+manual|review\s+--profile\s+manual))[^`]*`", re.IGNORECASE),
+    re.compile(r"\b(?:manual_tc_linter\.py|goldfish_review\.py|checklist_query\.py|review-spec)\b", re.IGNORECASE),
+]
+
+MANUAL_REQ_ID_PATTERN = re.compile(r"\b(?:AC|REQ|BR|FR|NFR|US)[-_]\d+", re.IGNORECASE)
+MANUAL_GOLDEN_RATIO_PATTERN = re.compile(r"(?:Golden\s+Ratio|\d+%\s*Happy\s*/\s*\d+%\s*Negative)", re.IGNORECASE)
+
 LINE_ANCHOR_PATTERNS = [
     re.compile(r"\(L\d+(?:-L?\d+)?\)", re.IGNORECASE),
     re.compile(r":L\d+(?:-L?\d+)?", re.IGNORECASE),
@@ -665,6 +673,7 @@ def validate_plan_content(
     content: str,
     filename: str = "plan.md",
     mode: str = "auto",
+    profile: str = "auto",
 ) -> Tuple[bool, List[str], Dict[str, Any]]:
     """Validates markdown content against Spec-Driven Planning pillars.
 
@@ -672,11 +681,15 @@ def validate_plan_content(
         content: Markdown string of the plan.
         filename: Label for reporting.
         mode: 'standard', 'super', or 'auto' (detects super mode if super keywords found).
+        profile: 'auto', 'code', or 'manual' (defaults to 'code' unless 'Profile: manual' is declared).
 
     Returns:
         (passed, issues, details)
     """
+    from tools.manual.manual_pipeline_adapter import detect_plan_profile
+
     issues: List[str] = []
+    effective_profile = detect_plan_profile(content, explicit_profile=profile)
 
     # Auto-detect mode if requested
     is_super = mode == "super" or (
@@ -688,6 +701,7 @@ def validate_plan_content(
     details: Dict[str, Any] = {
         "file": filename,
         "mode": "super" if is_super else "standard",
+        "profile": effective_profile,
         "sections_present": {},
         "milestones_checked": 0,
         "has_verification_commands": False,
@@ -828,12 +842,20 @@ def validate_plan_content(
     # Pillar 4: Verification Matrix Determinism
     m_sec4 = re.search(r"#+\s*(?:4[.\s]*)?Verification\s+Matrix.*?(?=(?:\n#+\s+)|\Z)", content, re.IGNORECASE | re.DOTALL)
     sec4_text = m_sec4.group(0) if m_sec4 else content
-    has_command = any(p.search(sec4_text) for p in TEST_COMMAND_PATTERNS)
+    if effective_profile == "manual":
+        has_command = any(p.search(sec4_text) for p in (*MANUAL_COMMAND_PATTERNS, *TEST_COMMAND_PATTERNS))
+    else:
+        has_command = any(p.search(sec4_text) for p in TEST_COMMAND_PATTERNS)
     details["has_verification_commands"] = has_command
     if not has_command:
-        issues.append(
-            f"Verification Matrix in {filename} lacks concrete executable test commands (`pytest`, `npx playwright test`, etc.)"
-        )
+        if effective_profile == "manual":
+            issues.append(
+                f"Verification Matrix in {filename} lacks concrete manual QA gate commands (`manual_tc_linter.py`, `goldfish_review.py`, etc.)"
+            )
+        else:
+            issues.append(
+                f"Verification Matrix in {filename} lacks concrete executable test commands (`pytest`, `npx playwright test`, etc.)"
+            )
 
     # Check for forbidden generic assertions
     for pattern in FORBIDDEN_GENERIC_PATTERNS:
@@ -848,15 +870,33 @@ def validate_plan_content(
     details["placeholder_or_boilerplate_issues"] = placeholder_issues
     issues.extend(placeholder_issues)
 
+    # Manual Profile Contract Checks (AC/REQ IDs & Golden Ratio commitment)
+    if effective_profile == "manual":
+        m_sec2 = re.search(
+            r"#+\s*(?:2[.\s]*)?(?:Data\s+Flow|Interface\s+Signatures|Coverage\s+Contract).*?(?=(?:\n#+\s+)|\Z)",
+            content,
+            re.IGNORECASE | re.DOTALL,
+        )
+        sec2_text = m_sec2.group(0) if m_sec2 else ""
+        if not MANUAL_REQ_ID_PATTERN.search(sec2_text):
+            issues.append(
+                f"Manual QA Super-Plan in {filename} missing structured Requirement/AC IDs (e.g. `AC-01`, `REQ-01`) in Section 2 Coverage Contract."
+            )
+        if not MANUAL_GOLDEN_RATIO_PATTERN.search(content):
+            issues.append(
+                f"Manual QA Super-Plan in {filename} missing Golden Ratio coverage commitment (e.g. `Golden Ratio 40% Happy / 40% Negative / 20% Security`)."
+            )
+
     # Super Mode: Line Anchors check in Section 1 & Section 2 Type Widening check
     if is_super:
-        widened_fields = detect_section2_type_widening(content)
-        details["type_widening_detected"] = widened_fields
-        for wf in widened_fields:
-            issues.append(
-                f"Type Widening detected in Section 2 contract: untyped '{wf}: Any' widens strict interface contract. "
-                "Specify a concrete type or DTO."
-            )
+        if effective_profile != "manual":
+            widened_fields = detect_section2_type_widening(content)
+            details["type_widening_detected"] = widened_fields
+            for wf in widened_fields:
+                issues.append(
+                    f"Type Widening detected in Section 2 contract: untyped '{wf}: Any' widens strict interface contract. "
+                    "Specify a concrete type or DTO."
+                )
 
         has_anchor = any(p.search(content) for p in LINE_ANCHOR_PATTERNS)
         if has_anchor:
@@ -873,23 +913,26 @@ def validate_plan_content(
                 if not v_pat.search(content):
                     issues.append(f"Tri-Vulnerability section missing analysis for category: '{v_name}'.")
 
-        # Super Mode: AST Pre-flight Grounding
-        ast_result = verify_plan_ast_grounding(content)
-        details["ast_grounding"] = ast_result
-        if not ast_result["is_valid"]:
-            if ast_result.get("missing_files"):
-                issues.append(
-                    f"AST Pre-flight failed: Plan references non-existent files on disk: {ast_result['missing_files']}. "
-                    "Ensure target files exist or are explicitly tagged with (New) or [CREATE]."
-                )
-            if ast_result.get("phantom_symbols"):
-                issues.append(
-                    f"AST Pre-flight failed: Plan references phantom AST symbols not found in code: {ast_result['phantom_symbols']}."
-                )
-            if ast_result.get("collision_files"):
-                issues.append(
-                    f"AST Pre-flight failed: [CREATE] declared on existing files without explicit (Overwrite) tag: {ast_result['collision_files']}."
-                )
+        # Super Mode: AST Pre-flight Grounding (code profile only; manual specs/artifacts are non-AST docs)
+        if effective_profile != "manual":
+            ast_result = verify_plan_ast_grounding(content)
+            details["ast_grounding"] = ast_result
+            if not ast_result["is_valid"]:
+                if ast_result.get("missing_files"):
+                    issues.append(
+                        f"AST Pre-flight failed: Plan references non-existent files on disk: {ast_result['missing_files']}. "
+                        "Ensure target files exist or are explicitly tagged with (New) or [CREATE]."
+                    )
+                if ast_result.get("phantom_symbols"):
+                    issues.append(
+                        f"AST Pre-flight failed: Plan references phantom AST symbols not found in code: {ast_result['phantom_symbols']}."
+                    )
+                if ast_result.get("collision_files"):
+                    issues.append(
+                        f"AST Pre-flight failed: [CREATE] declared on existing files without explicit (Overwrite) tag: {ast_result['collision_files']}."
+                    )
+        else:
+            details["ast_grounding"] = {"is_valid": True, "skipped_for_manual_profile": True}
     else:
         # Standard mode: record warnings only
         ast_result = verify_plan_ast_grounding(content)
@@ -907,14 +950,14 @@ def validate_plan_content(
     return passed, issues, details
 
 
-def lint_plan_file(filepath: str, mode: str = "auto") -> Tuple[bool, List[str], Dict[str, Any]]:
+def lint_plan_file(filepath: str, mode: str = "auto", profile: str = "auto") -> Tuple[bool, List[str], Dict[str, Any]]:
     """Lints a specific plan file from disk."""
     if not os.path.isfile(filepath):
         return False, [f"File does not exist: {filepath}"], {"file": filepath, "exists": False}
     try:
         with open(filepath, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
-        return validate_plan_content(content, filename=filepath, mode=mode)
+        return validate_plan_content(content, filename=filepath, mode=mode, profile=profile)
     except Exception as e:
         return False, [f"Error reading {filepath}: {e}"], {"file": filepath, "error": str(e)}
 
@@ -923,6 +966,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Spec-Driven Planning Sentinel (AGENTS.md §5 / plan-protocol.md)")
     parser.add_argument("--file", help="Path to markdown plan to validate")
     parser.add_argument("--mode", choices=["standard", "super", "auto"], default="auto", help="Validation mode")
+    parser.add_argument("--profile", choices=["auto", "code", "manual"], default="auto", help="Validation profile (auto, code, or manual)")
     parser.add_argument("--check-templates", action="store_true", help="Validates built-in templates")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
@@ -948,7 +992,7 @@ def main() -> int:
     results: List[Dict[str, Any]] = []
 
     for fpath in target_files:
-        passed, issues, details = lint_plan_file(fpath, mode=args.mode)
+        passed, issues, details = lint_plan_file(fpath, mode=args.mode, profile=args.profile)
         if not passed:
             all_passed = False
         results.append({

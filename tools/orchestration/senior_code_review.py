@@ -1086,9 +1086,20 @@ def evaluate_review(
     decision_log_path: Optional[str] = None,
     baseline_files: Optional[Sequence[str]] = None,
     write_receipt: bool = True,
+    profile: str = "auto",
 ) -> Tuple[int, Dict[str, Any], str, Optional[Dict[str, Any]]]:
     """Executes diff extraction, AST review, Plan-vs-Solo reconciliation, and receipt signing without stdout output."""
+    from tools.manual.manual_pipeline_adapter import detect_plan_profile
+
     repo_dir = os.path.abspath(repo_dir)
+    plan_text = ""
+    if plan_path and str(plan_path).strip():
+        rp = str(plan_path).strip()
+        rp_abs = rp if os.path.isabs(rp) else os.path.join(repo_dir, rp)
+        if os.path.isfile(rp_abs):
+            plan_text = open(rp_abs, "r", encoding="utf-8", errors="replace").read()
+    effective_profile = detect_plan_profile(plan_text, explicit_profile=profile)
+
     diff_text = get_git_diff(repo_dir, target)
 
     files = parse_diff(diff_text)
@@ -1106,7 +1117,7 @@ def evaluate_review(
         passed=True,
     )
     changed_paths = [f["path"] for f in files]
-    if plan_path or milestone_id or strict_solo:
+    if plan_path or milestone_id or strict_solo or effective_profile == "manual":
         plan_dto, solo_dto, caller_dto, audit_findings = audit_plan_and_solo_execution(
             repo_root=repo_dir,
             changed_files=changed_paths,
@@ -1117,6 +1128,7 @@ def evaluate_review(
             require_mutation_receipt=require_mutation_receipt,
             decision_log_path=decision_log_path,
             baseline_files=baseline_files,
+            profile=effective_profile,
         )
         findings.extend(_dict_to_finding(item) for item in audit_findings)
     elif files:
@@ -1185,6 +1197,7 @@ def evaluate_review(
 
     payload: Dict[str, Any] = {
         "target": target,
+        "profile": effective_profile,
         "verdict": verdict,
         "passed": passed,
         "files_count": len(files),
@@ -1223,6 +1236,7 @@ def run_review(
     receipt_out: Optional[str] = None,
     baseline_files: Optional[Sequence[str]] = None,
     write_receipt: bool = True,
+    profile: str = "auto",
 ) -> int:
     """Runs the diff extraction, AST review, Plan-vs-Solo reconciliation, and signed receipt export."""
     try:
@@ -1238,6 +1252,7 @@ def run_review(
             receipt_out=receipt_out,
             baseline_files=baseline_files,
             write_receipt=write_receipt,
+            profile=profile,
         )
     except Exception as err:
         sys.stderr.write(f"❌ Error: Cannot complete review — {err}\n")
@@ -1282,6 +1297,7 @@ def main():
     parser.add_argument("--receipt-out", default=None, help="Output path for HMAC-signed code_review_receipt.json")
     parser.add_argument("--baseline-files", nargs="*", default=None, help="Pre-existing dirty files to exclude from unplanned scope-creep findings")
     parser.add_argument("--no-receipt", action="store_true", help="Strict zero-write diagnostic mode: skip writing code_review_receipt.json")
+    parser.add_argument("--profile", choices=["auto", "code", "manual"], default="auto", help="Review profile: auto (default), code, or manual")
 
     args = parser.parse_args()
     diff_target = "staged" if args.staged else (args.branch if args.branch else "uncommitted")
@@ -1300,6 +1316,8 @@ def main():
         extra_kwargs["baseline_files"] = args.baseline_files
     if args.no_receipt:
         extra_kwargs["write_receipt"] = False
+    if args.profile and args.profile != "auto":
+        extra_kwargs["profile"] = args.profile
     sys.exit(
         run_review(
             args.target_dir,

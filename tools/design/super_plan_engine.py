@@ -154,12 +154,58 @@ class RiskMetricDTO:
         return round(min(1.0, max(0.0, base)), 3)
 
 
+def _estimate_fallback_fan_in(files: List[str], repo_root: str) -> int:
+    """Fallback static filename reference scan when CallGraphIndexer is unavailable."""
+    tools_dir = os.path.join(repo_root, "tools")
+    if not os.path.isdir(tools_dir):
+        return 0
+    code_exts = (".py", ".ts", ".js", ".java", ".groovy")
+    patterns: List[Tuple[str, re.Pattern[str]]] = []
+    for f in files:
+        if not f.lower().endswith(code_exts):
+            continue
+        base_name = os.path.basename(f)
+        stem = os.path.splitext(base_name)[0]
+        if len(stem) > 2:
+            patterns.append((base_name, re.compile(rf"\b{re.escape(stem)}\b")))
+    if not patterns:
+        return 0
+
+    hits = 0
+    for root, _, dirfiles in os.walk(tools_dir):
+        for df in dirfiles:
+            if not df.endswith(".py"):
+                continue
+            try:
+                content = open(os.path.join(root, df), "r", encoding="utf-8", errors="ignore").read()
+            except OSError:
+                continue
+            hits += sum(1 for base_name, pat in patterns if df != base_name and pat.search(content))
+    return hits
+
+
+def _compute_manual_req_boost(files: List[str], repo_root: str, profile: str) -> int:
+    """Counts structured requirement IDs across manual spec targets to size blast radius."""
+    if profile != "manual":
+        return 0
+    from tools.manual.manual_pipeline_adapter import extract_manual_spec_inventory
+
+    boost = 0
+    for f in files:
+        if f.lower().endswith((".md", ".feature")):
+            boost += len(extract_manual_spec_inventory(f, repo_root=repo_root).requirement_ids)
+    return boost
+
+
 def calculate_risk_routing(
     task: str,
     target_files: Optional[List[str]] = None,
-    repo_root: str = _REPO_ROOT
+    repo_root: str = _REPO_ROOT,
+    profile: str = "code",
 ) -> Tuple[PlanningTier, RiskMetricDTO]:
     """Calculates deterministic RiskScore (0 LLM token) and routes to optimal planning tier."""
+    if profile not in ("code", "manual"):
+        raise ValueError(f"Unsupported profile '{profile}'; expected 'code' or 'manual'.")
     files = target_files or []
     cfg = _get_planning_config(repo_root)
     hard_paths = set(cfg.get("hard_critical_paths", HARD_CRITICAL_PATHS))
@@ -248,26 +294,11 @@ def calculate_risk_routing(
         transitive_fan_in = len(second_hop)
     except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
         graph_unknown = bool(files)
-        code_exts = (".py", ".ts", ".js", ".java", ".groovy")
-        for f in files:
-            if not f.lower().endswith(code_exts):
-                continue
-            base = os.path.splitext(os.path.basename(f))[0]
-            if base and len(base) > 2 and os.path.isdir(os.path.join(repo_root, "tools")):
-                pattern = re.compile(rf"\b{re.escape(base)}\b")
-                for root, _, dirfiles in os.walk(os.path.join(repo_root, "tools")):
-                    for df in dirfiles:
-                        if df.endswith(".py") and df != os.path.basename(f):
-                            p = os.path.join(root, df)
-                            try:
-                                with open(p, "r", encoding="utf-8", errors="ignore") as pf:
-                                    if pattern.search(pf.read()):
-                                        fan_in += 1
-                            except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-                                pass
+        fan_in = _estimate_fallback_fan_in(files, repo_root)
 
     transitive_boost = int(round(0.5 * transitive_fan_in))
-    blast_radius = fan_in + transitive_boost + coupling_boost + (5 if critical_path else 0)
+    manual_req_boost = _compute_manual_req_boost(files, repo_root, profile)
+    blast_radius = fan_in + transitive_boost + coupling_boost + manual_req_boost + (5 if critical_path else 0)
 
     provisional_metric = RiskMetricDTO(
         fan_in=fan_in,
@@ -539,12 +570,73 @@ def _evaluate_ambiguity_category(
     }
 
 
+MANUAL_AMBIGUITY_DEFINITIONS = [
+    (
+        "manual_pricing_rounding",
+        re.compile(r"\b(?:currency|pricing|rounding|checkout|payment|tax|discount|fx)\b", re.IGNORECASE),
+        "Which financial rounding & currency precision policy applies to checkout/pricing test assertions?",
+        [
+            ("half_even", "Banker's rounding (HALF_EVEN) with integer minor units",
+             "Counter-Argument: Requires explicit minor-unit conversion fixtures for zero-decimal currencies like VND/JPY."),
+            ("half_up", "Standard commercial HALF_UP rounding to 2 decimal places",
+             "Counter-Argument: Can accumulate cumulative rounding drift on multi-item invoices."),
+            ("truncate", "Truncate fractional minor units without rounding",
+             "Counter-Argument: May mismatch payment gateway settlement amounts."),
+        ],
+        {
+            "half_even": ("half_even", "banker", "minor_units"),
+            "half_up": ("half_up", "commercial"),
+            "truncate": ("truncate", "floor"),
+        },
+    ),
+    (
+        "manual_otp_lockout",
+        re.compile(r"\b(?:otp|mfa|lockout|login|auth|password|session)\b", re.IGNORECASE),
+        "Which OTP expiry and brute-force lockout boundary applies to authentication manual test cases?",
+        [
+            ("hard_lockout", "60s OTP TTL and 15-minute lockout after 5 consecutive failures",
+             "Counter-Argument: Can cause temporary self-lockout for legitimate users mistyping SMS codes."),
+            ("backoff", "120s OTP TTL with exponential backoff and no hard lockout",
+             "Counter-Argument: Requires rate-limit telemetry assertions instead of deterministic HTTP 429 lockout."),
+            ("admin_unlock", "Strict 30s OTP TTL with permanent admin-unlock lockout",
+             "Counter-Argument: High support overhead and slower manual test teardown."),
+        ],
+        {
+            "hard_lockout": ("60s", "5_attempts", "lockout"),
+            "backoff": ("backoff", "exponential"),
+            "admin_unlock": ("admin_unlock", "permanent"),
+        },
+    ),
+    (
+        "manual_rbac_roles",
+        re.compile(r"\b(?:rbac|role|permission|admin|idor|access|tenant)\b", re.IGNORECASE),
+        "Which RBAC/IDOR denial contract applies when an unauthorized actor accesses another user's resource?",
+        [
+            ("http_403", "Return HTTP 403 Forbidden with zero resource data leakage",
+             "Counter-Argument: Reveals resource existence on predictable IDs unless paired with UUIDs."),
+            ("http_404", "Return HTTP 404 Not Found to mask resource existence",
+             "Counter-Argument: Harder for QA to distinguish genuine missing records from authorization denials."),
+            ("redirect", "Redirect browser to /unauthorized without API error payload",
+             "Counter-Argument: Unsuitable for REST/GraphQL API clients expecting JSON status codes."),
+        ],
+        {
+            "http_403": ("403", "forbidden"),
+            "http_404": ("404", "mask"),
+            "redirect": ("redirect", "unauthorized"),
+        },
+    ),
+]
+
+
 def check_ambiguities(
     task_description: str,
     invariants: Optional[List[str]] = None,
     decisions: Optional[Dict[str, str]] = None,
+    profile: str = "code",
 ) -> List[Dict[str, Any]]:
-    """Analyzes task description to identify architectural forks with negation-aware recommendations."""
+    """Analyzes task description to identify architectural or business-rule forks with recommendations."""
+    if profile not in ("code", "manual"):
+        raise ValueError(f"Unsupported profile '{profile}'; expected 'code' or 'manual'.")
     questions: List[Dict[str, Any]] = []
     norm_dto = normalize_bilingual_intent(task_description or "")
     canonical_task = norm_dto.canonical_text
@@ -556,7 +648,8 @@ def check_ambiguities(
         if str(k).strip() and str(v).strip()
     }
 
-    for category, pattern, question_text, options_data, keyword_maps in AMBIGUITY_DEFINITIONS:
+    active_defs = MANUAL_AMBIGUITY_DEFINITIONS if profile == "manual" else AMBIGUITY_DEFINITIONS
+    for category, pattern, question_text, options_data, keyword_maps in active_defs:
         if category == "auth_security" and is_non_auth_token_context(task_description or ""):
             if not re.search(r"\b(?:auth|jwt|session|oauth|security|credential)\b", canonical_task, re.I):
                 continue
@@ -1023,6 +1116,134 @@ def _extract_target_ast_anchor(full_path: str, task_tokens: Set[str]) -> Tuple[s
     return "[MODIFY]", anchor_str
 
 
+def _scaffold_manual_super_plan(
+    task: str,
+    target_files: List[str],
+    tier: PlanningTier,
+    metric: RiskMetricDTO,
+    mode_banner: str,
+    handoff_target: str,
+    decisions: Optional[Dict[str, str]],
+    effective_root: str,
+) -> str:
+    """Generates a Manual QA Spec-Driven Super-Plan grounded in BRD requirements and 25-field rules."""
+    from tools.manual.manual_pipeline_adapter import extract_manual_spec_inventory
+
+    spec_file = next(
+        (f for f in target_files if f.lower().endswith((".md", ".feature")) and ("brd" in f.lower() or "spec" in f.lower() or f.lower().endswith(".feature"))),
+        target_files[0] if target_files else "docs/spec_brd.md",
+    )
+    tc_file = next(
+        (f for f in target_files if f != spec_file and f.lower().endswith(".md")),
+        "docs/manual_testcases.md",
+    )
+
+    inv = extract_manual_spec_inventory(spec_file, repo_root=effective_root)
+    req_ids = inv.requirement_ids if inv.requirement_ids else ("AC-01", "AC-02", "AC-03")
+    fields = inv.detected_fields if inv.detected_fields else ("text",)
+    req_csv = ", ".join(f"`{r}`" for r in req_ids)
+    fields_csv = ", ".join(f"`{fld}`" for fld in fields)
+    rec_model, rec_rationale = _recommend_execution_profile(tier)
+    amb_questions = check_ambiguities(task, decisions=decisions, profile="manual")
+    unresolved = [q for q in amb_questions if not q.get("resolved_by_invariant", False)]
+    amb_status = (
+        f"Pending User Confirmation ({len(unresolved)} open business fork(s))"
+        if unresolved
+        else "Clear (Business rules grounded)"
+    )
+
+    return f"""<!--
+# SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
+# SPDX-License-Identifier: MIT
+# Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
+# Author: Thế Vị (@TeeVee98) | MIT License
+-->
+
+# Manual QA Super-Plan: {task}
+
+> **Profile:** `manual`
+> **Spec Source:** `{spec_file}`
+> **Reference Protocol:** [AGENTS.md §5](AGENTS.md), [rbt-manual-testing](skills/02-test-design/rbt-manual-testing/SKILL.md)
+> **Pre-Plan Model Fit Gate:** Recommended `{rec_model}` — {rec_rationale}
+> **Execution Mode:** {mode_banner}
+> **Ambiguity Gate Status:** {amb_status}
+> **Plan Changelog (v1.0):** Grounded Manual QA Super-Plan with AC/REQ Coverage Contract, 25-field surface, and Spec-Mutation gates.
+
+---
+
+## 1. Affected Files & Blast Radius
+
+| Action | File Path & Structural Anchor | Scope & Responsibility |
+| :--- | :--- | :--- |
+| `[MODIFY]` | `{spec_file}` (L1-L50) | Input BRD / User Story specification (`goldfish_score={inv.goldfish_score}`) |
+| `[CREATE]` | `{tc_file}` (New) | ISO/IEC/IEEE 29119-3 13-column Manual Test Suite with REQ ID RTM mapping |
+
+- **Regression Risk:** RiskScore `{metric.risk_score}`, BlastRadius `{metric.blast_radius}`, Requirements `{len(req_ids)}`.
+
+---
+
+## 2. Data Flow & Interface Signatures (Manual QA Coverage Contract)
+
+- **Mandatory Requirement IDs (100% RTM Coverage):** {req_csv}
+- **Detected 25-Field Validation Surface (`checklist_query.py`):** {fields_csv}
+- **Golden Ratio Commitment:** `Golden Ratio 40% Happy / 40% Negative / 20% Security & Resilience` (or domain-specific `synapse-linter-profile`).
+- **Spec-Mutation Pass Threshold:** `>= 80.0%` fault-injection kill score across boundary, RBAC/IDOR, null/Unicode, and race conditions.
+
+---
+
+## 3. Atomic Milestones (Execution DAG)
+
+### Milestone 1: Lock Spec Inventory & Author Manual Test Suite
+- **Node ID:** `M1`
+- **depends_on:** `[]`
+- **Compute Tier:** `[Model: Pro | Thinking: High]`
+- **Write Set:** `['{tc_file}']`
+- **Typed Interface Manifest:**
+  - **consumes:** `[]`
+  - **produces:** `[{{'contract': 'ManualTestSuiteRTM', 'file': '{tc_file}'}}]`
+- **Circuit Breaker:** `max_fix_attempts: 2`, `scope_guard: strict`
+- **Rollback Hook:** `git checkout -- {tc_file}`
+- **Pass Gate:** `python3 tools/lint/manual_tc_linter.py {tc_file}`
+
+### Milestone 2: Adversarial Spec-Mutation & Zero-Trust Manual Review
+- **Node ID:** `M2`
+- **depends_on:** `['M1']`
+- **Compute Tier:** `[Model: Flash | Thinking: Medium]`
+- **Write Set:** `['{tc_file}']`
+- **Typed Interface Manifest:**
+  - **consumes:** `[{{'contract': 'ManualTestSuiteRTM', 'from': 'M1'}}]`
+  - **produces:** `[]`
+- **Circuit Breaker:** `max_fix_attempts: 2`, `scope_guard: strict`
+- **Rollback Hook:** `git checkout -- {tc_file}`
+- **Pass Gate:** `python3 tools/orchestration/solo_runner.py --profile manual --mutation --spec {spec_file} --target {tc_file} --threshold 80.0 --json`
+
+---
+
+## 4. Verification Matrix ("Define the Exam in the Plan")
+
+| ID | Test Scenario | Input / Precondition | Expected Output / Assertion | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| **TC-01** | Spec Readiness (BRD Audit) | `{spec_file}` | Goldfish BRD review passes with zero critical ambiguity | `python3 tools/orchestration/goldfish_review.py {spec_file} --mode brd --json` |
+| **TC-02** | Format, Golden Ratio & Clarity | `{tc_file}` | ISO 29119-3 13-column lint passes with 0 defects and 0 vague oracles | `python3 tools/lint/manual_tc_linter.py {tc_file}` |
+| **TC-03** | Spec-Mutation & RTM Coverage | `{spec_file}` + `{tc_file}` | 100% REQ/AC coverage and Spec-Mutation kill score >= 80.0% | `python3 tools/orchestration/solo_runner.py --profile manual --mutation --spec {spec_file} --target {tc_file} --json` |
+| **TC-04** | Zero-Trust Manual Review | `{handoff_target}` | `/review --profile manual --strict-solo` returns `APPROVED` | `python3 tools/orchestration/senior_code_review.py --profile manual --plan {handoff_target} --strict-solo --json` |
+
+---
+
+## 5. Tri-Vulnerability Self-Critique & Mitigations
+
+1. **Concurrency / Race Condition (`race_condition`):**
+   - *Risk:* Double-submit or multi-tab state drift overlooked in happy-path-only manual cases.
+   - *Mitigation:* Spec-Mutation injects double-submit/idempotency fault mutants requiring explicit race-condition test cases.
+2. **Boundary & Resource Limits (`boundary_resource`):**
+   - *Risk:* Missing empty/null, max-length, or Unicode/IME edge cases across input fields.
+   - *Mitigation:* `checklist_query.py` surfaces all detected 25-field types and enforces negative/boundary test coverage.
+3. **Backward Compatibility & Traceability (`backward_compat`):**
+   - *Risk:* Spec changes after Red lock causing stale manual test cases or orphan TC IDs.
+   - *Mitigation:* HMAC-signed `spec_hash` locks requirement scope and `/review --profile manual` blocks on `SPEC_DRIFT_AFTER_RED`.
+"""
+
+
 def scaffold_super_plan(
     task: str,
     target_files: Optional[List[str]] = None,
@@ -1032,31 +1253,52 @@ def scaffold_super_plan(
     plan_output_path: Optional[str] = None,
     decisions: Optional[Dict[str, str]] = None,
     repo_root: Optional[str] = None,
+    profile: str = "code",
 ) -> str:
     """Generates a task-grounded, TDD-aligned Spec-Driven Super-Plan markdown draft."""
     if execution_mode not in ("solo", "teamwork"):
         raise ValueError(
             f"Unsupported execution_mode '{execution_mode}'; expected 'solo' or 'teamwork'."
         )
+    if profile not in ("code", "manual"):
+        raise ValueError(
+            f"Unsupported profile '{profile}'; expected 'code' or 'manual'."
+        )
     is_teamwork = execution_mode == "teamwork"
     parallel_tag = " [PARALLEL_OK]" if is_teamwork else ""
     effective_root = repo_root or _REPO_ROOT
 
     if not target_files:
-        target_files = ["src/target_module.py", "tests/test_target_module.py"]
+        target_files = (
+            ["docs/spec_brd.md", "docs/manual_testcases.md"]
+            if profile == "manual"
+            else ["src/target_module.py", "tests/test_target_module.py"]
+        )
 
     if tier is None:
-        tier, metric = calculate_risk_routing(task, target_files, repo_root=effective_root)
+        tier, metric = calculate_risk_routing(task, target_files, repo_root=effective_root, profile=profile)
     else:
-        _, metric = calculate_risk_routing(task, target_files, repo_root=effective_root)
+        _, metric = calculate_risk_routing(task, target_files, repo_root=effective_root, profile=profile)
 
-    rec_model, rec_rationale = _recommend_execution_profile(tier)
     handoff_target = (plan_output_path or "implementation_plan.md").replace("\\", "/")
     mode_banner = (
         "/teamwork (Multi-Worker Parallel on disjoint `[PARALLEL_OK]` milestones)"
         if is_teamwork
         else "Single-Agent Sequential (`/solo`) — One session, one recommended model/thinking level; execute milestones sequentially. Do NOT spawn `swarm` workers or parallel subagents."
     )
+    if profile == "manual":
+        return _scaffold_manual_super_plan(
+            task=task,
+            target_files=list(target_files),
+            tier=tier,
+            metric=metric,
+            mode_banner=mode_banner,
+            handoff_target=handoff_target,
+            decisions=decisions,
+            effective_root=effective_root,
+        )
+
+    rec_model, rec_rationale = _recommend_execution_profile(tier)
     handoff_cmd = (
         f'"Read {handoff_target} and execute via /teamwork"'
         if is_teamwork
@@ -1548,6 +1790,7 @@ def run_super_plan_pipeline(
     debt_scan_dir: Optional[str] = None,
     repo_root: Optional[str] = None,
     decisions: Optional[Dict[str, str]] = None,
+    profile: str = "code",
 ) -> Dict[str, Any]:
     """
     Unified Super-Plan stage orchestrator chaining:
@@ -1597,10 +1840,11 @@ def run_super_plan_pipeline(
         return art
 
     # Stage 1: Route
-    computed_tier, metric = calculate_risk_routing(task, target_files, repo_root=effective_root)
+    computed_tier, metric = calculate_risk_routing(task, target_files, repo_root=effective_root, profile=profile)
     chosen_tier = tier or computed_tier
     route_payload = {
         "task": task,
+        "profile": profile,
         "tier": chosen_tier.value,
         "computed_tier": computed_tier.value,
         "risk_score": metric.risk_score,
@@ -1610,12 +1854,13 @@ def run_super_plan_pipeline(
     _record_stage("route", "ROUTED", route_path, True, {"tier": chosen_tier.value, "risk_score": metric.risk_score})
 
     # Stage 2: Ambiguity Gate
-    questions = check_ambiguities(task, decisions=decisions)
+    questions = check_ambiguities(task, decisions=decisions, profile=profile)
     unresolved = [q for q in questions if not q.get("resolved_by_invariant", False)]
     amb_blocked = bool(non_interactive and unresolved)
     amb_state = "AMBIGUITY_BLOCKED" if amb_blocked else "AMBIGUITY_CLEARED"
     amb_payload = {
         "task": task,
+        "profile": profile,
         "status": amb_state,
         "non_interactive": non_interactive,
         "questions_count": len(questions),
@@ -1634,6 +1879,7 @@ def run_super_plan_pipeline(
     if amb_blocked:
         manifest = {
             "task": task,
+            "profile": profile,
             "passed": False,
             "lifecycle_state": "AMBIGUITY_BLOCKED",
             "stage_transitions": stage_transitions,
@@ -1663,6 +1909,7 @@ def run_super_plan_pipeline(
         plan_output_path=rel_plan_display,
         decisions=decisions,
         repo_root=effective_root,
+        profile=profile,
     )
     os.makedirs(os.path.dirname(resolved_plan_path), exist_ok=True)
     with open(resolved_plan_path, "w", encoding="utf-8") as fh:
@@ -1670,6 +1917,7 @@ def run_super_plan_pipeline(
 
     scaffold_payload = {
         "task": task,
+        "profile": profile,
         "tier": chosen_tier.value,
         "execution_mode": execution_mode,
         "plan_path": resolved_plan_path,
@@ -1695,7 +1943,7 @@ def run_super_plan_pipeline(
     # Stage 4: Validate (PLAN_VALIDATED vs PLAN_VALIDATION_FAILED)
     val_mode = "standard" if chosen_tier == PlanningTier.TIER_0_FAST else "super"
     val_passed, val_issues, val_details = validate_plan_content(
-        plan_md, filename=resolved_plan_path, mode=val_mode
+        plan_md, filename=resolved_plan_path, mode=val_mode, profile=profile
     )
     val_state = "PLAN_VALIDATED" if val_passed else "PLAN_VALIDATION_FAILED"
     val_path = _write_stage_json(
@@ -1778,6 +2026,7 @@ def run_super_plan_pipeline(
 
     manifest = {
         "task": task,
+        "profile": profile,
         "tier": chosen_tier.value,
         "execution_mode": execution_mode,
         "passed": overall_passed,
@@ -1822,12 +2071,14 @@ def main() -> int:
     route_parser = subparsers.add_parser("route", help="Determines deterministic planning tier and risk score")
     route_parser.add_argument("--task", required=True, help="Task description")
     route_parser.add_argument("--files", nargs="*", help="Candidate target files")
+    route_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
     route_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     route_parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     # ambiguity-check sub-command
     amb_parser = subparsers.add_parser("ambiguity-check", help="Detects architectural forks and outputs MCQs")
     amb_parser.add_argument("--task", required=True, help="Task description")
+    amb_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
     amb_parser.add_argument("--non-interactive", "--auto-recommend", action="store_true", dest="auto_recommend", help="Headless CI mode: auto-selects (Recommended) choices without blocking")
     amb_parser.add_argument("--json", action="store_true", help="Output results in JSON format")
 
@@ -1837,6 +2088,7 @@ def main() -> int:
     scaff_parser.add_argument("--files", nargs="*", help="List of candidate files")
     scaff_parser.add_argument("--tier", choices=["fast", "standard", "deep", "auto"], default="auto", help="Planning tier override (default auto)")
     scaff_parser.add_argument("--execution-mode", choices=["solo", "teamwork"], default="solo", help="Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork")
+    scaff_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
     scaff_parser.add_argument("--tournament", action="store_true", help="Generate 3-way orthogonal tournament Trade-off Matrix")
     scaff_parser.add_argument("--decisions", help="Optional JSON or k=v,k2=v2 architectural decisions resolving Ambiguity Gate forks")
     scaff_parser.add_argument("--output", help="Optional output filepath to save plan (pass 'auto' for .synapse/plans/<slug>.md)")
@@ -1847,6 +2099,7 @@ def main() -> int:
     val_parser = subparsers.add_parser("validate", help="Validates an implementation plan")
     val_parser.add_argument("--file", required=True, help="Path to markdown plan")
     val_parser.add_argument("--mode", choices=["standard", "super", "auto"], default="super")
+    val_parser.add_argument("--profile", choices=["auto", "code", "manual"], default="auto", help="Validation profile (auto, code, or manual)")
     val_parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     # mutate sub-command
@@ -1873,6 +2126,7 @@ def main() -> int:
     pipe_parser.add_argument("--files", nargs="*", help="List of candidate files")
     pipe_parser.add_argument("--tier", choices=["fast", "standard", "deep", "auto"], default="auto", help="Planning tier override (default auto)")
     pipe_parser.add_argument("--execution-mode", choices=["solo", "teamwork"], default="solo", help="Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork")
+    pipe_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
     pipe_parser.add_argument("--output", help="Optional output directory to persist pipeline stage artifacts")
     pipe_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     pipe_parser.add_argument("--threshold", type=float, default=90.0, help="Pass gate threshold (default 90.0)")
@@ -1908,12 +2162,14 @@ def _parse_tier_override(tier_arg: str) -> Optional[PlanningTier]:
 
 def _cli_handle_route(args: argparse.Namespace) -> int:
     target_root = _effective_cli_repo_root(getattr(args, "repo_root", None))
-    tier, metric = calculate_risk_routing(args.task, args.files, repo_root=target_root)
+    profile = getattr(args, "profile", "code")
+    tier, metric = calculate_risk_routing(args.task, args.files, repo_root=target_root, profile=profile)
     model_fit = assess_pre_plan_model_fit(tier)
     concurrency = inspect_workspace_concurrency(target_root, task=args.task)
     if args.json:
         print(json.dumps({
             "task": args.task,
+            "profile": profile,
             "tier": tier.value,
             "risk_score": metric.risk_score,
             "recommended_model": metric.recommended_model,
@@ -1950,7 +2206,7 @@ def _cli_handle_route(args: argparse.Namespace) -> int:
 
 
 def _cli_handle_ambiguity_check(args: argparse.Namespace) -> int:
-    questions = check_ambiguities(args.task)
+    questions = check_ambiguities(args.task, profile=getattr(args, "profile", "code"))
     if getattr(args, "auto_recommend", False):
         unresolved = [q for q in questions if not q.get("resolved_by_invariant", False)]
         if unresolved:
@@ -2023,6 +2279,7 @@ def _cli_handle_scaffold(args: argparse.Namespace) -> int:
             display_out = resolved_out.replace("\\", "/")
 
     parsed_decisions = _parse_decisions_arg(getattr(args, "decisions", None))
+    profile = getattr(args, "profile", "code")
     plan_md = scaffold_super_plan(
         args.task,
         args.files,
@@ -2032,18 +2289,19 @@ def _cli_handle_scaffold(args: argparse.Namespace) -> int:
         plan_output_path=display_out,
         decisions=parsed_decisions or None,
         repo_root=target_root,
+        profile=profile,
     )
     if resolved_out:
         os.makedirs(os.path.dirname(resolved_out), exist_ok=True)
         with open(resolved_out, "w", encoding="utf-8") as fh:
             fh.write(plan_md)
         if args.json:
-            print(json.dumps({"task": args.task, "plan_path": resolved_out, "plan_rel_path": display_out, "plan_markdown": plan_md}, indent=2))
+            print(json.dumps({"task": args.task, "profile": profile, "plan_path": resolved_out, "plan_rel_path": display_out, "plan_markdown": plan_md}, indent=2))
         else:
             print(f"[SCAFFOLD COMPLETE] Saved grounded plan to {resolved_out}")
         return 0
     if args.json:
-        print(json.dumps({"task": args.task, "plan_markdown": plan_md}, indent=2))
+        print(json.dumps({"task": args.task, "profile": profile, "plan_markdown": plan_md}, indent=2))
     else:
         print(plan_md)
     return 0
@@ -2055,7 +2313,12 @@ def _cli_handle_validate(args: argparse.Namespace) -> int:
         return 1
     with open(args.file, "r", encoding="utf-8", errors="replace") as fh:
         content = fh.read()
-    passed, issues, details = validate_plan_content(content, filename=args.file, mode=args.mode)
+    passed, issues, details = validate_plan_content(
+        content,
+        filename=args.file,
+        mode=args.mode,
+        profile=getattr(args, "profile", "auto"),
+    )
     if args.json:
         print(json.dumps({"passed": passed, "issues": issues, "details": details}, indent=2))
         return 0 if passed else 1
@@ -2121,6 +2384,7 @@ def _cli_handle_run_pipeline(args: argparse.Namespace) -> int:
             non_interactive=True,
             repo_root=target_root,
             decisions=parsed_decisions or None,
+            profile=getattr(args, "profile", "code"),
         )
     except ValueError as exc:
         if args.json:

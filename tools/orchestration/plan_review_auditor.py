@@ -2167,6 +2167,193 @@ def _audit_callers_and_cycles(
     )
 
 
+def _audit_manual_profile_execution(
+    abs_root: str,
+    changed_files: List[str],
+    plan_path: Optional[str],
+    milestone_id: Optional[str],
+    strict_solo: bool,
+    baseline_files: Optional[Sequence[str]],
+    findings: List[Dict[str, str]],
+    decision_log_path: Optional[str] = None,
+) -> Tuple[Optional[PlanReconciliationDTO], Optional[SoloProvenanceAuditDTO], CallerCompatibilityDTO]:
+    """Audits Manual QA deliveries (BRD, test suites, HMAC Red Spec-Hash & Spec-Mutation) cleanly."""
+    from tools.manual.manual_pipeline_adapter import audit_manual_delivery, list_manual_red_receipts
+
+    plan_dto: Optional[PlanReconciliationDTO] = None
+    planned_files: List[str] = []
+    missing: List[str] = []
+    unplanned: List[str] = []
+    if plan_path and str(plan_path).strip():
+        resolved_plan = plan_path if os.path.isabs(plan_path) else os.path.join(abs_root, plan_path)
+        if os.path.isfile(resolved_plan):
+            plan_content = open(resolved_plan, "r", encoding="utf-8", errors="replace").read()
+            create_mod_all, delete_all = _parse_section1_targets(plan_content)
+            dag = parse_plan_to_dag(plan_content, repo_root=abs_root)
+            if milestone_id and milestone_id.strip() and milestone_id.strip() in dag.nodes:
+                planned_files = list(dict.fromkeys(_norm_rel(w) for w in dag.nodes[milestone_id.strip()].write_set))
+            else:
+                planned_files = list(dict.fromkeys(list(create_mod_all) + list(delete_all)))
+            missing = [f for f in planned_files if not os.path.exists(os.path.join(abs_root, f))]
+            for mf in missing:
+                findings.append(
+                    _make_finding(
+                        severity="Must fix",
+                        code="UNIMPLEMENTED_PLANNED_FILES",
+                        title=f"Planned manual artifact missing on disk: {mf}",
+                        file_path=mf,
+                        line_no=1,
+                        what_is=f"Artifact '{mf}' is declared in the manual plan but missing on disk.",
+                        problem="Manual QA delivery is incomplete relative to the approved plan.",
+                        fix=f"Author '{mf}' before requesting /review.",
+                        if_skipped="Planned QA deliverables ship incomplete.",
+                    )
+                )
+            plan_rel = _safe_relpath(resolved_plan, abs_root)
+            planned_set = set(planned_files)
+            baseline_set = {_norm_rel(str(b)) for b in (baseline_files or ()) if str(b).strip()}
+            unplanned = [
+                _norm_rel(cf)
+                for cf in changed_files
+                if _norm_rel(cf)
+                and _norm_rel(cf) not in planned_set
+                and _norm_rel(cf) not in baseline_set
+                and _norm_rel(cf) != plan_rel
+                and not _norm_rel(cf).startswith(_EPHEMERAL_PREFIXES)
+                and os.path.basename(_norm_rel(cf)) not in ("decisions.tsv", "decisions.tsv.lock")
+            ]
+            for uf in unplanned:
+                findings.append(
+                    _make_finding(
+                        severity="Should fix",
+                        code="UNPLANNED_SCOPE_CREEP",
+                        title=f"Unplanned file modified outside manual plan write set: {uf}",
+                        file_path=uf,
+                        line_no=1,
+                        what_is=f"Changed file '{uf}' is not listed in the manual plan write set.",
+                        problem="Out-of-scope edits bypass manual plan review boundaries.",
+                        fix=f"Revert '{uf}' if unrelated, or declare it in the manual plan.",
+                        if_skipped="Unreviewed scope creep bypasses plan blast-radius guards.",
+                    )
+                )
+        else:
+            missing = [plan_path]
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="PLAN_FILE_NOT_FOUND",
+                    title=f"Plan file not found: {plan_path}",
+                    file_path=plan_path,
+                    line_no=1,
+                    what_is="The --plan target file does not exist on disk.",
+                    problem="Cannot reconcile manual QA delivery against a missing Super-Plan.",
+                    fix="Provide a valid path to the manual Super-Plan Markdown file.",
+                    if_skipped="Plan fidelity cannot be verified.",
+                )
+            )
+
+    existing_planned = [f for f in planned_files if os.path.isfile(os.path.join(abs_root, f))]
+    effective_files = tuple(dict.fromkeys([*changed_files, *existing_planned]))
+    manual_report = audit_manual_delivery(
+        repo_root=abs_root,
+        plan_path=plan_path,
+        changed_files=effective_files,
+        milestone_id=milestone_id,
+        strict_solo=strict_solo,
+    )
+    for item in manual_report.findings:
+        findings.append(
+            _make_finding(
+                severity=item.get("severity", "Must fix"),
+                code=item.get("code", "MANUAL_AUDIT_FINDING"),
+                title=item.get("title", "Manual QA audit finding"),
+                file_path=item.get("file_path", "docs/"),
+                line_no=int(item.get("line_no", "1") or 1),
+                what_is=item.get("what_is", ""),
+                problem=item.get("problem", ""),
+                fix=item.get("fix", ""),
+                if_skipped=item.get("if_skipped", ""),
+            )
+        )
+
+    if plan_path and str(plan_path).strip():
+        uncovered = tuple(manual_report.coverage_audit.uncovered_req_ids)
+        plan_passed = len(missing) == 0 and len(uncovered) == 0 and manual_report.coverage_audit.linter_passed
+        align_pct = 100.0 if plan_passed else max(0.0, 100.0 - 25.0 * (len(missing) + len(uncovered)))
+        plan_dto = PlanReconciliationDTO(
+            plan_path=plan_path,
+            milestone_scope=milestone_id,
+            planned_files=tuple(planned_files),
+            missing_planned_files=tuple(missing),
+            undeleted_files=(),
+            unplanned_modified_files=tuple(unplanned),
+            drifted_contracts=tuple(manual_report.coverage_audit.field_checklist_gaps),
+            missing_matrix_tests=uncovered,
+            alignment_score_pct=round(align_pct, 2),
+            passed=plan_passed,
+        )
+
+    mut_scores: Dict[str, float] = {}
+    survived_summaries: Tuple[str, ...] = ()
+    if manual_report.spec_mutation is not None:
+        key_name = manual_report.spec_mutation.spec_path or "manual_spec"
+        mut_scores[key_name] = manual_report.spec_mutation.kill_score
+        survived_summaries = manual_report.spec_mutation.survived_mutants
+
+    discovered_reds = list_manual_red_receipts(abs_root, milestone_id)
+    decisions_p = (
+        decision_log_path
+        if (decision_log_path and os.path.isabs(decision_log_path))
+        else os.path.join(abs_root, decision_log_path or "decisions.tsv")
+    )
+    decision_log_valid = True
+    if os.path.isfile(decisions_p):
+        dl_res = audit_decision_log(decisions_p, strict=True)
+        decision_log_valid = bool(dl_res.get("valid", False))
+        if not decision_log_valid:
+            issues = dl_res.get("issues") or []
+            issues_str = "; ".join(str(item) for item in issues[:5]) or "Malformed decisions.tsv entries."
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="INVALID_DECISION_LOG",
+                    title="Decision log audit failed for manual delivery",
+                    file_path=_safe_relpath(decisions_p, abs_root),
+                    line_no=1,
+                    what_is=issues_str,
+                    problem="Corrupted decision log breaks /solo audit trail.",
+                    fix="Fix malformed rows in decisions.tsv.",
+                    if_skipped="Audit traceability is compromised.",
+                )
+            )
+
+    solo_passed = (
+        (manual_report.receipt_verified or not strict_solo)
+        and decision_log_valid
+        and (manual_report.spec_mutation is None or manual_report.spec_mutation.passed)
+    )
+    solo_dto = SoloProvenanceAuditDTO(
+        solo_detected=manual_report.receipt_verified or bool(mut_scores) or bool(discovered_reds),
+        milestones_checked=(milestone_id,) if milestone_id else ("M1",),
+        valid_red_receipts=discovered_reds if manual_report.receipt_verified else (),
+        tampered_or_invalid_receipts=() if manual_report.receipt_verified else discovered_reds,
+        post_red_tampered_tests=(),
+        mutation_scores=mut_scores,
+        survived_mutant_summaries=survived_summaries,
+        decision_log_valid=decision_log_valid,
+        provenance_score_pct=100.0 if solo_passed else 0.0,
+        passed=solo_passed,
+    )
+    caller_dto = CallerCompatibilityDTO(
+        modified_symbols=(),
+        broken_call_sites=(),
+        import_cycles=(),
+        high_fan_in_targets=(),
+        passed=True,
+    )
+    return plan_dto, solo_dto, caller_dto
+
+
 def audit_plan_and_solo_execution(
     repo_root: str,
     changed_files: List[str],
@@ -2177,13 +2364,37 @@ def audit_plan_and_solo_execution(
     require_mutation_receipt: bool = True,
     decision_log_path: Optional[str] = None,
     baseline_files: Optional[Sequence[str]] = None,
+    profile: str = "auto",
 ) -> Tuple[Optional[PlanReconciliationDTO], Optional[SoloProvenanceAuditDTO], CallerCompatibilityDTO, List[Dict[str, str]]]:
     """Reconciles git diff & disk state against /super-plan contracts, /solo HMAC receipts, and CallGraph callers."""
+    from tools.manual.manual_pipeline_adapter import detect_plan_profile
+
     abs_root = os.path.abspath(repo_root)
     findings: List[Dict[str, str]] = []
+    has_plan = bool(plan_path and str(plan_path).strip())
+
+    plan_text = ""
+    if has_plan:
+        rp = str(plan_path).strip()
+        rp_abs = rp if os.path.isabs(rp) else os.path.join(abs_root, rp)
+        if os.path.isfile(rp_abs):
+            plan_text = open(rp_abs, "r", encoding="utf-8", errors="replace").read()
+
+    effective_profile = detect_plan_profile(plan_text, explicit_profile=profile)
+    if effective_profile == "manual":
+        p_dto, s_dto, c_dto = _audit_manual_profile_execution(
+            abs_root=abs_root,
+            changed_files=changed_files,
+            plan_path=plan_path,
+            milestone_id=milestone_id,
+            strict_solo=strict_solo,
+            baseline_files=baseline_files,
+            findings=findings,
+            decision_log_path=decision_log_path,
+        )
+        return p_dto, s_dto, c_dto, findings
 
     plan_dto: Optional[PlanReconciliationDTO] = None
-    has_plan = bool(plan_path and str(plan_path).strip())
     if has_plan:
         plan_dto = _reconcile_plan(
             repo_root=abs_root,

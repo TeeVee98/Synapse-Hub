@@ -43,6 +43,9 @@ policies:
 2. **AST Structural Anchors & Pre-flight Sensor:**
    - Lock target files using **Unified AST Structural Anchors** (`path::Symbol` or `(AST: Symbol)`).
    - Validate via `agent-qa lint-plan --file <plan_path> --mode super --json`: flags phantom symbols, missing files, unannotated `[CREATE]` collisions, untyped Section 2 `: Any` contract widening, and non-executable milestone `Pass Gate` commands.
+3. **Manual QA Profile (`--profile manual`):**
+   - For Manual QA workflows (BRD/Story analysis, ISO/IEC/IEEE 29119-3 test suites, RTM coverage), pass `--profile manual` on `route`, `ambiguity-check`, `scaffold`, `validate`, and `run-pipeline` (default remains `--profile code`).
+   - Composes `goldfish_review.py --mode brd`, `checklist_query.py` (25-field surface), and `manual_tc_linter.py` Pass Gates via `tools/manual/manual_pipeline_adapter.py`, enforcing structured `AC-`/`REQ-` Coverage Contracts and Golden Ratio commitments instead of Python AST/pytest gates.
 
 ---
 

@@ -2924,6 +2924,8 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--status", action="store_true", help="Display current Solo-Swarm verification state")
 
     parser.add_argument("--test-cmd", type=str, default="", help="Dynamic test command (e.g. 'pytest tests/test_target.py')")
+    parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Verification profile: code (default) or manual")
+    parser.add_argument("--spec", type=str, default="", help="Specification/BRD file path for --profile manual verification")
     parser.add_argument("--target", "--target-file", dest="target", type=str, default="", help="Target source file for mutation testing or static audit (auto-resolved from git diff if omitted)")
     parser.add_argument("--milestone", type=str, default="", help="Milestone Node ID (e.g. M1) for milestone-scoped receipts and --from-plan filtering")
     parser.add_argument("--plan-slug", type=str, default="", help="Optional plan slug to namespace milestone Red receipts (<slug>__<milestone>_red.json)")
@@ -3030,19 +3032,61 @@ def main() -> int:
                 print(f"    • [{sc['id']}]: {sc['description']}")
             print("======================================================================\n")
 
+    manual_profile = getattr(args, "profile", "code") == "manual"
+    cwd_abs = os.path.abspath(os.getcwd())
+    manual_root = (
+        cwd_abs
+        if os.path.exists(os.path.join(cwd_abs, ".git"))
+        else _REPO_ROOT
+    )
+
     if args.red:
-        red_res = certify_red_phase(
-            test_cmd=args.test_cmd,
-            receipt_path=args.receipt_path,
-            runner=args.runner,
-            event_stream_path=args.event_stream or None,
-            target_files=[args.target] if args.target else None,
-            require_four_scenarios=bool(getattr(args, "require_four_scenarios", False)),
-            milestone_id=getattr(args, "milestone", "") or None,
-            ttl_seconds=getattr(args, "ttl", None),
-            recertify_red=bool(getattr(args, "recertify_red", False)),
-            plan_slug=getattr(args, "plan_slug", "") or None,
-        )
+        if manual_profile:
+            from tools.manual.manual_pipeline_adapter import certify_manual_red_phase
+
+            spec_arg = (getattr(args, "spec", "") or "").strip()
+            if not spec_arg:
+                red_res = {
+                    "status": "ERROR",
+                    "profile": "manual",
+                    "passed": False,
+                    "error": "Missing --spec path for --profile manual --red.",
+                }
+            else:
+                dto = certify_manual_red_phase(
+                    spec_path=spec_arg,
+                    milestone_id=(getattr(args, "milestone", "") or "M1").strip(),
+                    repo_root=manual_root,
+                    ttl_seconds=int(getattr(args, "ttl", None) or 900),
+                    receipt_path=args.receipt_path if args.receipt_path != DEFAULT_RECEIPT_PATH else None,
+                    plan_slug=getattr(args, "plan_slug", "") or None,
+                )
+                red_res = {
+                    "status": dto.status,
+                    "profile": dto.profile,
+                    "passed": dto.status == "CERTIFIED_RED",
+                    "milestone_id": dto.milestone_id,
+                    "spec_path": dto.spec_path,
+                    "spec_hash": dto.spec_hash,
+                    "requirement_ids": list(dto.requirement_ids),
+                    "certified_at": dto.certified_at,
+                    "ttl_seconds": dto.ttl_seconds,
+                    "receipt_hmac": dto.receipt_hmac,
+                    "message": "✅ Manual Red Phase Certified: Spec hash and REQ IDs locked." if dto.status == "CERTIFIED_RED" else "❌ Manual Red Rejected: Empty or invalid spec.",
+                }
+        else:
+            red_res = certify_red_phase(
+                test_cmd=args.test_cmd,
+                receipt_path=args.receipt_path,
+                runner=args.runner,
+                event_stream_path=args.event_stream or None,
+                target_files=[args.target] if args.target else None,
+                require_four_scenarios=bool(getattr(args, "require_four_scenarios", False)),
+                milestone_id=getattr(args, "milestone", "") or None,
+                ttl_seconds=getattr(args, "ttl", None),
+                recertify_red=bool(getattr(args, "recertify_red", False)),
+                plan_slug=getattr(args, "plan_slug", "") or None,
+            )
         results["red_phase"] = red_res
         if not red_res.get("passed", False):
             exit_code = 1
@@ -3061,17 +3105,52 @@ def main() -> int:
             print("======================================================================\n")
 
     if args.green:
-        effective_sandbox = "host" if getattr(args, "no_sandbox", False) else getattr(args, "sandbox", "worktree")
-        green_res = certify_green_phase(
-            test_cmd=args.test_cmd,
-            receipt_path=args.receipt_path,
-            runner=args.runner,
-            event_stream_path=args.event_stream or None,
-            shard_count=args.shard,
-            sandbox_mode=effective_sandbox,
-            milestone_id=getattr(args, "milestone", "") or None,
-            plan_slug=getattr(args, "plan_slug", "") or None,
-        )
+        if manual_profile:
+            from tools.manual.manual_pipeline_adapter import verify_manual_green_phase
+
+            spec_arg = (getattr(args, "spec", "") or "").strip()
+            tc_arg = (args.target or "").strip()
+            tc_tuple = (tc_arg,) if tc_arg else ()
+            if not spec_arg or not tc_tuple:
+                green_res = {
+                    "status": "ERROR",
+                    "profile": "manual",
+                    "passed": False,
+                    "error": "Provide both --spec and --target for --profile manual --green.",
+                }
+            else:
+                g_dto = verify_manual_green_phase(
+                    spec_path=spec_arg,
+                    tc_files=tc_tuple,
+                    milestone_id=(getattr(args, "milestone", "") or "M1").strip(),
+                    repo_root=manual_root,
+                )
+                green_res = {
+                    "status": "CERTIFIED_GREEN" if g_dto.passed else "GREEN_FAILED",
+                    "profile": "manual",
+                    "passed": g_dto.passed,
+                    "test_case_files": list(g_dto.test_case_files),
+                    "total_test_cases": g_dto.total_test_cases,
+                    "covered_req_ids": list(g_dto.covered_req_ids),
+                    "uncovered_req_ids": list(g_dto.uncovered_req_ids),
+                    "orphan_tc_ids": list(g_dto.orphan_tc_ids),
+                    "linter_passed": g_dto.linter_passed,
+                    "linter_defects": list(g_dto.linter_defects),
+                    "field_checklist_gaps": list(g_dto.field_checklist_gaps),
+                    "message": "✅ Manual Green Phase Certified: Linter & 100% AC RTM passed." if g_dto.passed else "❌ Manual Green Rejected: Uncovered requirements or linter defects.",
+                }
+        else:
+            effective_sandbox = "host" if getattr(args, "no_sandbox", False) else getattr(args, "sandbox", "worktree")
+            green_res = certify_green_phase(
+                test_cmd=args.test_cmd,
+                receipt_path=args.receipt_path,
+                runner=args.runner,
+                event_stream_path=args.event_stream or None,
+                shard_count=args.shard,
+                sandbox_mode=effective_sandbox,
+                milestone_id=getattr(args, "milestone", "") or None,
+                plan_slug=getattr(args, "plan_slug", "") or None,
+            )
         results["green_phase"] = green_res
         if not green_res.get("passed", False):
             exit_code = 1
@@ -3088,19 +3167,55 @@ def main() -> int:
             print("======================================================================\n")
 
     if args.mutation:
-        diff_only = not args.full_file
-        effective_sandbox = "host" if getattr(args, "no_sandbox", False) else getattr(args, "sandbox", "worktree")
-        mut_res = certify_mutation_phase(
-            target_file=args.target,
-            test_cmd=args.test_cmd,
-            threshold=args.threshold,
-            timeout=args.timeout,
-            diff_only=diff_only,
-            mutation_scope="full" if args.full_file else "diff_only",
-            event_stream_path=args.event_stream or None,
-            receipt_path=args.receipt_path if args.receipt_path != DEFAULT_RECEIPT_PATH else None,
-            sandbox_mode=effective_sandbox,
-        )
+        if manual_profile:
+            from tools.manual.manual_pipeline_adapter import run_spec_mutation_audit
+
+            spec_arg = (getattr(args, "spec", "") or "").strip()
+            tc_arg = (args.target or "").strip()
+            tc_tuple = (tc_arg,) if tc_arg else ()
+            if not spec_arg or not tc_tuple:
+                mut_res = {
+                    "status": "ERROR",
+                    "profile": "manual",
+                    "passed": False,
+                    "error": "Provide both --spec and --target for --profile manual --mutation.",
+                }
+            else:
+                m_dto = run_spec_mutation_audit(
+                    spec_path=spec_arg,
+                    tc_files=tc_tuple,
+                    threshold=args.threshold,
+                    repo_root=manual_root,
+                    milestone_id=(getattr(args, "milestone", "") or None),
+                )
+                mut_res = {
+                    "status": "SPEC_MUTATION_PASSED" if m_dto.passed else "SPEC_MUTATION_FAILED",
+                    "profile": "manual",
+                    "passed": m_dto.passed,
+                    "target_file": m_dto.spec_path,
+                    "mutation_score": m_dto.kill_score,
+                    "required_threshold": m_dto.threshold,
+                    "total_mutants": m_dto.total_mutants,
+                    "killed": m_dto.killed_mutants,
+                    "survived": len(m_dto.survived_mutants),
+                    "survived_mutants": list(m_dto.survived_mutants),
+                    "receipt_hmac": m_dto.receipt_hmac,
+                    "message": f"✅ Spec-Mutation Certified: {m_dto.kill_score}% >= {m_dto.threshold}%." if m_dto.passed else f"❌ Spec-Mutation Rejected: {m_dto.kill_score}% < {m_dto.threshold}%.",
+                }
+        else:
+            diff_only = not args.full_file
+            effective_sandbox = "host" if getattr(args, "no_sandbox", False) else getattr(args, "sandbox", "worktree")
+            mut_res = certify_mutation_phase(
+                target_file=args.target,
+                test_cmd=args.test_cmd,
+                threshold=args.threshold,
+                timeout=args.timeout,
+                diff_only=diff_only,
+                mutation_scope="full" if args.full_file else "diff_only",
+                event_stream_path=args.event_stream or None,
+                receipt_path=args.receipt_path if args.receipt_path != DEFAULT_RECEIPT_PATH else None,
+                sandbox_mode=effective_sandbox,
+            )
         results["mutation_phase"] = mut_res
         if not mut_res.get("passed", False):
             exit_code = 1
@@ -3117,14 +3232,40 @@ def main() -> int:
             print("======================================================================\n")
 
     if args.purple:
-        purple_res = certify_purple_phase(
-            target="uncommitted",
-            target_file=args.target,
-            receipt_path=args.receipt_path if args.receipt_path != DEFAULT_RECEIPT_PATH else None,
-            repo_root=_REPO_ROOT,
-            event_stream_path=args.event_stream or None,
-            oracle_cmd=args.oracle_cmd,
-        )
+        if manual_profile:
+            from tools.manual.manual_pipeline_adapter import audit_manual_delivery
+
+            spec_arg = (getattr(args, "spec", "") or "").strip() or None
+            tc_arg = (args.target or "").strip()
+            changed_tuple = (tc_arg,) if tc_arg else ()
+            rep = audit_manual_delivery(
+                repo_root=manual_root,
+                plan_path=resolve_active_plan_path(manual_root),
+                changed_files=changed_tuple,
+                milestone_id=(getattr(args, "milestone", "") or None),
+                strict_solo=False,
+                spec_path=spec_arg,
+            )
+            purple_res = {
+                "status": "CERTIFIED_PURPLE" if rep.passed else "PURPLE_FAILED",
+                "profile": "manual",
+                "passed": rep.passed,
+                "target": tc_arg or (spec_arg or "manual"),
+                "files_analyzed": len(rep.coverage_audit.test_case_files),
+                "findings_count": len(rep.findings),
+                "findings": list(rep.findings),
+                "receipt_verified": rep.receipt_verified,
+                "message": "✅ Manual Purple Audit Certified." if rep.passed else "❌ Manual Purple Audit found blockers.",
+            }
+        else:
+            purple_res = certify_purple_phase(
+                target="uncommitted",
+                target_file=args.target,
+                receipt_path=args.receipt_path if args.receipt_path != DEFAULT_RECEIPT_PATH else None,
+                repo_root=_REPO_ROOT,
+                event_stream_path=args.event_stream or None,
+                oracle_cmd=args.oracle_cmd,
+            )
         results["purple_phase"] = purple_res
         if not purple_res.get("passed", False):
             exit_code = 1
@@ -3146,11 +3287,14 @@ def main() -> int:
             ms_raw = getattr(args, "milestone", "")
             ms_arg = ms_raw.strip() if isinstance(ms_raw, str) and ms_raw.strip() else None
             cwd_abs = os.path.abspath(os.getcwd())
-            review_root = (
-                cwd_abs
-                if cwd_abs != os.path.abspath(_REPO_ROOT) and os.path.isfile(os.path.join(cwd_abs, ".git"))
-                else _REPO_ROOT
-            )
+            if manual_profile:
+                review_root = manual_root
+            else:
+                review_root = (
+                    cwd_abs
+                    if cwd_abs != os.path.abspath(_REPO_ROOT) and os.path.isfile(os.path.join(cwd_abs, ".git"))
+                    else _REPO_ROOT
+                )
             auto_plan = resolve_active_plan_path(review_root)
             try:
                 rev_exit, rev_payload, _, _ = evaluate_review(
@@ -3161,8 +3305,10 @@ def main() -> int:
                     strict=False,
                     strict_solo=True,
                     require_mutation_receipt=False,
+                    profile="manual" if manual_profile else "auto",
                 )
                 auto_review: Dict[str, Any] = {
+                    "profile": rev_payload.get("profile"),
                     "verdict": rev_payload.get("verdict"),
                     "passed": bool(rev_payload.get("passed", False)),
                     "findings_count": rev_payload.get("findings_count", 0),
@@ -3355,7 +3501,7 @@ def main() -> int:
         try:
             plan_summary = execute_plan_via_solo(
                 plan_path=args.from_plan,
-                repo_root=_REPO_ROOT,
+                repo_root=manual_root if manual_profile else _REPO_ROOT,
                 milestone_filter=getattr(args, "milestone", "") or None,
                 decision_log_path=getattr(args, "decision_log", "decisions.tsv") or "decisions.tsv",
                 sandbox_mode=effective_sandbox,
@@ -3363,6 +3509,7 @@ def main() -> int:
                 strict_red=effective_strict_red,
                 diff_only_mutation=not bool(getattr(args, "full_file", False)),
                 auto_review=not bool(getattr(args, "no_review", False)),
+                profile="manual" if manual_profile else "auto",
                 phase_callbacks=SoloPhaseCallbacks(
                     certify_red_phase=certify_red_phase,
                     certify_green_phase=certify_green_phase,

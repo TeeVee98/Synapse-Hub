@@ -158,8 +158,11 @@ def _is_tier0_plan(plan_content: str) -> bool:
 def compile_plan_to_solo_specs(
     plan_path: str,
     repo_root: str = _REPO_ROOT,
+    profile: str = "auto",
 ) -> List[MilestoneExecutionSpecDTO]:
     """Compiles a validated super-plan Markdown DAG into topologically ordered MilestoneExecutionSpecDTO items."""
+    from tools.manual.manual_pipeline_adapter import detect_plan_profile
+
     if not plan_path or not str(plan_path).strip():
         raise ValueError("plan_path must be a non-empty string.")
 
@@ -177,6 +180,7 @@ def compile_plan_to_solo_specs(
     if not content.strip():
         raise ValueError(f"Plan file '{resolved_path}' is empty.")
 
+    effective_profile = detect_plan_profile(content, explicit_profile=profile)
     executor = parse_plan_to_dag(content, repo_root=repo_root)
     if not executor.nodes:
         raise ValueError(f"Plan file '{resolved_path}' defines zero executable DAG milestones.")
@@ -187,10 +191,13 @@ def compile_plan_to_solo_specs(
     specs: List[MilestoneExecutionSpecDTO] = []
     for node in ordered_nodes:
         write_set = tuple(w.replace("\\", "/").strip() for w in node.write_set if w.strip())
-        source_files = tuple(
-            w for w in write_set
-            if w.lower().endswith(_CODE_EXTS) and not _is_test_path(w)
-        )
+        if effective_profile == "manual":
+            source_files = tuple(w for w in write_set if w.lower().endswith(".md"))
+        else:
+            source_files = tuple(
+                w for w in write_set
+                if w.lower().endswith(_CODE_EXTS) and not _is_test_path(w)
+            )
         test_files = [w for w in write_set if _is_test_path(w)]
 
         pass_gate = (node.pass_gate or "").strip()
@@ -541,6 +548,88 @@ def _collect_ancestor_write_set(
     return collected
 
 
+def _extract_manual_spec_from_plan(plan_content: str) -> str:
+    m = re.search(
+        r"Spec\s+Source[^\n:]*:[\s*`]*([A-Za-z0-9_.\-/\\]+\.(?:md|feature))",
+        plan_content or "",
+        re.IGNORECASE,
+    )
+    return m.group(1).replace("\\", "/") if m else ""
+
+
+def _execute_manual_milestone(
+    spec: MilestoneExecutionSpecDTO,
+    spec_path: str,
+    repo_root: str,
+    strict_red: bool,
+    run_mutation: bool,
+    node_result: Dict[str, Any],
+    receipt_paths: List[str],
+) -> None:
+    """Executes one Manual QA milestone through Red provenance, Green linter+RTM, and Spec-Mutation."""
+    from tools.manual.manual_pipeline_adapter import (
+        audit_manual_delivery,
+        run_spec_mutation_audit,
+        verify_manual_green_phase,
+    )
+
+    tc_files = tuple(w for w in spec.write_set if w.lower().endswith(".md"))
+    if strict_red:
+        audit = audit_manual_delivery(
+            repo_root=repo_root,
+            plan_path=None,
+            changed_files=tc_files,
+            milestone_id=spec.node_id,
+            strict_solo=True,
+            spec_path=spec_path or None,
+        )
+        node_result["phases"]["manual_red_check"] = {
+            "receipt_verified": audit.receipt_verified,
+            "findings": list(audit.findings),
+        }
+        if not audit.receipt_verified:
+            node_result["passed"] = False
+            return
+
+    green = verify_manual_green_phase(
+        spec_path=spec_path,
+        tc_files=tc_files,
+        milestone_id=spec.node_id,
+        repo_root=repo_root,
+    )
+    node_result["phases"]["green"] = {
+        "passed": green.passed,
+        "total_test_cases": green.total_test_cases,
+        "uncovered_req_ids": list(green.uncovered_req_ids),
+        "orphan_tc_ids": list(green.orphan_tc_ids),
+        "linter_passed": green.linter_passed,
+    }
+    if not green.passed:
+        node_result["passed"] = False
+        return
+
+    if run_mutation:
+        mut = run_spec_mutation_audit(
+            spec_path=spec_path,
+            tc_files=tc_files,
+            threshold=spec.mutation_threshold,
+            repo_root=repo_root,
+            milestone_id=spec.node_id,
+        )
+        node_result["phases"]["spec_mutation"] = {
+            "passed": mut.passed,
+            "kill_score": mut.kill_score,
+            "threshold": mut.threshold,
+            "survived_mutants": list(mut.survived_mutants),
+            "receipt_hmac": mut.receipt_hmac,
+        }
+        mut_path = os.path.join(repo_root, "reports", "solo_receipts", f"{spec.node_id}_mutation.json")
+        if os.path.isfile(mut_path):
+            receipt_paths.append(mut_path)
+        if not mut.passed:
+            node_result["passed"] = False
+
+
 def execute_plan_via_solo(
     plan_path: str,
     repo_root: str = _REPO_ROOT,
@@ -555,8 +644,23 @@ def execute_plan_via_solo(
     diff_only_mutation: bool = True,
     phase_callbacks: Optional[SoloPhaseCallbacks] = None,
     auto_review: bool = True,
+    profile: str = "auto",
 ) -> PlanExecutionSummaryDTO:
     """Executes compiled plan milestones sequentially through Red/Green/Mutation/Purple/ScopeGuard/DecisionLog and auto-/review."""
+    from tools.manual.manual_pipeline_adapter import detect_plan_profile
+
+    resolved_plan_path = (
+        plan_path
+        if os.path.isabs(plan_path) or os.path.isfile(plan_path)
+        else os.path.join(repo_root, plan_path)
+    )
+    plan_text = ""
+    if os.path.isfile(resolved_plan_path):
+        with open(resolved_plan_path, "r", encoding="utf-8", errors="replace") as pfh:
+            plan_text = pfh.read()
+    effective_profile = detect_plan_profile(plan_text, explicit_profile=profile)
+    manual_spec_path = _extract_manual_spec_from_plan(plan_text) if effective_profile == "manual" else ""
+
     resolved_cb = _resolve_phase_callbacks(phase_callbacks)
     certify_red_phase = resolved_cb.certify_red_phase
     certify_green_phase = resolved_cb.certify_green_phase
@@ -564,7 +668,7 @@ def execute_plan_via_solo(
     certify_purple_phase = resolved_cb.certify_purple_phase
     resolve_test_adapter = resolved_cb.resolve_test_adapter
 
-    all_specs = compile_plan_to_solo_specs(plan_path, repo_root=repo_root)
+    all_specs = compile_plan_to_solo_specs(plan_path, repo_root=repo_root, profile=effective_profile)
     spec_by_id = {s.node_id: s for s in all_specs}
     specs = all_specs
     completed_write_set: Set[str] = set()
@@ -640,55 +744,66 @@ def execute_plan_via_solo(
                 )
                 break
 
-        # 2. Milestone-Scoped Red / Green Verification
-        if spec.test_cmd:
-            _execute_milestone_test_phase(
+        # 2. Milestone-Scoped Red / Green / Mutation / Purple Verification
+        if effective_profile == "manual":
+            _execute_manual_milestone(
                 spec=spec,
+                spec_path=manual_spec_path,
                 repo_root=repo_root,
-                sandbox_mode=sandbox_mode,
-                recertify_red=recertify_red,
                 strict_red=strict_red,
-                node_result=node_result,
-                receipt_paths=receipt_paths,
-                resolve_test_adapter=resolve_test_adapter,
-                certify_red_phase=certify_red_phase,
-                certify_green_phase=certify_green_phase,
-                plan_slug=derived_plan_slug,
-            )
-
-        # 3. Live Dynamic Mutation Sentinel (diff-scoped by default with full fallback & AST_CONTRACT_VERIFIED waiver)
-        if node_result["passed"] and run_mutation and spec.target_source_files and spec.test_cmd:
-            _execute_milestone_mutation_phase(
-                spec=spec,
-                repo_root=repo_root,
-                sandbox_mode=sandbox_mode,
-                diff_only_mutation=diff_only_mutation,
-                certify_mutation_fn=certify_mutation_phase,
+                run_mutation=run_mutation,
                 node_result=node_result,
                 receipt_paths=receipt_paths,
             )
+        else:
+            if spec.test_cmd:
+                _execute_milestone_test_phase(
+                    spec=spec,
+                    repo_root=repo_root,
+                    sandbox_mode=sandbox_mode,
+                    recertify_red=recertify_red,
+                    strict_red=strict_red,
+                    node_result=node_result,
+                    receipt_paths=receipt_paths,
+                    resolve_test_adapter=resolve_test_adapter,
+                    certify_red_phase=certify_red_phase,
+                    certify_green_phase=certify_green_phase,
+                    plan_slug=derived_plan_slug,
+                )
 
-        # 4. Purple Phase Audit (Tech Lead + Neuro-Symbolic + Call-Graph across ALL milestone target source files)
-        if node_result["passed"] and run_purple:
-            purple_receipt = os.path.join(repo_root, "reports", "solo_receipts", f"{spec.node_id}_purple.json")
-            primary_target = spec.target_source_files[0] if spec.target_source_files else ""
-            p_res = certify_purple_phase(
-                target="uncommitted",
-                target_file=primary_target,
-                target_files=list(spec.target_source_files) or None,
-                receipt_path=purple_receipt,
-                repo_root=repo_root,
-            )
-            must_fix = [
-                f for f in p_res.get("findings", [])
-                if isinstance(f, dict) and f.get("severity") == "Must fix"
-            ]
-            purple_ok = bool(p_res.get("passed", False)) or len(must_fix) == 0
-            node_result["phases"]["purple"] = p_res
-            if os.path.isfile(purple_receipt):
-                receipt_paths.append(purple_receipt)
-            if not purple_ok:
-                node_result["passed"] = False
+            # 3. Live Dynamic Mutation Sentinel (diff-scoped by default with full fallback & AST_CONTRACT_VERIFIED waiver)
+            if node_result["passed"] and run_mutation and spec.target_source_files and spec.test_cmd:
+                _execute_milestone_mutation_phase(
+                    spec=spec,
+                    repo_root=repo_root,
+                    sandbox_mode=sandbox_mode,
+                    diff_only_mutation=diff_only_mutation,
+                    certify_mutation_fn=certify_mutation_phase,
+                    node_result=node_result,
+                    receipt_paths=receipt_paths,
+                )
+
+            # 4. Purple Phase Audit (Tech Lead + Neuro-Symbolic + Call-Graph across ALL milestone target source files)
+            if node_result["passed"] and run_purple:
+                purple_receipt = os.path.join(repo_root, "reports", "solo_receipts", f"{spec.node_id}_purple.json")
+                primary_target = spec.target_source_files[0] if spec.target_source_files else ""
+                p_res = certify_purple_phase(
+                    target="uncommitted",
+                    target_file=primary_target,
+                    target_files=list(spec.target_source_files) or None,
+                    receipt_path=purple_receipt,
+                    repo_root=repo_root,
+                )
+                must_fix = [
+                    f for f in p_res.get("findings", [])
+                    if isinstance(f, dict) and f.get("severity") == "Must fix"
+                ]
+                purple_ok = bool(p_res.get("passed", False)) or len(must_fix) == 0
+                node_result["phases"]["purple"] = p_res
+                if os.path.isfile(purple_receipt):
+                    receipt_paths.append(purple_receipt)
+                if not purple_ok:
+                    node_result["passed"] = False
 
         # 5. Append Decision Log Audit Trail Row
         status_label = "PASS" if node_result["passed"] else "FAIL"

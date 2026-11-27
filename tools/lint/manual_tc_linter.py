@@ -253,39 +253,76 @@ def parse_markdown_tables(content: str) -> List[Dict[str, Any]]:
 
     while i < len(lines):
         line = lines[i].strip()
-        if line.startswith("|") and line.endswith("|"):
-            # Potential table header
-            headers = [c.strip() for c in line.split("|")[1:-1]]
-            if len(headers) >= 3 and i + 1 < len(lines):
-                sep_line = lines[i + 1].strip()
-                if sep_line.startswith("|") and "---" in sep_line:
-                    # Confirmed markdown table
-                    header_line = i + 1
-                    rows = []
-                    i += 2
-                    while i < len(lines) and lines[i].strip().startswith("|") and lines[i].strip().endswith("|"):
-                        row_line = lines[i].strip()
-                        cols = [c.strip() for c in row_line.split("|")[1:-1]]
-                        if len(cols) == len(headers):
-                            row_dict = {headers[k]: cols[k] for k in range(len(headers))}
-                            row_dict["__line_number__"] = i + 1
-                            rows.append(row_dict)
-                        i += 1
+        if not (line.startswith("|") and line.endswith("|")):
+            i += 1
+            continue
+        headers = [c.strip() for c in line.split("|")[1:-1]]
+        if len(headers) < 3 or i + 1 >= len(lines):
+            i += 1
+            continue
+        sep_line = lines[i + 1].strip()
+        if not (sep_line.startswith("|") and "---" in sep_line):
+            i += 1
+            continue
 
-                    is_test_table = any(
-                        "tc id" in h.lower() or "case id" in h.lower() or "tc_id" in h.lower() or "test title" in h.lower()
-                        for h in headers
-                    )
-                    tables.append({
-                        "headers": headers,
-                        "rows": rows,
-                        "header_line": header_line,
-                        "is_test_table": is_test_table
-                    })
-                    continue
-        i += 1
+        header_line = i + 1
+        rows = []
+        i += 2
+        while i < len(lines) and lines[i].strip().startswith("|") and lines[i].strip().endswith("|"):
+            cols = [c.strip() for c in lines[i].strip().split("|")[1:-1]]
+            if len(cols) == len(headers):
+                row_dict = {headers[k]: cols[k] for k in range(len(headers))}
+                row_dict["__line_number__"] = i + 1
+                rows.append(row_dict)
+            i += 1
+
+        is_test_table = any(
+            "tc id" in h.lower()
+            or "case id" in h.lower()
+            or "tc_id" in h.lower()
+            or "test title" in h.lower()
+            or "mã tc" in h.lower()
+            or "mã test case" in h.lower()
+            for h in headers
+        )
+        tables.append({
+            "headers": headers,
+            "rows": rows,
+            "header_line": header_line,
+            "is_test_table": is_test_table
+        })
 
     return tables
+
+
+def _scan_blacklist_defects(
+    spec_cells: List[tuple],
+    line_no: int,
+    tc_id: str,
+) -> List[Dict[str, Any]]:
+    """Scans table cells for speculative or ambiguous blacklist terms."""
+    found: List[Dict[str, Any]] = []
+    for col_name, cell_val in spec_cells:
+        if not cell_val:
+            continue
+        for pat, _label in BLACKLIST_TERMS:
+            m = pat.search(cell_val)
+            if not m:
+                continue
+            matched_term = m.group(0)
+            found.append({
+                "line": line_no,
+                "tc_id": tc_id,
+                "type": "SPECULATIVE_ORACLE",
+                "matched": matched_term,
+                "cell": col_name,
+                "message": (
+                    f"Ambiguous or speculative blacklist term '{matched_term}' detected in {col_name}: '{cell_val}'. "
+                    f"Expected results and specifications must be single-valued deterministic."
+                ),
+            })
+            break
+    return found
 
 
 SEMANTIC_S1_KEYWORDS = [
@@ -377,11 +414,7 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
     prof_cfg = LINTER_PROFILES[chosen_profile]
 
     tables = parse_markdown_tables(content)
-    test_tables = []
-    for t in tables:
-        h_lower = [h.lower() for h in t["headers"]]
-        if any("tc id" in h or "case id" in h or "tc_id" in h or "test title" in h for h in h_lower):
-            test_tables.append(t)
+    test_tables = [t for t in tables if t.get("is_test_table")]
 
     if not test_tables:
         return {
@@ -481,26 +514,9 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
                 if not any(sc[0] == col_name for sc in spec_cells):
                     spec_cells.append((col_name, cell_val))
 
-            for col_name, cell_val in spec_cells:
-                if not cell_val:
-                    continue
-                for pat, label in BLACKLIST_TERMS:
-                    m = pat.search(cell_val)
-                    if m:
-                        speculative_oracle_count += 1
-                        matched_term = m.group(0)
-                        defects.append({
-                            "line": line_no,
-                            "tc_id": tc_id,
-                            "type": "SPECULATIVE_ORACLE",
-                            "matched": matched_term,
-                            "cell": col_name,
-                            "message": (
-                                f"Ambiguous or speculative blacklist term '{matched_term}' detected in {col_name}: '{cell_val}'. "
-                                f"Expected results and specifications must be single-valued deterministic."
-                            )
-                        })
-                        break  # one defect per cell is sufficient
+            cell_defects = _scan_blacklist_defects(spec_cells, line_no, tc_id)
+            speculative_oracle_count += len(cell_defects)
+            defects.extend(cell_defects)
 
             # Check 2: Vague Preconditions for Privileged/Mutation Actions
             if re.search(r"\b(?:tạo|xóa|sửa|chỉnh\s+sửa|phê\s+duyệt|delete|update|create|edit)\b", test_title, re.IGNORECASE):
