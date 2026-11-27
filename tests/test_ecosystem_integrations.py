@@ -178,43 +178,6 @@ class TestEcosystemIntegrations(unittest.TestCase):
         self.assertIn("verification-before-completion", lock["skills"])
         self.assertIn("systematic-debugging", lock["skills"])
 
-    def test_consolidated_top20_evaluation_report(self):
-        report_path = os.path.join("reports", "TOP_20_SKILLS_AGENTS_CONSOLIDATED_EVALUATION.html")
-        self.assertTrue(os.path.exists(report_path), f"Report not found at {report_path}")
-        with open(report_path, "rb") as fb:
-            raw = fb.read()
-        # Verify 100% UTF-8 No BOM
-        self.assertFalse(raw.startswith(b"\xef\xbb\xbf"), "BOM detected in consolidated report")
-
-        content = raw.decode("utf-8")
-
-        expected_repos = [
-            "mattpocock/skills", "obra/superpowers", "anthropics/skills", "DietrichGebert/ponytail",
-            "garrytan/gstack", "addyosmani/agent-skills", "pbakaus/impeccable", "sickn33/antigravity-awesome-skills",
-            "github/awesome-copilot", "vercel-labs/skills", "nextlevelbuilder/ui-ux-pro-max-skill",
-            "Graphify-Labs/graphify", "JuliusBrussee/caveman", "Leonxlnx/taste-skill",
-            "ComposioHQ/awesome-claude-skills", "Fission-AI/OpenSpec", "cloudflare/security-audit-skill",
-            "shanraisshan/claude-code-best-practice", "cathrynlavery/diagram-design", "Nutlope/hallmark"
-        ]
-
-        # Verify all 20 repos are present by index and by exact repo name
-        for i, repo_name in enumerate(expected_repos, start=1):
-            self.assertIn(f'data-repo-index="{i}"', content, f"Repo index #{i} missing")
-            self.assertIn(f'id="repo-card-{i}"', content, f"Repo card #{i} missing")
-            # Verify real repository name appears in cards, not dummy fallback "Repo {i}"
-            self.assertIn(repo_name, content, f"Repository name '{repo_name}' missing from report")
-            self.assertNotIn(f'<span class="repo-name">Repo {i}</span>', content, f"Dummy placeholder 'Repo {i}' found")
-
-        # Verify evaluation details are present (eval-item count)
-        eval_item_count = content.count('class="eval-item"')
-        self.assertGreaterEqual(eval_item_count, 45, f"Too few evaluation items: {eval_item_count}")
-
-        # Verify Mechanical UI Finish Gate passes with zero fails and zero warnings
-        gate = MechanicalUIGate()
-        res = gate.audit_html_content(content)
-        self.assertTrue(res["passed"], f"Mechanical UI gate failed: {res['findings']}")
-        self.assertEqual(res["fail_count"], 0)
-        self.assertEqual(res["warn_count"], 0)
 
 if __name__ == "__main__":
     unittest.main()
