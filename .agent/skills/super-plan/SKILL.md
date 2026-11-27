@@ -1,20 +1,20 @@
+---
+name: super-plan
+version: 2.0.0
+category: architecture_and_analysis
+description: "Deep Spec-Driven Planning Pipeline (v2.0): Transitive Risk Routing & AST Recon -> Negation-Aware Ambiguity Gate & Tournament -> N-File Execution DAG with Typed Manifests -> Non-Vacuous 12-Mutant Red-Teaming & Plan-Domain Loss -> Closed-Loop /solo Handoff & Semantic Harvesting."
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
+---
+
 <!--
 # SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 # Author: Thế Vị (@TeeVee98) | MIT License
 -->
-
----
-name: super-plan
-version: 2.0.0
-category: architecture_and_analysis
-description: Deep Spec-Driven Planning Pipeline (v2.0): Transitive Risk Routing & AST Recon -> Negation-Aware Ambiguity Gate & Tournament -> N-File Execution DAG with Typed Manifests -> Non-Vacuous 12-Mutant Red-Teaming & Plan-Domain Loss -> Closed-Loop /solo Handoff & Semantic Harvesting.
-policies:
-  network: none
-  shell: workspace-sandbox
-  filesystem: workspace-sandbox
----
 
 # /super-plan (Deep Spec-Driven Planning & Control Plane — v2.0 Blueprint)
 

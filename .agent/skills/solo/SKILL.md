@@ -1,20 +1,20 @@
+---
+name: solo
+version: 2.0.0
+category: verification_and_resilience
+description: "Single-Agent Verification Loop (v2.0) with 4 Pillars & Closed-Loop Plan Bridge: Milestone-Scoped HMAC Red/Green Receipts (--milestone, --recertify-red, --require-four-scenarios), Auto-Target Purple Audit, Live Mutation Sentinel (>= 80%), AST-Grounded Prover-Verifier Debate, and --from-plan DAG Execution."
+policies:
+  network: none
+  shell: workspace-sandbox
+  filesystem: workspace-sandbox
+---
+
 <!--
 # SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 # Author: Thế Vị (@TeeVee98) | MIT License
 -->
-
----
-name: solo
-version: 2.0.0
-category: verification_and_resilience
-description: Single-Agent Verification Loop (v2.0) with 4 Pillars & Closed-Loop Plan Bridge: Milestone-Scoped HMAC Red/Green Receipts (--milestone, --recertify-red, --require-four-scenarios), Auto-Target Purple Audit, Live Mutation Sentinel (>= 80%), AST-Grounded Prover-Verifier Debate, and --from-plan DAG Execution.
-policies:
-  network: none
-  shell: workspace-sandbox
-  filesystem: workspace-sandbox
----
 
 # /solo (Single-Agent Verification Loop & Closed-Loop Plan Executor — v2.0)
 

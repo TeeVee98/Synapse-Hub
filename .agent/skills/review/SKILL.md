@@ -1,20 +1,20 @@
+---
+name: review
+version: 2.1.0
+category: verification_and_resilience
+description: "Closed-Loop Post-Code Adversarial Reviewer (v2.1) reconciling /solo code, AST diffs, downstream callers, and HMAC receipts against /super-plan contracts with 4-Angle simplify cleanup lenses."
+policies:
+  network: none
+  shell: read-only
+  filesystem: read-only
+---
+
 <!--
 # SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
 # Project: Synapse-Hub (https://github.com/TeeVee98/Synapse-Hub)
 # Author: Thế Vị (@TeeVee98) | MIT License
 -->
-
----
-name: review
-version: 2.1.0
-category: verification_and_resilience
-description: Closed-Loop Post-Code Adversarial Reviewer (v2.1) reconciling /solo code, AST diffs, downstream callers, and HMAC receipts against /super-plan contracts with 4-Angle simplify cleanup lenses.
-policies:
-  network: none
-  shell: read-only
-  filesystem: read-only
----
 
 # /review (Closed-Loop Post-Code Adversarial Reviewer & Plan-vs-Solo Auditor - v2.1)
 
