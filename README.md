@@ -8,13 +8,13 @@
 > **Tác giả:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **Giấy phép:** [MIT License](LICENSE)  
 > **Phiên bản:** `v4.10.0` | **Quy mô:** 57 Kỹ năng QA, 15 Vai trò AI Agent (9 Personas + 6 Specialists), 11 Cổng kiểm định DoD, 153 Lệnh CLI (166 Công cụ), 2,512 Bài Test.
 
-[![npm version](https://img.shields.io/npm/v/@teevee98/synapse-hub.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@teevee98/synapse-hub)
+[![npm version](https://img.shields.io/badge/npm-v4.10.0-blue.svg?style=flat-square)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![CI Quality Gates](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml/badge.svg)](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.md)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/Teevee98.synapse-hub-vscode?style=flat-square&color=blue&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-v4.10.0-blue.svg?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](docs/CLIENT_SUPPORT_MATRIX.md)
 
 ## 📑 Mục Lục & Yêu Cầu Hệ Thống

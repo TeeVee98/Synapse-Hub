@@ -257,6 +257,28 @@ def update_readme_action_pins(new_ver: str, dry_run: bool = False) -> bool:
     return updated_vi or updated_en
 
 
+def update_readme_version_badges(new_ver: str, dry_run: bool = False) -> bool:
+    """Updates static Shields.io npm and VS Code Marketplace badges in root READMEs."""
+    parse_semver(new_ver)
+    badge_ver = new_ver.replace("-", "--")
+    patterns = (
+        (
+            r'(img\.shields\.io/badge/npm-v)[0-9]+\.[0-9]+\.[0-9]+(?:--[A-Za-z0-9.]+)?(-blue\.svg)',
+            rf"\g<1>{badge_ver}\g<2>",
+        ),
+        (
+            r'(img\.shields\.io/badge/VS%20Code%20Marketplace-v)[0-9]+\.[0-9]+\.[0-9]+(?:--[A-Za-z0-9.]+)?(-blue\.svg)',
+            rf"\g<1>{badge_ver}\g<2>",
+        ),
+    )
+    updated = False
+    for readme_file in ("README.md", "README.en.md"):
+        for pattern, replacement in patterns:
+            if update_file(readme_file, pattern, replacement, dry_run):
+                updated = True
+    return updated
+
+
 def run_tests(tier: str = "full") -> bool:
     """Executes the DoD Quality Gates before and after release.
 
@@ -482,6 +504,7 @@ def main():
 
     # 9. README.md & README.en.md (Documentation headings, action pins, and badges)
     update_readme_action_pins(new_ver, dry_run=args.dry_run)
+    update_readme_version_badges(new_ver, dry_run=args.dry_run)
     update_file("README.md", r'(Phiên bản(?: Hub)?:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.md", r'((?:Hub )?Version:\*\*\s*`v)[^`]+(`)', rf"\g<1>{new_ver}\g<2>", args.dry_run)
     update_file("README.md", r'(Intelligence Core v)[^")\]]+', rf"\g<1>{new_ver}", args.dry_run)

@@ -103,6 +103,8 @@ class TestBumpVersion(unittest.TestCase):
             encoding="utf-8",
         )
         (root / "README.md").write_text(
+            "[![npm version](https://img.shields.io/badge/npm-v4.8.1-blue.svg?style=flat-square)](https://www.npmjs.com/package/@teevee98/synapse-hub)\n"
+            "[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-v4.8.1-blue.svg?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)\n"
             "> **Phiên bản:** `v4.8.1`\n"
             "VSIX: editors/vscode/dist/synapse-hub-vscode-4.7.2.vsix\n"
             "  uses: TeeVee98/Synapse-Hub@v4.8.1\n"
@@ -110,6 +112,8 @@ class TestBumpVersion(unittest.TestCase):
             encoding="utf-8",
         )
         (root / "README.en.md").write_text(
+            "[![npm version](https://img.shields.io/badge/npm-v4.8.1-blue.svg?style=flat-square)](https://www.npmjs.com/package/@teevee98/synapse-hub)\n"
+            "[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-v4.8.1-blue.svg?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)\n"
             "> **Version:** `v4.8.1`\n"
             "VSIX: editors/vscode/dist/synapse-hub-vscode-4.7.2.vsix\n"
             "  uses: TeeVee98/Synapse-Hub@v4.8.1\n"
@@ -206,6 +210,51 @@ class TestBumpVersion(unittest.TestCase):
                     bump_version.main()
                 self.assertIn("4.8.2.vsix", (root / "README.md").read_text(encoding="utf-8"))
                 self.assertIn("4.8.2.vsix", (root / "README.en.md").read_text(encoding="utf-8"))
+            finally:
+                bump_version.REPO_ROOT = orig_root
+                bump_version.ORIGINAL_SNAPSHOTS.clear()
+
+    def test_readme_version_badges_four_scenarios(self):
+        """Positive, Negative, Boundary, and Resilience scenarios for static README badges."""
+        update_badges = getattr(bump_version, "update_readme_version_badges", None)
+        self.assertIsNotNone(update_badges, "update_readme_version_badges must exist in bump_version")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            self._create_temp_bump_repo(root, create_vsix=False)
+            orig_root = bump_version.REPO_ROOT
+            bump_version.REPO_ROOT = tmpdir
+            bump_version.ORIGINAL_SNAPSHOTS.clear()
+            try:
+                # Boundary: dry_run=True detects change without writing to disk
+                self.assertTrue(update_badges("4.8.2", dry_run=True))
+                self.assertIn("npm-v4.8.1-blue.svg", (root / "README.md").read_text(encoding="utf-8"))
+
+                # Negative: invalid or empty version raises ValueError cleanly
+                with self.assertRaises(ValueError):
+                    update_badges("")
+                with self.assertRaises(ValueError):
+                    update_badges("invalid-ver")
+
+                # Positive: updates both npm and VS Code Marketplace badges via main()
+                with patch.object(sys, "argv", ["bump_version.py", "4.8.2", "--no-test"]):
+                    bump_version.main()
+
+                for fname in ("README.md", "README.en.md"):
+                    txt = (root / fname).read_text(encoding="utf-8")
+                    self.assertIn("https://img.shields.io/badge/npm-v4.8.2-blue.svg?style=flat-square", txt)
+                    self.assertIn("https://img.shields.io/badge/VS%20Code%20Marketplace-v4.8.2-blue.svg?style=flat-square&logo=visual-studio-code", txt)
+                    self.assertNotIn("4.8.1-blue.svg", txt)
+
+                # Boundary: idempotent re-run returns False & prerelease hyphens escape to '--'
+                self.assertFalse(update_badges("4.8.2"))
+                self.assertTrue(update_badges("4.9.0-rc1"))
+                self.assertIn("npm-v4.9.0--rc1-blue.svg", (root / "README.md").read_text(encoding="utf-8"))
+
+                # Resilience: missing README files return False without crashing
+                (root / "README.md").unlink()
+                (root / "README.en.md").unlink()
+                self.assertFalse(update_badges("4.9.1"))
             finally:
                 bump_version.REPO_ROOT = orig_root
                 bump_version.ORIGINAL_SNAPSHOTS.clear()
