@@ -71,14 +71,18 @@ from tools.orchestration.solo_contracts import (
     AstTautologyAnalyzer,  # noqa: F401
     MicroContextExtractor,  # noqa: F401
     MicroContextPayload,  # noqa: F401
+    REQUIRED_RED_SCENARIOS,  # noqa: F401
     ReadOnlyTestGuard,  # noqa: F401
     ScopedRedReceiptDTO,  # noqa: F401
     SignedRedReceipt,  # noqa: F401
     SpeculativeCandidatePrompt,  # noqa: F401
+    _SCENARIO_PATTERNS,  # noqa: F401
+    _extract_target_identifiers,  # noqa: F401
     _get_receipt_hmac_key as _contracts_get_receipt_hmac_key,
     _resolve_git_head,
     _verify_red_receipt_hmac as _contracts_verify_red_receipt_hmac,
     _write_json_atomic,
+    analyze_four_scenario_coverage,
     calculate_composite_fitness_score,  # noqa: F401
     classify_test_failure,  # noqa: F401
     compute_mutation_receipt_hmac,
@@ -94,6 +98,7 @@ from tools.orchestration.solo_contracts import (
     resolve_red_receipt_ttl,
     select_tournament_winner,  # noqa: F401
     split_cmd_portable,  # noqa: F401
+    verify_red_target_relevance,
 )
 
 
@@ -1081,212 +1086,6 @@ def unlock_test_files(test_files: List[str], repo_root: Optional[str] = None) ->
             except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
                 pass
     return unlocked
-
-
-REQUIRED_RED_SCENARIOS: Tuple[str, ...] = (
-    "positive",
-    "negative",
-    "boundary",
-    "cli_or_resilience",
-)
-
-_SCENARIO_PATTERNS: Dict[str, re.Pattern] = {
-    "positive": re.compile(
-        r"\b(positive|happy|valid|success|succeed|normal|nominal|standard|creates?|returns?|passes?|accepts?)\b",
-        re.IGNORECASE,
-    ),
-    "negative": re.compile(
-        r"\b(negative|invalid|error|reject|fail|deny|forbid|unauthorized|missing|malformed|tamper|blocked|raises?|exception|wrong)\b",
-        re.IGNORECASE,
-    ),
-    "boundary": re.compile(
-        r"\b(boundary|empty|null|none|zero|limit|max|min|edge|overflow|underflow|cutoff|threshold|single|truncate)\b",
-        re.IGNORECASE,
-    ),
-    "cli_or_resilience": re.compile(
-        r"\b(cli|flag|flags|json|argv|argparse|subprocess|resilience|concurren\w*|race|timeout|retry|fallback|recover|idempoten\w*|thread|lock)\b",
-        re.IGNORECASE,
-    ),
-}
-
-
-def analyze_four_scenario_coverage(
-    test_files: List[str],
-    output: str = "",
-    working_dir: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    Inspects executed test files (AST test functions/docstrings/comments) and runner output
-    to verify coverage across the 4 mandatory scenario categories:
-    positive, negative, boundary, and cli_or_resilience.
-    """
-    root = working_dir or _REPO_ROOT
-    coverage: Dict[str, bool] = {cat: False for cat in REQUIRED_RED_SCENARIOS}
-    evidence: Dict[str, List[str]] = {cat: [] for cat in REQUIRED_RED_SCENARIOS}
-
-    def _scan_text(text: str, source_label: str) -> None:
-        if not text:
-            return
-        # Normalize snake_case tokens to spaces so word-boundary regex matches test_positive_foo
-        normalized = text.replace("_", " ").replace("-", " ")
-        for cat, pat in _SCENARIO_PATTERNS.items():
-            match = pat.search(normalized)
-            if match:
-                coverage[cat] = True
-                entry = f"{source_label}:{match.group(0).lower()}"
-                if entry not in evidence[cat]:
-                    evidence[cat].append(entry)
-
-    for tf in test_files:
-        fp = os.path.abspath(tf) if os.path.isabs(tf) else os.path.join(root, tf)
-        if not os.path.isfile(fp):
-            continue
-        try:
-            with open(fp, "r", encoding="utf-8", errors="ignore") as f:
-                src = f.read()
-        except OSError:
-            continue
-
-        if fp.endswith(".py"):
-            try:
-                tree = ast.parse(src)
-                for node in ast.walk(tree):
-                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test"):
-                        doc = ast.get_docstring(node) or ""
-                        _scan_text(f"{node.name} {doc}", node.name)
-            except SyntaxError:
-                _scan_text(src, os.path.basename(fp))
-        else:
-            _scan_text(src, os.path.basename(fp))
-
-    if not test_files and output:
-        _scan_text(output, "output")
-
-    missing = [cat for cat in REQUIRED_RED_SCENARIOS if not coverage[cat]]
-    return {
-        "coverage": coverage,
-        "missing_scenarios": missing,
-        "complete": len(missing) == 0,
-        "matched_evidence": evidence,
-    }
-
-
-def _extract_target_identifiers(target_path: str, working_dir: str) -> Tuple[Set[str], Set[str]]:
-    """Extracts canonical module/path tokens and top-level AST symbols for a target file."""
-    norm = target_path.replace("\\", "/")
-    rel = norm
-    if os.path.isabs(target_path) and working_dir:
-        try:
-            rel = os.path.relpath(target_path, working_dir).replace("\\", "/")
-        except ValueError:
-            rel = norm
-
-    base = os.path.basename(rel)
-    stem, _ = os.path.splitext(base)
-    dotted = os.path.splitext(rel)[0].replace("/", ".").lstrip(".")
-
-    tokens: Set[str] = {base, stem}
-    if rel and not rel.startswith(".."):
-        tokens.add(rel)
-    if dotted and not dotted.startswith(".."):
-        tokens.add(dotted)
-
-    symbols: Set[str] = set()
-    abs_path = target_path if os.path.isabs(target_path) else os.path.join(working_dir, target_path)
-    if os.path.isfile(abs_path) and abs_path.endswith(".py"):
-        try:
-            with open(abs_path, "r", encoding="utf-8", errors="ignore") as f:
-                tree = ast.parse(f.read())
-            for node in tree.body:
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                    if not node.name.startswith("_") and len(node.name) >= 3:
-                        symbols.add(node.name)
-        except (OSError, SyntaxError):
-            # Target file may be unparseable during early Red TDD; rely on path/module tokens
-            symbols = set()
-
-    return tokens, symbols
-
-
-def verify_red_target_relevance(
-    test_files: List[str],
-    output: str,
-    target_files: List[str],
-    working_dir: Optional[str] = None,
-) -> Tuple[bool, Dict[str, Any]]:
-    """
-    Verifies that Red test assertions/imports or failure traceback actually reference
-    at least one of the changed target_files (prevents unrelated semantic failures).
-    """
-    root = working_dir or _REPO_ROOT
-    matched_targets: List[str] = []
-    unmatched_targets: List[str] = []
-    match_details: Dict[str, List[str]] = {}
-
-    # Gather imports and raw source from executed test files
-    test_imports: Set[str] = set()
-    test_sources: List[str] = []
-    for tf in test_files:
-        fp = os.path.abspath(tf) if os.path.isabs(tf) else os.path.join(root, tf)
-        if not os.path.isfile(fp):
-            continue
-        try:
-            with open(fp, "r", encoding="utf-8", errors="ignore") as f:
-                src = f.read()
-            test_sources.append(src)
-            if fp.endswith(".py"):
-                tree = ast.parse(src)
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.Import):
-                        for alias in node.names:
-                            test_imports.add(alias.name)
-                            test_imports.add(alias.name.split(".")[-1])
-                    elif isinstance(node, ast.ImportFrom) and node.module:
-                        test_imports.add(node.module)
-                        test_imports.add(node.module.split(".")[-1])
-                        for alias in node.names:
-                            test_imports.add(alias.name)
-        except (OSError, SyntaxError):
-            continue
-
-    combined_test_src = "\n".join(test_sources)
-    combined_output = output or ""
-
-    for target in target_files:
-        tokens, symbols = _extract_target_identifiers(target, root)
-        reasons: List[str] = []
-
-        for tok in sorted(tokens):
-            if not tok:
-                continue
-            if tok in test_imports:
-                reasons.append(f"test_import:{tok}")
-            elif tok in combined_output:
-                reasons.append(f"trace:{tok}")
-            elif re.search(rf"\b{re.escape(tok)}\b", combined_test_src):
-                reasons.append(f"test_ref:{tok}")
-
-        if not reasons:
-            for sym in sorted(symbols):
-                if sym in test_imports:
-                    reasons.append(f"symbol_import:{sym}")
-                elif re.search(rf"\b{re.escape(sym)}\b", combined_output):
-                    reasons.append(f"trace_symbol:{sym}")
-
-        if reasons:
-            matched_targets.append(target)
-            match_details[target] = reasons[:5]
-        else:
-            unmatched_targets.append(target)
-
-    is_relevant = len(matched_targets) > 0
-    return is_relevant, {
-        "checked": True,
-        "matched": is_relevant,
-        "matched_targets": matched_targets,
-        "unmatched_targets": unmatched_targets,
-        "evidence": match_details,
-    }
 
 
 def certify_red_phase(
