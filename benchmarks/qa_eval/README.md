@@ -90,3 +90,20 @@ To maintain rigorous transparency, Synapse Hub defines adoption metrics unambigu
 | **Heuristic Token Footprint** | **~93.8 tokens / vector** | Lexical character-to-token compression ratio |
 | **Mutation Score Gate** | **$\ge 80\%$** | Verified via `micro_mutator.py` |
 | **Action Safety Clearance** | **100% (Pass)** | Verified via `safety_firewall.py` non-destructive policy |
+
+---
+
+## 6. Held-Out Live Model Evaluation (`live_evaluation.py`)
+
+While the deterministic 45-vector offline benchmark (`eval_runner.py`) remains strictly unchanged for regression baselines, `benchmarks/qa_eval/live_evaluation.py` scores recorded live model executions against a frozen held-out QA dataset using imported provider receipts:
+
+- **Pre-Call Governance:** Requires explicit `budget_approved` and `rubric_approved` sign-off in the dataset manifest before any live ranking is certified.
+- **Comparable Multi-Run Metrics:** Scores recorded runs across a frozen held-out task set (pilot baseline: 2 models x 20 tasks x 3 runs) reporting successes with explicit denominator, 95% confidence uncertainty intervals, real `cost_per_success_usd`, `latency_p95_ms`, `fallback_success_rate`, and missing/unreviewed data counts.
+- **Strict Non-Comparable Guard:** Missing provider telemetry, mismatched `dataset_digest`, or missing `human_verdict` entries block ranking (`ranking_eligible = false`).
+
+```bash
+python3 benchmarks/qa_eval/live_evaluation.py \
+  --dataset benchmarks/qa_eval/reports/heldout_manifest.json \
+  --records benchmarks/qa_eval/reports/imported_receipts.json \
+  --require-comparable --json
+```

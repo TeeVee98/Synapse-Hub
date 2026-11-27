@@ -18,7 +18,7 @@ if _SUITE_DIR not in sys.path:
     sys.path.insert(0, _SUITE_DIR)
 
 import pytest  # noqa: E402
-from typing import Dict, Any, List  # noqa: E402
+from typing import Dict, Any, List, Optional  # noqa: E402
 
 
 class MockMobileElement:
@@ -139,27 +139,66 @@ class StatefulMockAppiumDriver:
         self.session_id = None
 
 
-@pytest.fixture(scope="function")
-def mobile_driver():
-    """Initializes mobile driver session with automated teardown."""
-    appium_url = os.environ.get("APPIUM_SERVER_URL")
-    driver = None
+def build_mobile_session_record(
+    driver: Any = None,
+    session_id: Optional[str] = None,
+    device_kind: Optional[str] = None,
+    platform_name: str = "Android",
+    platform_version: str = "unknown",
+    device_name: str = "unknown",
+    is_emulator: bool = False,
+) -> Dict[str, Any]:
+    """Builds a distinguishable session evidence record across mock, emulator, and physical_device."""
+    if device_kind is None:
+        if isinstance(driver, StatefulMockAppiumDriver):
+            device_kind = "mock"
+        else:
+            device_kind = "emulator" if is_emulator else "physical_device"
+
+    if device_kind not in ("mock", "emulator", "physical_device"):
+        raise ValueError(f"Unsupported mobile device_kind: {device_kind}")
+
+    resolved_sid = session_id or getattr(driver, "session_id", None) or "unknown"
+    ios_status = "verified" if (platform_name.strip().lower() == "ios" and device_kind != "mock") else "pending"
+    return {
+        "device_kind": device_kind,
+        "platform_name": platform_name,
+        "platform_version": platform_version,
+        "device_name": device_name,
+        "session_id": resolved_sid,
+        "ios_status": ios_status,
+    }
+
+
+def create_mobile_driver():
+    """Creates a live Appium driver in strict/staging modes or StatefulMockAppiumDriver offline."""
+    mobile_mode = (os.environ.get("SYNAPSE_MOBILE_MODE") or "").strip().lower()
+    strict = os.environ.get("SYNAPSE_MOBILE_STRICT", "0") == "1" or mobile_mode in ("staging", "emulator", "device")
+    appium_url = (os.environ.get("APPIUM_SERVER_URL") or "").strip()
+
+    if strict and not appium_url:
+        raise ValueError(f"APPIUM_SERVER_URL is required when strict/staging mobile mode is active ({mobile_mode or 'strict'})")
 
     if appium_url:
         try:
             from appium import webdriver
             from appium.options.android import UiAutomator2Options
             options = UiAutomator2Options()
-            options.set_capability("platformName", "Android")
+            options.set_capability("platformName", os.environ.get("MOBILE_PLATFORM_NAME", "Android"))
             options.set_capability("appPackage", "com.synapse.crm.mobile")
             options.set_capability("appActivity", ".MainActivity")
-            driver = webdriver.Remote(appium_url, options=options)
-        except Exception:
-            driver = None
+            return webdriver.Remote(appium_url, options=options)
+        except Exception as exc:
+            if strict:
+                raise RuntimeError(f"Appium strict connection failed ({appium_url}): {exc}") from exc
 
-    if driver is None:
-        driver = StatefulMockAppiumDriver()
+    return StatefulMockAppiumDriver()
 
+
+@pytest.fixture(scope="function")
+def mobile_driver():
+    """Initializes mobile driver session with automated teardown."""
+    driver = create_mobile_driver()
     yield driver
 
     if hasattr(driver, "quit"):

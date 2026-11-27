@@ -9,6 +9,17 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      release_candidate:
+        description: "Run explicit live release-candidate evidence lane"
+        required: false
+        type: boolean
+        default: false
+      release_env:
+        description: "Named target environment for release-candidate lane"
+        required: false
+        type: string
+        default: "staging"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -273,11 +284,79 @@ jobs:
           if-no-files-found: ignore
 
   # ==========================================================================
+  # STAGE 5C: Explicit Release-Candidate Evidence Lane (Opt-In Dispatch)
+  # ==========================================================================
+  rc-evidence-lane:
+    name: "Release Candidate: Live Staging, Browser Matrix, Mobile & k6"
+    if: github.event_name == 'workflow_dispatch' && inputs.release_candidate == true
+    needs: [static-gates]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: 20
+
+      - name: Validate Operator-Provided Release Targets
+        env:
+          BOOK_API_BASE_URL: ${{ vars.STAGING_API_URL || secrets.STAGING_API_URL }}
+          CRM_BASE_URL: ${{ vars.STAGING_CRM_URL || secrets.STAGING_CRM_URL }}
+          APPIUM_SERVER_URL: ${{ vars.STAGING_APPIUM_URL || secrets.STAGING_APPIUM_URL }}
+          K6_TARGET_URL: ${{ vars.STAGING_K6_URL || secrets.STAGING_K6_URL }}
+        run: |
+          for v in BOOK_API_BASE_URL CRM_BASE_URL APPIUM_SERVER_URL K6_TARGET_URL; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Missing required release-candidate target $v"
+              exit 1
+            fi
+          done
+
+      - name: Install Playwright Browsers (Chromium, Firefox, WebKit)
+        working-directory: examples/playwright-crm-suite
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run Accessibility Pilot (Chromium)
+        working-directory: examples/playwright-crm-suite
+        env:
+          SYNAPSE_WEB_MODE: offline
+        run: npx playwright test accessibility.spec.ts --project=chromium
+
+      - name: Record Candidate Evidence Manifest
+        env:
+          RC_ENV: ${{ inputs.release_env }}
+        run: |
+          mkdir -p reports
+          python3 -c "import json, os; json.dump({'build_id': os.environ['GITHUB_SHA'], 'run_id': os.environ['GITHUB_RUN_ID'], 'job': 'rc-evidence-lane', 'environment': os.environ.get('RC_ENV', 'staging'), 'lane': 'release-candidate'}, open('reports/candidate_manifest.json', 'w', encoding='utf-8'), indent=2)"
+
+      - name: Upload Release Candidate Manifest
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: rc-candidate-manifest
+          path: |
+            reports/candidate_manifest.json
+            examples/playwright-crm-suite/reports/a11y_receipt.json
+          retention-days: 14
+
+  # ==========================================================================
   # STAGE 6: Final DoD Acceptance & GitHub Step Summary
   # ==========================================================================
   dod-acceptance:
     name: "Final DoD: Quality Gatekeeper Acceptance"
-    needs: [api-suite, e2e-crm-suite, perf-sla-sentinel, mobile-som-suite, audit-ratchet-verification]
+    needs: [api-suite, e2e-crm-suite, perf-sla-sentinel, mobile-som-suite, audit-ratchet-verification, rc-evidence-lane]
     runs-on: ubuntu-latest
     if: always()
     timeout-minutes: 10
@@ -297,6 +376,10 @@ jobs:
           path: artifacts/
 
       - name: Generate Executive DoD Job Summary
+        env:
+          SYNAPSE_CANDIDATE_BUILD: ${{ (github.event_name == 'workflow_dispatch' && inputs.release_candidate == true) && github.sha || '' }}
+          SYNAPSE_RUN_ID: ${{ (github.event_name == 'workflow_dispatch' && inputs.release_candidate == true) && github.run_id || '' }}
+          SYNAPSE_RELEASE_ENV: ${{ (github.event_name == 'workflow_dispatch' && inputs.release_candidate == true) && inputs.release_env || '' }}
         run: python tools/report/ci_summary_generator.py --artifacts-dir artifacts/ --output "$GITHUB_STEP_SUMMARY"
 
       - name: Send Telegram Executive CI/CD Notification

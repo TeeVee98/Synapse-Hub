@@ -9,7 +9,7 @@
 > **Author:** Thế Vị (@TeeVee98)  
 > **Repository:** [Synapse-Hub](https://github.com/TeeVee98/Synapse-Hub)  
 > **License:** MIT License  
-> **Master Test Suite:** `tests/e2e/test_autonomous_reasoning_e2e.py`  
+> **Master Test Suites:** `tests/e2e/test_deep_reasoning_pipeline_e2e.py`, `tests/e2e/test_reference_enhancements_e2e.py`  
 > **Scope:** Deep Autonomous Reasoning Techniques (R1–R5) & End-to-End System Integration
 
 ---
@@ -39,16 +39,16 @@ The master E2E test suite adheres to all ten Synapse Hub Quality Gates (DoD):
 | **Gate 04** | Author Attribution | MIT License & Thế Vị (@TeeVee98) copyright headers preserved | `python tools/core/author_integrity.py` |
 | **Gate 05** | No Debug Crumbs | Zero console log residue, stray prints, or temporary trace files | `python tools/core/debug_crumbs.py --check --json` |
 | **Gate 06** | Ratchet Sentinel | Rule ratchet invariant preserved; no relaxing of assertions | `python tools/lint/ratchet_sentinel.py --check` |
-| **Gate 07** | Infer Linter | Zero fake passes, zero swallowed exceptions, zero static sleeps | `python tools/lint/infer_linter.py tests/e2e/test_autonomous_reasoning_e2e.py` |
+| **Gate 07** | Infer Linter | Zero fake passes, zero swallowed exceptions, zero static sleeps | `python tools/lint/infer_linter.py tests/e2e/test_deep_reasoning_pipeline_e2e.py` |
 | **Gate 08** | Skills Schema Validation | Reasoning skills conform to schema index and docs standards | `python tools/lint/validate_skills_schema.py` |
-| **Gate 09** | Test Suite Pass Rate | 100% test pass rate across all 65 test cases | `pytest tests/e2e/test_autonomous_reasoning_e2e.py -v` |
+| **Gate 09** | Test Suite Pass Rate | 100% test pass rate across E2E reasoning suites | `pytest tests/e2e/test_deep_reasoning_pipeline_e2e.py tests/e2e/test_reference_enhancements_e2e.py -v` |
 | **Gate 10** | Impact Scope Tiering | Full test battery completes cleanly within fast dev-loop bounds | `python tools/core/verify_all.py --mode hub --tier impact` |
 
 ---
 
 ## 3. Four-Tier Architecture Specification
 
-The test suite `tests/e2e/test_autonomous_reasoning_e2e.py` implements **65 distinct test cases** organized across four tiers:
+The E2E test suites `tests/e2e/test_deep_reasoning_pipeline_e2e.py` and `tests/e2e/test_reference_enhancements_e2e.py` validate deep reasoning pipelines and enhancements across four tiers:
 
 ```
 +-------------------------------------------------------------------------------------------------------+
@@ -227,27 +227,27 @@ def test_example(tmp_path):
 
 ### Full E2E Test Suite Run:
 ```bash
-pytest tests/e2e/test_autonomous_reasoning_e2e.py -v
+pytest tests/e2e/test_deep_reasoning_pipeline_e2e.py tests/e2e/test_reference_enhancements_e2e.py -v
 ```
 
 ### Tier-Specific Execution Commands:
 ```bash
-# Tier 1: Feature Coverage Only (27 tests)
-pytest tests/e2e/test_autonomous_reasoning_e2e.py -k "tier1" -v
+# Tier 1: Feature Coverage Only
+pytest tests/e2e/test_reference_enhancements_e2e.py -k "tier1" -v
 
-# Tier 2: Boundary & Corner Cases Only (27 tests)
-pytest tests/e2e/test_autonomous_reasoning_e2e.py -k "tier2" -v
+# Tier 2: Boundary & Corner Cases Only
+pytest tests/e2e/test_reference_enhancements_e2e.py -k "tier2" -v
 
-# Tier 3: Cross-Feature Pairwise Pipelines (6 tests)
-pytest tests/e2e/test_autonomous_reasoning_e2e.py -k "tier3" -v
+# Tier 3: Cross-Feature Pairwise Pipelines
+pytest tests/e2e/test_reference_enhancements_e2e.py -k "tier3" -v
 
-# Tier 4: Real-World Workflows (5 tests)
-pytest tests/e2e/test_autonomous_reasoning_e2e.py -k "tier4" -v
+# Tier 4: Real-World Workflows
+pytest tests/e2e/test_reference_enhancements_e2e.py -k "tier4" -v
 ```
 
 ### Static Quality Linter (Gate 07):
 ```bash
-python3 tools/lint/infer_linter.py tests/e2e/test_autonomous_reasoning_e2e.py
+python3 tools/lint/infer_linter.py tests/e2e/test_deep_reasoning_pipeline_e2e.py
 ```
 
 ### 10-Gate Full DoD Verification:

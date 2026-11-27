@@ -64,34 +64,38 @@ def parse_k6_summary(file_path: str) -> Dict[str, Any]:
         try:
             data = json.loads(content)
             if "metrics" in data:
-                return _extract_from_metrics_dict(data)
+                return _extract_from_metrics_dict(data, raw_text=content)
         except json.JSONDecodeError:  # synapse-ignore: SWALLOWED_EXCEPTION
             pass
 
     # Fallback: Line-delimited JSON stream
+    return _parse_k6_jsonl_stream(content)
+
+
+def _parse_k6_jsonl_stream(content: str) -> Dict[str, Any]:
+    """Parses line-delimited k6 JSON metric events."""
     durations: List[float] = []
     fails = 0
-    passes = 0
     total_reqs = 0
 
     for line in content.splitlines():
-        line = line.strip()
-        if not line:
+        stripped = line.strip()
+        if not stripped:
             continue
         try:
-            record = json.loads(line)
-            metric = record.get("metric")
-            val = record.get("data", {}).get("value")
-            if metric == "http_req_duration" and val is not None:
-                durations.append(float(val))
-            elif metric == "http_req_failed" and val is not None:
-                total_reqs += 1
-                if float(val) > 0:
-                    fails += 1
-                else:
-                    passes += 1
+            record = json.loads(stripped)
         except json.JSONDecodeError:
             continue
+        metric = record.get("metric")
+        val = record.get("data", {}).get("value")
+        if val is None:
+            continue
+        if metric == "http_req_duration":
+            durations.append(float(val))
+        elif metric == "http_req_failed":
+            total_reqs += 1
+            if float(val) > 0:
+                fails += 1
 
     if not durations and total_reqs == 0:
         raise ValueError("No valid k6 metric points found in log file.")
@@ -122,11 +126,23 @@ def parse_k6_summary(file_path: str) -> Dict[str, Any]:
         "latency_p90": round(calc_percentile(90.0), 2),
         "latency_p95": round(calc_percentile(95.0), 2),
         "latency_p99": round(calc_percentile(99.0), 2),
+        "achieved_arrival_rate": None,
+        "dropped_iterations": 0,
+        "recovery_p95_ms": None,
+        "telemetry_kind": "http_load",
         "raw_metrics": {},
     }
 
 
-def _extract_from_metrics_dict(data: Dict[str, Any]) -> Dict[str, Any]:
+def classify_k6_telemetry(data: Dict[str, Any], raw_text: str = "") -> str:
+    """Distinguishes real HTTP load summaries from Hub CPU serialization microbenchmarks."""
+    blob = raw_text or json.dumps(data)
+    if "local://benchmark" in blob or "LOCAL_CPU_JSON_SERIALIZE" in blob:
+        return "hub_cpu_microbenchmark"
+    return "http_load"
+
+
+def _extract_from_metrics_dict(data: Dict[str, Any], raw_text: str = "") -> Dict[str, Any]:
     metrics = data.get("metrics", {})
     req_dur = metrics.get("http_req_duration", {})
     dur_values = req_dur.get("values", req_dur)
@@ -134,10 +150,29 @@ def _extract_from_metrics_dict(data: Dict[str, Any]) -> Dict[str, Any]:
     req_failed = metrics.get("http_req_failed", {})
     fail_values = req_failed.get("values", req_failed)
 
+    http_reqs = metrics.get("http_reqs", {})
+    http_req_values = http_reqs.get("values", http_reqs)
+
     iterations = metrics.get("iterations", {})
     iter_values = iterations.get("values", iterations)
 
-    total_reqs = int(iter_values.get("count", 0))
+    if "count" in http_req_values:
+        total_reqs = int(http_req_values.get("count", 0))
+    else:
+        total_reqs = int(iter_values.get("count", 0))
+
+    raw_rate = http_req_values.get("rate", iter_values.get("rate"))
+    achieved_arrival_rate = round(float(raw_rate), 3) if raw_rate is not None else None
+
+    dropped_node = metrics.get("dropped_iterations", {})
+    dropped_vals = dropped_node.get("values", dropped_node)
+    dropped_iterations = int(dropped_vals.get("count", 0))
+
+    rec_node = metrics.get("http_req_duration{scenario:recovery_probe}") or metrics.get("recovery_probe") or {}
+    rec_vals = rec_node.get("values", rec_node) if isinstance(rec_node, dict) else {}
+    raw_rec_p95 = rec_vals.get("p(95)")
+    recovery_p95_ms = round(float(raw_rec_p95), 2) if raw_rec_p95 is not None else None
+
     error_rate = float(fail_values.get("value", fail_values.get("rate", 0.0))) * 100.0
     fails = int(fail_values.get("passes", 0)) if "passes" in fail_values else int(total_reqs * (error_rate / 100.0))
 
@@ -152,6 +187,10 @@ def _extract_from_metrics_dict(data: Dict[str, Any]) -> Dict[str, Any]:
         "latency_p90": round(float(dur_values.get("p(90)", 0.0)), 2),
         "latency_p95": round(float(dur_values.get("p(95)", 0.0)), 2),
         "latency_p99": round(float(dur_values.get("p(99)", 0.0)), 2),
+        "achieved_arrival_rate": achieved_arrival_rate,
+        "dropped_iterations": dropped_iterations,
+        "recovery_p95_ms": recovery_p95_ms,
+        "telemetry_kind": classify_k6_telemetry(data, raw_text),
         "raw_metrics": metrics,
     }
 
@@ -162,9 +201,19 @@ def evaluate_sla(
     sla_p99: Optional[float] = 1000.0,
     sla_avg: Optional[float] = None,
     max_error_rate: float = 1.0,
+    min_arrival_rate: Optional[float] = None,
+    max_dropped_iterations: Optional[int] = 0,
+    require_recovery: bool = False,
+    max_recovery_p95: Optional[float] = None,
 ) -> Tuple[bool, List[str]]:
     """Evaluates metrics against SLA budgets. Returns (is_pass, list_of_violations)."""
     violations = []
+
+    if metrics.get("telemetry_kind") == "hub_cpu_microbenchmark":
+        violations.append("Synthetic Hub CPU microbenchmark telemetry is not valid HTTP load evidence")
+
+    if int(metrics.get("total_requests", 0)) <= 0:
+        violations.append("No HTTP request samples recorded (total_requests <= 0)")
 
     if sla_p95 is not None and metrics["latency_p95"] > sla_p95:
         violations.append(
@@ -184,6 +233,28 @@ def evaluate_sla(
     if metrics["error_rate_pct"] > max_error_rate:
         violations.append(
             f"Error rate breached: {metrics['error_rate_pct']}% > SLA limit {max_error_rate}%"
+        )
+
+    if min_arrival_rate is not None:
+        achieved = metrics.get("achieved_arrival_rate")
+        if achieved is None or achieved < min_arrival_rate:
+            violations.append(
+                f"Underload: achieved arrival rate {achieved}/s < required {min_arrival_rate}/s"
+            )
+
+    if max_dropped_iterations is not None:
+        dropped = int(metrics.get("dropped_iterations", 0))
+        if dropped > max_dropped_iterations:
+            violations.append(
+                f"Dropped iterations exceeded: {dropped} > allowed {max_dropped_iterations}"
+            )
+
+    rec_p95 = metrics.get("recovery_p95_ms")
+    if require_recovery and rec_p95 is None:
+        violations.append("Missing post-load recovery probe observations")
+    elif max_recovery_p95 is not None and rec_p95 is not None and rec_p95 > max_recovery_p95:
+        violations.append(
+            f"Recovery probe P95 breached: {rec_p95}ms > SLA limit {max_recovery_p95}ms"
         )
 
     return len(violations) == 0, violations

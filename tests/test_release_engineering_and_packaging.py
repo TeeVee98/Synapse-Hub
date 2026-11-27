@@ -114,9 +114,12 @@ class TestReleaseEngineeringAndPackaging(unittest.TestCase):
             self.assertIn("skills_manifest.json", names, "skills_manifest.json missing from wheel")
             self.assertIn("AGENTS.md", names, "AGENTS.md missing from wheel")
 
-            # 2. 57 Skills with SKILL.md
+            # 2. 57 Domain Skills + 3 Workflow Skills (.agent/skills/) with SKILL.md
             skills = [n for n in names if n.endswith("/SKILL.md") and "claude-ecosystem-repos" not in n]
-            self.assertEqual(len(skills), 57, f"Expected 57 skills in wheel, found {len(skills)}")
+            domain_skills = [n for n in skills if not n.startswith(".agent/skills/")]
+            workflow_skills = [n for n in skills if n.startswith(".agent/skills/")]
+            self.assertEqual(len(domain_skills), 57, f"Expected 57 domain skills in wheel, found {len(domain_skills)}")
+            self.assertEqual(len(workflow_skills), 3, f"Expected 3 workflow skills in wheel, found {len(workflow_skills)}")
 
             # 3. 15 Core Rules
             rules = [n for n in names if (n.startswith(".agents/rules/") or any(n.startswith(p) for p in ("standards/", "automation/", "testing/"))) and n.endswith(".md") and not n.endswith("/SKILL.md") and "/examples/" not in n and ("_rules.md" in n or any(r in n for r in ("author-integrity", "communication-style", "git-push", "context-engineering", "graphify", "lessons-learned", "skill-precedence", "stack-auto-router", "systematic-debugging", "mandatory-playwright")))]
@@ -225,9 +228,12 @@ venv_site_packages = {repr(site_packages_hint)}
             self.assertIn("skills_manifest.json", stripped, "skills_manifest.json missing from sdist")
             self.assertIn("AGENTS.md", stripped, "AGENTS.md missing from sdist")
 
-            # 2. 57 Skills with SKILL.md
+            # 2. 57 Domain Skills + 3 Workflow Skills (.agent/skills/) with SKILL.md
             skills = [n for n in stripped if n.endswith("/SKILL.md") and not any(x in n for x in ("claude-ecosystem-repos", "examples/"))]
-            self.assertEqual(len(skills), 57, f"Expected 57 skills in sdist, found {len(skills)}")
+            domain_skills = [n for n in skills if not n.startswith(".agent/skills/")]
+            workflow_skills = [n for n in skills if n.startswith(".agent/skills/")]
+            self.assertEqual(len(domain_skills), 57, f"Expected 57 domain skills in sdist, found {len(domain_skills)}")
+            self.assertEqual(len(workflow_skills), 3, f"Expected 3 workflow skills in sdist, found {len(workflow_skills)}")
 
             # 3. 15 Core Rules
             rules = [n for n in stripped if (n.startswith(".agents/rules/") or any(n.startswith(p) for p in ("standards/", "automation/", "testing/"))) and n.endswith(".md") and not n.endswith("/SKILL.md") and "/examples/" not in n and ("_rules.md" in n or any(r in n for r in ("author-integrity", "communication-style", "git-push", "context-engineering", "graphify", "lessons-learned", "skill-precedence", "stack-auto-router", "systematic-debugging", "mandatory-playwright")))]

@@ -176,6 +176,9 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 
+import sqlite3
+
+
 @dataclass
 class GridTask:
     task_id: str
@@ -187,6 +190,7 @@ class GridTask:
     error_message: Optional[str] = None
     retry_count: int = 0
     max_retries: int = 2
+    attempt: int = 0
 
 
 @dataclass
@@ -199,17 +203,31 @@ class WorkerStatus:
 
 
 class SynapseGrid:
-    """Distributed Task Coordinator and Execution Grid."""
+    """
+    Distributed Task Coordinator and Execution Grid.
+
+    When journal_path is provided, claims, bounded leases, and single terminal
+    results per (run_id, task_id) are persisted atomically in stdlib SQLite.
+    Replayed tasks after crash recovery assume idempotent test fixtures.
+    """
 
     def __init__(
         self,
         worker_count: int = 2,
         task_timeout_sec: float = 30.0,
-        heartbeat_timeout_sec: float = 10.0
+        heartbeat_timeout_sec: float = 10.0,
+        journal_path: Optional[str] = None,
+        run_id: Optional[str] = None,
+        lease_sec: float = 5.0,
+        clock_fn: Optional[Callable[[], float]] = None,
     ):
         self.worker_count = max(1, worker_count)
         self.task_timeout_sec = task_timeout_sec
         self.heartbeat_timeout_sec = heartbeat_timeout_sec
+        self.journal_path = str(journal_path) if journal_path else None
+        self.run_id = run_id or f"run_{uuid.uuid4().hex[:8]}"
+        self.lease_sec = float(lease_sec)
+        self._clock_fn = clock_fn or time.time
         self.task_queue: "queue.Queue[GridTask]" = queue.Queue()
         self.tasks: Dict[str, GridTask] = {}
         self.workers: Dict[str, WorkerStatus] = {
@@ -217,17 +235,370 @@ class SynapseGrid:
             for i in range(self.worker_count)
         }
         self.lock = threading.Lock()
+        if self.journal_path:
+            self._init_journal()
+
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.journal_path, timeout=10.0, isolation_level=None)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_journal(self) -> None:
+        conn = self._connect()
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS grid_tasks (
+                    run_id TEXT NOT NULL,
+                    task_id TEXT NOT NULL,
+                    test_path TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    attempt INTEGER NOT NULL DEFAULT 0,
+                    retry_count INTEGER NOT NULL DEFAULT 0,
+                    max_retries INTEGER NOT NULL DEFAULT 2,
+                    exit_code INTEGER,
+                    duration_sec REAL NOT NULL DEFAULT 0.0,
+                    error_message TEXT,
+                    assigned_worker TEXT,
+                    PRIMARY KEY (run_id, task_id)
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS grid_claims (
+                    run_id TEXT NOT NULL,
+                    task_id TEXT NOT NULL,
+                    attempt INTEGER NOT NULL,
+                    worker_id TEXT NOT NULL,
+                    claimed_at REAL NOT NULL,
+                    lease_expires_at REAL NOT NULL,
+                    state TEXT NOT NULL,
+                    PRIMARY KEY (run_id, task_id, attempt)
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS grid_results (
+                    run_id TEXT NOT NULL,
+                    task_id TEXT NOT NULL,
+                    attempt INTEGER NOT NULL,
+                    worker_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    exit_code INTEGER NOT NULL,
+                    duration_sec REAL NOT NULL,
+                    error_message TEXT,
+                    committed_at REAL NOT NULL,
+                    PRIMARY KEY (run_id, task_id)
+                )
+                """
+            )
+        finally:
+            conn.close()
+
+    def _claim_task(self, task: GridTask, worker_id: str) -> Optional[int]:
+        now = self._clock_fn()
+        if not self.journal_path:
+            task.attempt += 1
+            task.status = "RUNNING"
+            task.assigned_worker = worker_id
+            return task.attempt
+
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT status, attempt FROM grid_tasks WHERE run_id = ? AND task_id = ?",
+                (self.run_id, task.task_id),
+            ).fetchone()
+            if row is None or row["status"] != "PENDING":
+                conn.execute("ROLLBACK")
+                return None
+            next_attempt = int(row["attempt"]) + 1
+            conn.execute(
+                "UPDATE grid_tasks SET status = 'RUNNING', attempt = ?, assigned_worker = ? WHERE run_id = ? AND task_id = ?",
+                (next_attempt, worker_id, self.run_id, task.task_id),
+            )
+            conn.execute(
+                "INSERT INTO grid_claims (run_id, task_id, attempt, worker_id, claimed_at, lease_expires_at, state) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')",
+                (self.run_id, task.task_id, next_attempt, worker_id, now, now + self.lease_sec),
+            )
+            conn.execute("COMMIT")
+        except sqlite3.Error:
+            conn.execute("ROLLBACK")
+            return None
+        finally:
+            conn.close()
+
+        with self.lock:
+            task.attempt = next_attempt
+            task.status = "RUNNING"
+            task.assigned_worker = worker_id
+        return next_attempt
+
+    def claim_next_task(self, worker_id: str) -> Optional[Tuple[GridTask, int]]:
+        """Atomically dequeues and claims one PENDING task with a bounded lease."""
+        try:
+            task = self.task_queue.get_nowait()
+        except queue.Empty:
+            return None
+        attempt = self._claim_task(task, worker_id)
+        if attempt is None:
+            return None
+        return task, attempt
+
+    def commit_task_result(
+        self,
+        task_id: str,
+        attempt: int,
+        worker_id: str,
+        exit_code: int,
+        error_message: Optional[str] = None,
+        duration_sec: float = 0.0,
+    ) -> bool:
+        """Atomically commits one terminal result iff the (run, task, attempt) lease is still active."""
+        now = self._clock_fn()
+        term_status = "COMPLETED" if exit_code == 0 else "FAILED"
+        stored_err = error_message if exit_code != 0 else None
+
+        if self.journal_path:
+            conn = self._connect()
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                existing_res = conn.execute(
+                    "SELECT 1 FROM grid_results WHERE run_id = ? AND task_id = ?",
+                    (self.run_id, task_id),
+                ).fetchone()
+                claim = conn.execute(
+                    "SELECT worker_id, lease_expires_at, state FROM grid_claims WHERE run_id = ? AND task_id = ? AND attempt = ?",
+                    (self.run_id, task_id, attempt),
+                ).fetchone()
+                trow = conn.execute(
+                    "SELECT status, attempt FROM grid_tasks WHERE run_id = ? AND task_id = ?",
+                    (self.run_id, task_id),
+                ).fetchone()
+                valid = (
+                    existing_res is None
+                    and claim is not None
+                    and claim["state"] == "ACTIVE"
+                    and claim["worker_id"] == worker_id
+                    and now <= float(claim["lease_expires_at"])
+                    and trow is not None
+                    and trow["status"] == "RUNNING"
+                    and int(trow["attempt"]) == attempt
+                )
+                if not valid:
+                    conn.execute("ROLLBACK")
+                    return False
+                conn.execute(
+                    "UPDATE grid_claims SET state = 'COMMITTED' WHERE run_id = ? AND task_id = ? AND attempt = ?",
+                    (self.run_id, task_id, attempt),
+                )
+                conn.execute(
+                    "UPDATE grid_tasks SET status = ?, exit_code = ?, duration_sec = ?, error_message = ? WHERE run_id = ? AND task_id = ?",
+                    (term_status, exit_code, duration_sec, stored_err, self.run_id, task_id),
+                )
+                conn.execute(
+                    "INSERT INTO grid_results (run_id, task_id, attempt, worker_id, status, exit_code, duration_sec, error_message, committed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (self.run_id, task_id, attempt, worker_id, term_status, exit_code, duration_sec, stored_err, now),
+                )
+                conn.execute("COMMIT")
+            except sqlite3.Error:
+                conn.execute("ROLLBACK")
+                return False
+            finally:
+                conn.close()
+
+        with self.lock:
+            task = self.tasks.get(task_id)
+            if task is not None:
+                task.status = term_status
+                task.exit_code = exit_code
+                task.error_message = stored_err
+                task.duration_sec = duration_sec
+        return True
+
+    def _reconcile_running_row(
+        self,
+        conn: sqlite3.Connection,
+        row: sqlite3.Row,
+        now: float,
+        stats: Dict[str, int],
+    ) -> GridTask:
+        tid = str(row["task_id"])
+        attempt = int(row["attempt"])
+        retries = int(row["retry_count"])
+        max_ret = int(row["max_retries"])
+        claim = conn.execute(
+            "SELECT lease_expires_at, state FROM grid_claims WHERE run_id = ? AND task_id = ? AND attempt = ?",
+            (self.run_id, tid, attempt),
+        ).fetchone()
+        unexpired = claim is not None and claim["state"] == "ACTIVE" and now <= float(claim["lease_expires_at"])
+        if unexpired:
+            stats["active_unexpired"] += 1
+            return GridTask(
+                task_id=tid,
+                test_path=str(row["test_path"]),
+                status="RUNNING",
+                assigned_worker=row["assigned_worker"],
+                retry_count=retries,
+                max_retries=max_ret,
+                attempt=attempt,
+            )
+
+        conn.execute(
+            "UPDATE grid_claims SET state = 'EXPIRED' WHERE run_id = ? AND task_id = ? AND attempt = ?",
+            (self.run_id, tid, attempt),
+        )
+        next_retry = retries + 1
+        if next_retry <= max_ret:
+            conn.execute(
+                "UPDATE grid_tasks SET status = 'PENDING', retry_count = ?, assigned_worker = NULL WHERE run_id = ? AND task_id = ?",
+                (next_retry, self.run_id, tid),
+            )
+            stats["requeued_expired"] += 1
+            task = GridTask(
+                task_id=tid,
+                test_path=str(row["test_path"]),
+                status="PENDING",
+                retry_count=next_retry,
+                max_retries=max_ret,
+                attempt=attempt,
+            )
+            self.task_queue.put(task)
+            return task
+
+        err = "Lease expired and retries exhausted."
+        conn.execute(
+            "UPDATE grid_tasks SET status = 'TIMED_OUT', retry_count = ?, error_message = ? WHERE run_id = ? AND task_id = ?",
+            (next_retry, err, self.run_id, tid),
+        )
+        stats["timed_out"] += 1
+        return GridTask(
+            task_id=tid,
+            test_path=str(row["test_path"]),
+            status="TIMED_OUT",
+            assigned_worker=row["assigned_worker"],
+            error_message=err,
+            retry_count=next_retry,
+            max_retries=max_ret,
+            attempt=attempt,
+        )
+
+    def _reconcile_task_row(
+        self,
+        conn: sqlite3.Connection,
+        row: sqlite3.Row,
+        res_map: Dict[str, sqlite3.Row],
+        now: float,
+        stats: Dict[str, int],
+    ) -> GridTask:
+        tid = str(row["task_id"])
+        if tid in res_map:
+            res = res_map[tid]
+            stats["reconciled_terminal"] += 1
+            return GridTask(
+                task_id=tid,
+                test_path=str(row["test_path"]),
+                status=str(res["status"]),
+                assigned_worker=str(res["worker_id"]),
+                exit_code=int(res["exit_code"]),
+                duration_sec=float(res["duration_sec"]),
+                error_message=res["error_message"],
+                retry_count=int(row["retry_count"]),
+                max_retries=int(row["max_retries"]),
+                attempt=int(res["attempt"]),
+            )
+        if row["status"] == "PENDING":
+            task = GridTask(
+                task_id=tid,
+                test_path=str(row["test_path"]),
+                status="PENDING",
+                retry_count=int(row["retry_count"]),
+                max_retries=int(row["max_retries"]),
+                attempt=int(row["attempt"]),
+            )
+            self.task_queue.put(task)
+            stats["requeued_pending"] += 1
+            return task
+        if row["status"] == "RUNNING":
+            return self._reconcile_running_row(conn, row, now, stats)
+        stats["reconciled_terminal"] += 1
+        return GridTask(
+            task_id=tid,
+            test_path=str(row["test_path"]),
+            status=str(row["status"]),
+            assigned_worker=row["assigned_worker"],
+            exit_code=row["exit_code"],
+            duration_sec=float(row["duration_sec"]),
+            error_message=row["error_message"],
+            retry_count=int(row["retry_count"]),
+            max_retries=int(row["max_retries"]),
+            attempt=int(row["attempt"]),
+        )
+
+    def recover_from_journal(self) -> Dict[str, int]:
+        """Reloads persisted run state from SQLite, rescheduling expired leases and reconciling results."""
+        stats = {
+            "requeued_expired": 0,
+            "requeued_pending": 0,
+            "reconciled_terminal": 0,
+            "active_unexpired": 0,
+            "timed_out": 0,
+        }
+        if not self.journal_path:
+            return stats
+
+        now = self._clock_fn()
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            res_rows = conn.execute(
+                "SELECT * FROM grid_results WHERE run_id = ?",
+                (self.run_id,),
+            ).fetchall()
+            res_map = {str(r["task_id"]): r for r in res_rows}
+            task_rows = conn.execute(
+                "SELECT * FROM grid_tasks WHERE run_id = ?",
+                (self.run_id,),
+            ).fetchall()
+
+            rebuilt: Dict[str, GridTask] = {}
+            self.task_queue = queue.Queue()
+            for row in task_rows:
+                tid = str(row["task_id"])
+                rebuilt[tid] = self._reconcile_task_row(conn, row, res_map, now, stats)
+            conn.execute("COMMIT")
+            with self.lock:
+                self.tasks = rebuilt
+        except sqlite3.Error:
+            conn.execute("ROLLBACK")
+        finally:
+            conn.close()
+        return stats
 
     def enqueue_tests(self, test_paths: List[str]) -> List[str]:
         """Enqueues test paths as runnable grid tasks."""
         task_ids = []
-        for path in test_paths:
-            task_id = f"task_{uuid.uuid4().hex[:8]}"
-            task = GridTask(task_id=task_id, test_path=path)
-            with self.lock:
-                self.tasks[task_id] = task
-                self.task_queue.put(task)
-            task_ids.append(task_id)
+        conn = self._connect() if self.journal_path else None
+        try:
+            for path in test_paths:
+                task_id = f"task_{uuid.uuid4().hex[:8]}"
+                task = GridTask(task_id=task_id, test_path=path)
+                if conn is not None:
+                    conn.execute(
+                        "INSERT INTO grid_tasks (run_id, task_id, test_path, status, attempt, retry_count, max_retries) VALUES (?, ?, ?, 'PENDING', 0, 0, ?)",
+                        (self.run_id, task_id, path, task.max_retries),
+                    )
+                with self.lock:
+                    self.tasks[task_id] = task
+                    self.task_queue.put(task)
+                task_ids.append(task_id)
+        finally:
+            if conn is not None:
+                conn.close()
         return task_ids
 
     def heartbeat(self, worker_id: str) -> None:
@@ -285,6 +656,49 @@ class SynapseGrid:
                             task.error_message = f"Task orphaned from inactive worker '{worker_id}'."
         return requeued
 
+    def _worker_is_valid(self, worker_id: str, task: GridTask) -> bool:
+        with self.lock:
+            deadline = self.workers[worker_id].last_heartbeat + self.heartbeat_timeout_sec
+            return (
+                task.assigned_worker == worker_id
+                and self.workers[worker_id].is_alive
+                and (time.time() <= deadline)
+            )
+
+    def _run_claimed_task(
+        self,
+        worker_id: str,
+        task: GridTask,
+        attempt: int,
+        test_runner_fn: Callable[[str], Tuple[int, str]],
+    ) -> None:
+        task_start = time.monotonic()
+        try:
+            exit_code, output = test_runner_fn(task.test_path)
+            if self._worker_is_valid(worker_id, task):
+                dur = round(time.monotonic() - task_start, 3)
+                self.commit_task_result(task.task_id, attempt, worker_id, exit_code, output, dur)
+        except Exception as e:
+            if self._worker_is_valid(worker_id, task):
+                dur = round(time.monotonic() - task_start, 3)
+                self.commit_task_result(task.task_id, attempt, worker_id, 1, str(e), dur)
+        finally:
+            task_duration = round(time.monotonic() - task_start, 3)
+            with self.lock:
+                if task.assigned_worker == worker_id and self.journal_path is None:
+                    task.duration_sec = task_duration
+                self.workers[worker_id].completed_tasks += 1
+                self.workers[worker_id].current_task_id = None
+                if self.workers[worker_id].is_alive:
+                    self.workers[worker_id].last_heartbeat = time.time()
+            self.task_queue.task_done()
+
+    def _mark_pending_timed_out(self, message: str) -> None:
+        for t in self.tasks.values():
+            if t.status in ("PENDING", "RUNNING"):
+                t.status = "TIMED_OUT"
+                t.error_message = message
+
     def execute_all(
         self,
         test_runner_fn: Callable[[str], Tuple[int, str]],
@@ -294,7 +708,7 @@ class SynapseGrid:
         Dispatches all queued tasks across worker threads using test_runner_fn.
         Returns a consolidated execution summary dictionary.
         """
-        start_time = time.time()
+        start_time = time.monotonic()
         threads: List[threading.Thread] = []
 
         def worker_loop(worker_id: str):
@@ -316,45 +730,14 @@ class SynapseGrid:
                         # Worker was marked dead while waiting on queue; return task and terminate
                         self.task_queue.put(task)
                         break
-                    task.status = "RUNNING"
-                    task.assigned_worker = worker_id
                     self.workers[worker_id].current_task_id = task.task_id
                     self.workers[worker_id].last_heartbeat = time.time()
 
-                task_start = time.time()
-                try:
-                    exit_code, output = test_runner_fn(task.test_path)
-                    with self.lock:
-                        worker_valid = (
-                            task.assigned_worker == worker_id
-                            and self.workers[worker_id].is_alive
-                            and (time.time() - self.workers[worker_id].last_heartbeat <= self.heartbeat_timeout_sec)
-                        )
-                        if worker_valid:
-                            task.exit_code = exit_code
-                            task.error_message = output if exit_code != 0 else None
-                            task.status = "COMPLETED" if exit_code == 0 else "FAILED"
-                except Exception as e:
-                    with self.lock:
-                        worker_valid = (
-                            task.assigned_worker == worker_id
-                            and self.workers[worker_id].is_alive
-                            and (time.time() - self.workers[worker_id].last_heartbeat <= self.heartbeat_timeout_sec)
-                        )
-                        if worker_valid:
-                            task.exit_code = 1
-                            task.error_message = str(e)
-                            task.status = "FAILED"
-                finally:
-                    task_duration = round(time.time() - task_start, 3)
-                    with self.lock:
-                        if task.assigned_worker == worker_id:
-                            task.duration_sec = task_duration
-                        self.workers[worker_id].completed_tasks += 1
-                        self.workers[worker_id].current_task_id = None
-                        if self.workers[worker_id].is_alive:
-                            self.workers[worker_id].last_heartbeat = time.time()
+                attempt = self._claim_task(task, worker_id)
+                if attempt is None:
                     self.task_queue.task_done()
+                    continue
+                self._run_claimed_task(worker_id, task, attempt, test_runner_fn)
 
         # Start worker threads
         for worker_id in self.workers:
@@ -372,21 +755,15 @@ class SynapseGrid:
                 if all_done:
                     break
                 if all_dead:
-                    for t in self.tasks.values():
-                        if t.status in ("PENDING", "RUNNING"):
-                            t.status = "TIMED_OUT"
-                            t.error_message = "All grid workers terminated."
+                    self._mark_pending_timed_out("All grid workers terminated.")
                     break
-            if time.time() - start_time > overall_timeout:
+            if time.monotonic() - start_time > overall_timeout:
                 with self.lock:
-                    for t in self.tasks.values():
-                        if t.status in ("PENDING", "RUNNING"):
-                            t.status = "TIMED_OUT"
-                            t.error_message = "Global grid execution timeout exceeded."
+                    self._mark_pending_timed_out("Global grid execution timeout exceeded.")
                 break
             time.sleep(poll_interval_sec)  # synapse-ignore: HARD_DELAY_ANTI_PATTERN
 
-        total_elapsed = round(time.time() - start_time, 3)
+        total_elapsed = round(time.monotonic() - start_time, 3)
         completed_count = sum(1 for t in self.tasks.values() if t.status == "COMPLETED")
         failed_count = sum(1 for t in self.tasks.values() if t.status in ("FAILED", "TIMED_OUT"))
 

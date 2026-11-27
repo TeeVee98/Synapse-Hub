@@ -14,10 +14,12 @@ Validates:
   6. Documentation installation recipes synchronize with package metadata (pip install synapse-hub).
 """
 
+import json
 import os
 import sys
 import re
 import glob
+import tarfile
 import zipfile
 import tempfile
 import subprocess
@@ -273,3 +275,163 @@ def test_manifest_fallback_resolution_and_error_handling():
             skill_profiles.load_manifest(os.path.join(empty_dir, "skills_manifest.json"))
         err_text = str(exc_info.value)
         assert "Skills manifest could not be located" in err_text or "Ensure Synapse Hub" in err_text
+
+
+def _pack_npm_tarball(pack_dir: str) -> str:
+    """Packs the repository npm tarball into pack_dir and returns the .tgz path."""
+    npm_bin = shutil.which("npm")
+    assert npm_bin, "npm executable not found in PATH"
+    res = subprocess.run(
+        [npm_bin, "pack", "--pack-destination", pack_dir],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert res.returncode == 0, f"npm pack failed:\n{res.stderr}\n{res.stdout}"
+    tgz_files = glob.glob(os.path.join(pack_dir, "*.tgz"))
+    assert len(tgz_files) == 1, f"Expected 1 .tgz tarball, found: {tgz_files}"
+    return tgz_files[0]
+
+
+def test_npm_tarball_installs_catalog_and_workflow_skills_clean_client():
+    """Positive: Packed npm .tgz ships .agent/skills & .claude/commands and installs all 57+3 skills."""
+    npm_bin = shutil.which("npm")
+    assert npm_bin, "npm executable not found in PATH"
+    with tempfile.TemporaryDirectory() as pack_dir, tempfile.TemporaryDirectory() as client_dir:
+        tarball = _pack_npm_tarball(pack_dir)
+        with tarfile.open(tarball, "r:gz") as tf:
+            names = set(tf.getnames())
+        for wf in ("solo", "review", "super-plan"):
+            assert f"package/.agent/skills/{wf}/SKILL.md" in names, f"Missing workflow skill {wf} in tarball"
+            assert f"package/.claude/commands/{wf}.md" in names, f"Missing Claude command {wf} in tarball"
+
+        inst = subprocess.run(
+            [npm_bin, "install", "--offline", "--no-audit", "--no-fund", tarball],
+            cwd=client_dir,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        assert inst.returncode == 0, f"npm install tarball failed:\n{inst.stderr}\n{inst.stdout}"
+
+        cli_bin = os.path.join(client_dir, "node_modules", ".bin", "agent-qa")
+        setup_res = subprocess.run(
+            [cli_bin, "setup", client_dir, "--ide", "codex", "--no-git-hook"],
+            cwd=client_dir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert setup_res.returncode == 0, f"agent-qa setup failed:\n{setup_res.stderr}\n{setup_res.stdout}"
+
+        skills_dir = os.path.join(client_dir, ".agents", "skills")
+        for wf in ("solo", "review", "super-plan"):
+            assert os.path.isfile(os.path.join(skills_dir, wf, "SKILL.md")), f"Workflow {wf} not installed in client"
+        with open(os.path.join(REPO_ROOT, "skills_index.json"), "r", encoding="utf-8") as idx_fp:
+            catalog_ids = [item["id"] for item in json.load(idx_fp)["skills"]]
+        for sid in catalog_ids:
+            assert os.path.isfile(os.path.join(skills_dir, sid, "SKILL.md")), f"Catalog skill {sid} missing in client"
+
+
+def test_npm_tarball_upgrade_preserves_user_owned_skill_bytes():
+    """Boundary & Resilience: Repeat setup and upgrade from tarball preserve user-owned skill bytes."""
+    npm_bin = shutil.which("npm")
+    assert npm_bin, "npm executable not found in PATH"
+    with tempfile.TemporaryDirectory() as pack_dir, tempfile.TemporaryDirectory() as client_dir:
+        tarball = _pack_npm_tarball(pack_dir)
+        inst = subprocess.run(
+            [npm_bin, "install", "--offline", "--no-audit", "--no-fund", tarball],
+            cwd=client_dir,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        assert inst.returncode == 0
+        cli_bin = os.path.join(client_dir, "node_modules", ".bin", "agent-qa")
+
+        first = subprocess.run(
+            [cli_bin, "setup", client_dir, "--ide", "codex", "--no-git-hook"],
+            cwd=client_dir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert first.returncode == 0
+
+        user_skill_dir = os.path.join(client_dir, ".agents", "skills", "user-owned-smoke")
+        os.makedirs(user_skill_dir, exist_ok=True)
+        user_skill_file = os.path.join(user_skill_dir, "SKILL.md")
+        expected_bytes = b"---\nname: user-owned-smoke\n---\n# Custom team workflow bytes v1\n"
+        with open(user_skill_file, "wb") as ufp:
+            ufp.write(expected_bytes)
+
+        upgrade = subprocess.run(
+            [cli_bin, "setup", client_dir, "--ide", "codex", "--no-git-hook"],
+            cwd=client_dir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert upgrade.returncode == 0
+        with open(user_skill_file, "rb") as ufp:
+            assert ufp.read() == expected_bytes
+        for wf in ("solo", "review", "super-plan"):
+            assert os.path.isfile(os.path.join(client_dir, ".agents", "skills", wf, "SKILL.md"))
+
+
+def test_npm_manifest_and_publish_workflow_tarball_contract():
+    """Negative & CLI Contract: package.json ships workflow dirs and publish_npm.yml publishes tested tarball."""
+    with open(os.path.join(REPO_ROOT, "package.json"), "r", encoding="utf-8") as pkg_fp:
+        pkg = json.load(pkg_fp)
+    files_list = pkg.get("files", [])
+    assert any(p in files_list for p in (".agent", ".agent/skills")), "package.json missing .agent/skills"
+    assert any(p in files_list for p in (".claude", ".claude/commands")), "package.json missing .claude/commands"
+
+    with open(os.path.join(WORKFLOW_DIR, "publish_npm.yml"), "r", encoding="utf-8") as wf_fp:
+        wf_text = wf_fp.read()
+    assert "npm pack" in wf_text, "publish_npm.yml must pack a .tgz tarball before publishing"
+    assert ".tgz" in wf_text or "TARBALL_PATH" in wf_text, "publish_npm.yml must verify and publish packed tarball"
+    assert "sha256" in wf_text.lower(), "publish_npm.yml must record tested tarball digest"
+
+    # Negative check: stripping one workflow from an unpacked package leaves < 3 workflows installed
+    with tempfile.TemporaryDirectory() as pkg_copy, tempfile.TemporaryDirectory() as client_dir:
+        shutil.copytree(os.path.join(REPO_ROOT, "skills"), os.path.join(pkg_copy, "skills"))
+        shutil.copytree(os.path.join(REPO_ROOT, ".agent"), os.path.join(pkg_copy, ".agent"))
+        shutil.rmtree(os.path.join(pkg_copy, ".agent", "skills", "review"))
+        sys.path.insert(0, os.path.join(REPO_ROOT, "tools", "core"))
+        import setup_project
+        orig_hub_root = setup_project.HUB_ROOT
+        try:
+            setup_project.HUB_ROOT = pkg_copy
+            setup_project.install_codex_skills(client_dir)
+        finally:
+            setup_project.HUB_ROOT = orig_hub_root
+        assert not os.path.exists(os.path.join(client_dir, ".agents", "skills", "review", "SKILL.md"))
+
+
+def test_wheel_packages_workflow_skills_parity():
+    """Positive & Boundary: Built Python wheel contains solo, review, and super-plan workflow SKILL.md files."""
+    with FileLock(_WHEEL_LOCK, timeout=120.0):
+        build_dir = os.path.join(REPO_ROOT, "build")
+        if os.path.exists(build_dir):
+            shutil.rmtree(build_dir, ignore_errors=True)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            res = subprocess.run(
+                [sys.executable, "-m", "pip", "wheel", "--no-deps", "-w", tmpdir, REPO_ROOT],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            assert res.returncode == 0, f"pip wheel failed:\n{res.stderr}\n{res.stdout}"
+            wheels = glob.glob(os.path.join(tmpdir, "*.whl"))
+            assert len(wheels) == 1
+            with zipfile.ZipFile(wheels[0], "r") as zf:
+                namelist = zf.namelist()
+            for wf in ("solo", "review", "super-plan"):
+                assert any(n.endswith(f".agent/skills/{wf}/SKILL.md") for n in namelist), (
+                    f"Wheel missing .agent/skills/{wf}/SKILL.md"
+                )
+                assert any(n.endswith(f".claude/commands/{wf}.md") for n in namelist), (
+                    f"Wheel missing .claude/commands/{wf}.md"
+                )

@@ -22,7 +22,7 @@ _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
 for _p in (_REPO_ROOT, _TOOLS_ROOT):
     if _p not in sys.path:
-        sys.path.insert(0, _p)
+        sys.path.append(_p)
 try:
     import tools  # noqa: F401
 except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
@@ -432,6 +432,298 @@ def clone_and_export_template(
     return output_path
 
 
+_DEFAULT_TRACE_LABELS: Dict[str, List[str]] = {
+    "case_id": ["Testcase_ID", "TC_ID", "Case_ID", "Automation Case ID", "CaseKey"],
+    "requirement_id": ["Requirement_ID", "Req_ID", "Requirement Refs", "ReqLinks"],
+    "document_version": ["Document_Version", "Doc_Version", "Doc Revisions", "Revision"],
+    "source_anchor": ["Source_Anchor", "Source Anchors", "Anchor"],
+    "disposition": ["Disposition", "Trace_Disposition", "Trace Disposition"],
+    "candidate_build": ["Candidate_Build", "Candidate Build", "Build_ID"],
+}
+_WRITTEN_TRACE_ROLES = ("requirement_id", "document_version", "source_anchor", "disposition", "candidate_build")
+
+
+def resolve_template_profile(
+    profile_config: Optional[Dict[str, Any]] = None,
+    cfg: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Resolves generic workbook sheet names and header label aliases without client hardcoding."""
+    labels: Dict[str, List[str]] = {k: list(v) for k, v in _DEFAULT_TRACE_LABELS.items()}
+    merged: Dict[str, Any] = {"detail_sheet": None, "summary_sheet": None, "header_row": None, "column_labels": labels}
+    sources = []
+    if isinstance(cfg, dict) and isinstance(cfg.get("trace_profile"), dict):
+        sources.append(cfg["trace_profile"])
+    if isinstance(profile_config, dict):
+        sources.append(profile_config)
+    for src in sources:
+        for key in ("detail_sheet", "summary_sheet", "header_row"):
+            if src.get(key) is not None:
+                merged[key] = src[key]
+        raw_labels = src.get("column_labels")
+        if isinstance(raw_labels, dict):
+            for role, aliases in raw_labels.items():
+                alias_list = [aliases] if isinstance(aliases, str) else list(aliases or [])
+                if alias_list:
+                    labels[role] = alias_list
+    return merged
+
+
+def find_header_columns(
+    ws: Any,
+    label_map: Dict[str, Any],
+    header_row: Optional[int] = None,
+) -> tuple:
+    """Finds header row and canonical role -> 1-based column index mapping by label."""
+    alias_to_role: Dict[str, str] = {}
+    for role, aliases in label_map.items():
+        for alias in ([aliases] if isinstance(aliases, str) else aliases):
+            norm = str(alias).strip().lower()
+            if norm:
+                alias_to_role[norm] = role
+
+    r_start = int(header_row) if header_row else 1
+    r_end = int(header_row) if header_row else ws.max_row
+    for r, row_vals in enumerate(
+        ws.iter_rows(min_row=r_start, max_row=r_end, values_only=True),
+        start=r_start,
+    ):
+        found: Dict[str, int] = {}
+        for c, val in enumerate(row_vals, start=1):
+            if isinstance(val, str):
+                role = alias_to_role.get(val.strip().lower())
+                if role and role not in found:
+                    found[role] = c
+        if "case_id" in found:
+            return r, found
+    raise ValueError(f"Could not resolve required header column 'case_id' ({label_map.get('case_id')}) in sheet '{ws.title}'.")
+
+
+def _extract_case_trace_index(trace_matrix: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+    candidate_build = str(trace_matrix.get("candidate_build") or "")
+    has_case_outcomes = trace_matrix.get("case_outcomes") is not None
+    case_outcomes = dict(trace_matrix.get("case_outcomes") or {})
+    acc: Dict[str, Dict[str, Any]] = {}
+    for row in trace_matrix.get("rows") or []:
+        req_id = str(row.get("requirement_id") or "")
+        doc_id = str(row.get("document_id") or "")
+        doc_ver = f"{doc_id}:{row.get('document_version', '')}".strip(":")
+        raw_anchor = str(row.get("source_anchor") or "")
+        anchor = f"{doc_id}#{raw_anchor}" if doc_id and raw_anchor else raw_anchor
+        executed = bool(row.get("executed_on_candidate"))
+        passed = bool(row.get("passed_on_candidate"))
+        for cid in row.get("linked_cases") or []:
+            entry = acc.setdefault(cid, {"reqs": [], "vers": [], "anchors": [], "executed": False, "all_passed": True})
+            if req_id and req_id not in entry["reqs"]:
+                entry["reqs"].append(req_id)
+            if doc_ver and doc_ver not in entry["vers"]:
+                entry["vers"].append(doc_ver)
+            if anchor and anchor not in entry["anchors"]:
+                entry["anchors"].append(anchor)
+            entry["executed"] = entry["executed"] or executed
+            entry["all_passed"] = entry["all_passed"] and passed
+
+    out: Dict[str, Dict[str, str]] = {}
+    for cid, info in acc.items():
+        if has_case_outcomes:
+            explicit = case_outcomes.get(cid)
+            disp = str(explicit) if explicit in ("passed", "failed", "unrun") else "unrun"
+        elif not info["executed"]:
+            disp = "unrun"
+        else:
+            disp = "passed" if info["all_passed"] else "failed"
+        out[cid] = {
+            "requirement_id": ", ".join(info["reqs"]),
+            "document_version": ", ".join(info["vers"]),
+            "source_anchor": ", ".join(info["anchors"]),
+            "disposition": disp,
+            "candidate_build": candidate_build,
+        }
+    return out
+
+
+def _compare_sheet_cells(
+    sws: Any,
+    ows: Any,
+    skip_after_row: Optional[int] = None,
+    allowed_cols: Optional[set] = None,
+) -> tuple:
+    """Checks non-trace cells for unchanged formulas and unrelated cell values."""
+    formulas_ok = True
+    unrelated_ok = True
+    cols = allowed_cols or set()
+    for r in range(1, max(sws.max_row, ows.max_row) + 1):
+        for c in range(1, max(sws.max_column, ows.max_column) + 1):
+            if skip_after_row is not None and r > skip_after_row and c in cols:
+                continue
+            sval = sws.cell(r, c).value
+            oval = ows.cell(r, c).value
+            if isinstance(sval, str) and sval.startswith("="):
+                formulas_ok = formulas_ok and (oval == sval)
+            else:
+                unrelated_ok = unrelated_ok and (oval == sval)
+    return formulas_ok, unrelated_ok
+
+
+def compare_workbook_semantics(
+    source_path: str,
+    exported_path: str,
+    profile: Optional[Dict[str, Any]] = None,
+    expected_dispositions: Optional[Dict[str, str]] = None,
+    expected_counts: Optional[Dict[str, int]] = None,
+) -> Dict[str, Any]:
+    """Reopens exported workbook and verifies sheet order, formulas, merges, unrelated cells, and totals."""
+    eff_profile = resolve_template_profile(profile)
+    src_wb = openpyxl.load_workbook(source_path, data_only=False)
+    out_wb = openpyxl.load_workbook(exported_path, data_only=False)
+
+    sheet_order_preserved = list(src_wb.sheetnames) == list(out_wb.sheetnames)
+    formulas_preserved = True
+    merged_cells_preserved = True
+    unrelated_cells_preserved = True
+
+    detail_name = eff_profile.get("detail_sheet") or src_wb.sheetnames[0]
+    if detail_name not in out_wb.sheetnames:
+        raise ValueError(f"Detail sheet '{detail_name}' missing from reopened workbook.")
+
+    det_ws = out_wb[detail_name]
+    hdr_row, col_map = find_header_columns(det_ws, eff_profile["column_labels"], eff_profile.get("header_row"))
+    allowed_cols = {col_map[role] for role in _WRITTEN_TRACE_ROLES if role in col_map}
+
+    for sname in src_wb.sheetnames:
+        if sname not in out_wb.sheetnames:
+            continue
+        sws = src_wb[sname]
+        ows = out_wb[sname]
+        src_merges = {str(r) for r in sws.merged_cells.ranges}
+        out_merges = {str(r) for r in ows.merged_cells.ranges}
+        merged_cells_preserved = merged_cells_preserved and src_merges.issubset(out_merges)
+        f_ok, u_ok = _compare_sheet_cells(
+            sws,
+            ows,
+            skip_after_row=hdr_row if sname == detail_name else None,
+            allowed_cols=allowed_cols if sname == detail_name else None,
+        )
+        formulas_preserved = formulas_preserved and f_ok
+        unrelated_cells_preserved = unrelated_cells_preserved and u_ok
+
+    counts: Dict[str, int] = {}
+    actual_case_count = 0
+    disp_match = True
+    case_col = col_map["case_id"]
+    disp_col = col_map.get("disposition")
+    for r in range(hdr_row + 1, det_ws.max_row + 1):
+        cid_val = det_ws.cell(r, case_col).value
+        if cid_val is None or not str(cid_val).strip():
+            continue
+        cid = str(cid_val).strip()
+        actual_case_count += 1
+        dval = str(det_ws.cell(r, disp_col).value or "").strip() if disp_col else ""
+        if not dval:
+            disp_match = False
+        counts[dval] = counts.get(dval, 0) + 1
+        if expected_dispositions and expected_dispositions.get(cid) != dval:
+            disp_match = False
+
+    reconciled = (
+        disp_match
+        and sum(counts.values()) == actual_case_count
+        and (expected_counts is None or counts == expected_counts)
+    )
+    passed = (
+        sheet_order_preserved
+        and formulas_preserved
+        and merged_cells_preserved
+        and unrelated_cells_preserved
+        and reconciled
+    )
+    return {
+        "passed": passed,
+        "sheet_order_preserved": sheet_order_preserved,
+        "formulas_preserved": formulas_preserved,
+        "merged_cells_preserved": merged_cells_preserved,
+        "unrelated_cells_preserved": unrelated_cells_preserved,
+        "reconciled": reconciled,
+        "case_count": actual_case_count,
+        "disposition_counts": counts,
+    }
+
+
+def export_versioned_trace_workbook(
+    template_path: str,
+    output_path: str,
+    trace_matrix: Dict[str, Any],
+    profile: Optional[Dict[str, Any]] = None,
+    compare_after_reopen: bool = True,
+) -> Dict[str, Any]:
+    """Exports versioned requirement trace dispositions into a template workbook and compares after reopen."""
+    if not OPENPYXL_AVAILABLE:
+        raise RuntimeError("openpyxl is required for template-driven Excel export. Run: pip install openpyxl")
+    if not os.path.isfile(template_path):
+        raise FileNotFoundError(f"Template Excel file not found: {template_path}")
+
+    eff_profile = resolve_template_profile(profile)
+    wb = openpyxl.load_workbook(template_path, data_only=False)
+    detail_sheet = eff_profile.get("detail_sheet") or wb.sheetnames[0]
+    if detail_sheet not in wb.sheetnames:
+        raise ValueError(f"Detail sheet '{detail_sheet}' not found in workbook '{template_path}'.")
+
+    ws = wb[detail_sheet]
+    hdr_row, col_map = find_header_columns(ws, eff_profile["column_labels"], eff_profile.get("header_row"))
+    case_index = _extract_case_trace_index(trace_matrix)
+    candidate_build = str(trace_matrix.get("candidate_build") or "")
+
+    counts: Dict[str, int] = {}
+    expected_dispositions: Dict[str, str] = {}
+    case_count = 0
+    case_col = col_map["case_id"]
+    for r in range(hdr_row + 1, ws.max_row + 1):
+        cid_val = ws.cell(r, case_col).value
+        if cid_val is None or not str(cid_val).strip():
+            continue
+        cid = str(cid_val).strip()
+        case_count += 1
+        rec = case_index.get(cid)
+        if rec is None:
+            rec = {
+                "requirement_id": "",
+                "document_version": "",
+                "source_anchor": "",
+                "disposition": "unmapped",
+                "candidate_build": candidate_build,
+            }
+        for role in _WRITTEN_TRACE_ROLES:
+            if role in col_map:
+                cell = ws.cell(r, col_map[role])
+                if not (isinstance(cell.value, str) and cell.value.startswith("=")):
+                    cell.value = rec[role]
+        disp = rec["disposition"]
+        counts[disp] = counts.get(disp, 0) + 1
+        expected_dispositions[cid] = disp
+
+    out_dir = os.path.dirname(os.path.abspath(output_path))
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    wb.save(output_path)
+
+    comparison = None
+    if compare_after_reopen:
+        comparison = compare_workbook_semantics(
+            source_path=template_path,
+            exported_path=output_path,
+            profile=eff_profile,
+            expected_dispositions=expected_dispositions,
+            expected_counts=counts,
+        )
+    return {
+        "output_path": output_path,
+        "detail_sheet": detail_sheet,
+        "candidate_build": candidate_build,
+        "case_count": case_count,
+        "disposition_counts": counts,
+        "comparison": comparison,
+    }
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Template-driven Excel test case exporter for Synapse Hub.")
@@ -445,6 +737,9 @@ def main():
     parser.add_argument("--author", default="QA Engineer", help="Author name")
     parser.add_argument("--tester", default="QA Engineer", help="Tester name")
     parser.add_argument("--standalone", action="store_true", help="Keep only the newly exported sheet, removing others")
+    parser.add_argument("--trace-json", help="Path to JSON trace matrix for versioned workbook export")
+    parser.add_argument("--template-profile", help="Path to JSON template profile configuration")
+    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON summary")
 
     args = parser.parse_args()
 
@@ -469,6 +764,27 @@ def main():
             default_out = os.path.join(cfg_dir, tc_cfg["default_output_dir"], "test_cases_output.xlsx")
 
     output_path = args.output or default_out
+
+    if args.trace_json:
+        if not template_path or not os.path.isfile(template_path):
+            print("Error: --template must point to an existing .xlsx workbook when using --trace-json.", file=sys.stderr)
+            return 1
+        with open(args.trace_json, "r", encoding="utf-8") as fh:
+            trace_matrix = json.load(fh)
+        profile_cfg = None
+        if args.template_profile:
+            with open(args.template_profile, "r", encoding="utf-8") as fh:
+                profile_cfg = json.load(fh)
+        eff_profile = resolve_template_profile(profile_cfg, cfg=cfg)
+        result = export_versioned_trace_workbook(
+            template_path=template_path,
+            output_path=output_path,
+            trace_matrix=trace_matrix,
+            profile=eff_profile,
+        )
+        if args.json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if (result.get("comparison") or {}).get("passed", True) else 1
 
     if not args.input_file or not args.input_file.strip():
         print("\n❌ Lỗi: Bạn chưa cung cấp đường dẫn file Markdown test cases.")
@@ -498,7 +814,11 @@ def main():
             print(f"Notice: Template file '{template_path}' not found or is not a valid file. Falling back to Hub default 12-column exporter.")
         else:
             print("Notice: No template file specified. Falling back to Hub default 12-column exporter.")
-        from tools.contrib import md_to_xlsx
+        import importlib.util
+        md_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "md_to_xlsx.py")
+        md_spec = importlib.util.spec_from_file_location("md_to_xlsx", md_path)
+        md_to_xlsx = importlib.util.module_from_spec(md_spec)
+        md_spec.loader.exec_module(md_to_xlsx)
         try:
             total = md_to_xlsx.convert_markdown_to_xlsx(args.input_file, output_path, sheet_name=args.sheet_name or "Test Cases")
             print(f"Successfully exported {total} test case(s) to '{output_path}' (Default Hub 12-Column Layout)")
@@ -524,4 +844,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)
