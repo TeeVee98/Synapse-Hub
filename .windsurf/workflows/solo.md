@@ -28,6 +28,6 @@ description: Synapse-Hub /solo workflow (Single-Agent Spec-Driven Control Plane)
 4. **Phase 3 (Purple Auditor):** Run live mutation (`>= 80%`) and Purple audit (standalone `--purple` auto-runs `/review --strict-solo`; pass `--milestone <ID>` for milestone receipts or `--no-review` to opt out):
    `agent-qa solo --mutation --target <source.py> --test-cmd "python3 -m pytest tests/<target>.py" --threshold 80.0`
    `agent-qa solo --purple --json`
-5. **Closed-Loop Plan Execution & Auto-`/review`:** Execute validated plan DAGs end-to-end with Scope Guard, `decisions.tsv`, and automatic post-`/solo` `/review` reconciliation (`--no-review` to opt out):
-   `agent-qa solo --from-plan implementation_plan.md --json`
+5. **Closed-Loop Plan Execution & Auto-`/review`:** Execute validated plan DAGs end-to-end with Scope Guard, `decisions.tsv`, and automatic post-`/solo` `/review` reconciliation (`--no-review` to opt out); isolate via `agent-qa worktree create --agent-id <slug>` if another task is active in the workspace:
+   `agent-qa solo --from-plan <plan_path> --json`
 6. **Phase 4 (Automatic `/review` Handoff):** After standalone `/solo` finishes Phase 3, `solo_runner.py --purple` automatically runs `/review --strict-solo` (pass `--milestone <ID>` for milestone receipts, or `--no-review` at CLI to opt out); when invoking `/review` directly in standalone mode, run `agent-qa review --plan <plan.md> --strict-solo --json` or `agent-qa review --staged --strict-solo --json` (add `--milestone <ID>` if using milestone receipts) before reporting done.

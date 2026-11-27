@@ -44,7 +44,7 @@ import subprocess
 import argparse
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Any, Tuple, Optional, Set
+from typing import Dict, List, Any, Tuple, Optional, Sequence, Set
 
 from tools.lint.output_diff_sentinel import OutputDiffSentinel
 from tools.ai.cove_verifier import ChainOfVerificationEngine
@@ -1084,6 +1084,8 @@ def evaluate_review(
     receipt_out: Optional[str] = None,
     require_mutation_receipt: bool = True,
     decision_log_path: Optional[str] = None,
+    baseline_files: Optional[Sequence[str]] = None,
+    write_receipt: bool = True,
 ) -> Tuple[int, Dict[str, Any], str, Optional[Dict[str, Any]]]:
     """Executes diff extraction, AST review, Plan-vs-Solo reconciliation, and receipt signing without stdout output."""
     repo_dir = os.path.abspath(repo_dir)
@@ -1114,6 +1116,7 @@ def evaluate_review(
             strict_solo=strict_solo,
             require_mutation_receipt=require_mutation_receipt,
             decision_log_path=decision_log_path,
+            baseline_files=baseline_files,
         )
         findings.extend(_dict_to_finding(item) for item in audit_findings)
     elif files:
@@ -1133,10 +1136,11 @@ def evaluate_review(
 
     signed_receipt: Optional[UnifiedReviewReceiptDTO] = None
     resolved_receipt_path: Optional[str] = None
-    if receipt_out and str(receipt_out).strip():
-        resolved_receipt_path = str(receipt_out).strip()
-    elif plan_path or strict_solo:
-        resolved_receipt_path = os.path.join(repo_dir, "reports", "code_review_receipt.json")
+    if write_receipt:
+        if receipt_out and str(receipt_out).strip():
+            resolved_receipt_path = str(receipt_out).strip()
+        elif plan_path or strict_solo:
+            resolved_receipt_path = os.path.join(repo_dir, "reports", "code_review_receipt.json")
 
     if resolved_receipt_path:
         signed_receipt = sign_and_write_review_receipt(
@@ -1217,6 +1221,8 @@ def run_review(
     strict: bool = False,
     strict_solo: bool = False,
     receipt_out: Optional[str] = None,
+    baseline_files: Optional[Sequence[str]] = None,
+    write_receipt: bool = True,
 ) -> int:
     """Runs the diff extraction, AST review, Plan-vs-Solo reconciliation, and signed receipt export."""
     try:
@@ -1230,6 +1236,8 @@ def run_review(
             strict=strict,
             strict_solo=strict_solo,
             receipt_out=receipt_out,
+            baseline_files=baseline_files,
+            write_receipt=write_receipt,
         )
     except Exception as err:
         sys.stderr.write(f"❌ Error: Cannot complete review — {err}\n")
@@ -1272,6 +1280,8 @@ def main():
     parser.add_argument("--strict", action="store_true", help="Fail with exit code 1 on Should fix findings as well as Must fix")
     parser.add_argument("--strict-solo", action="store_true", help="Require valid signed /solo Red & Mutation receipts and strict decisions.tsv")
     parser.add_argument("--receipt-out", default=None, help="Output path for HMAC-signed code_review_receipt.json")
+    parser.add_argument("--baseline-files", nargs="*", default=None, help="Pre-existing dirty files to exclude from unplanned scope-creep findings")
+    parser.add_argument("--no-receipt", action="store_true", help="Strict zero-write diagnostic mode: skip writing code_review_receipt.json")
 
     args = parser.parse_args()
     diff_target = "staged" if args.staged else (args.branch if args.branch else "uncommitted")
@@ -1286,6 +1296,10 @@ def main():
         extra_kwargs["strict_solo"] = True
     if args.receipt_out:
         extra_kwargs["receipt_out"] = args.receipt_out
+    if args.baseline_files:
+        extra_kwargs["baseline_files"] = args.baseline_files
+    if args.no_receipt:
+        extra_kwargs["write_receipt"] = False
     sys.exit(
         run_review(
             args.target_dir,

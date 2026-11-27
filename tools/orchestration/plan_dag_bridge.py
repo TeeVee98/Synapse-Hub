@@ -414,6 +414,15 @@ def _execute_milestone_mutation_phase(
         node_result["passed"] = False
 
 
+def _derive_plan_slug(plan_path: str) -> Optional[str]:
+    """Derives an optional collision-safe slug from a named plan file (None for legacy implementation_plan.md)."""
+    stem = os.path.splitext(os.path.basename(plan_path or ""))[0].strip()
+    if not stem or stem.lower() == "implementation_plan":
+        return None
+    cleaned = re.sub(r"[^A-Za-z0-9_\-]", "_", stem)
+    return cleaned or None
+
+
 def _execute_milestone_test_phase(
     spec: MilestoneExecutionSpecDTO,
     repo_root: str,
@@ -425,9 +434,22 @@ def _execute_milestone_test_phase(
     resolve_test_adapter: Any,
     certify_red_phase: Any,
     certify_green_phase: Any,
+    plan_slug: Optional[str] = None,
 ) -> None:
-    """Executes milestone-scoped Red/Green verification and records phase receipt status."""
-    scoped_red_path = resolve_red_receipt_path(repo_root, milestone_id=spec.node_id)
+    """Executes milestone-scoped Red/Green verification (plan-slug-first with legacy fallback)."""
+    slugged_red_path = (
+        resolve_red_receipt_path(repo_root, milestone_id=spec.node_id, plan_slug=plan_slug)
+        if plan_slug
+        else None
+    )
+    legacy_red_path = resolve_red_receipt_path(repo_root, milestone_id=spec.node_id)
+    if slugged_red_path and os.path.isfile(slugged_red_path):
+        scoped_red_path = slugged_red_path
+    elif os.path.isfile(legacy_red_path):
+        scoped_red_path = legacy_red_path
+    else:
+        scoped_red_path = slugged_red_path or legacy_red_path
+
     if os.path.isfile(scoped_red_path):
         green_res = certify_green_phase(
             test_cmd=spec.test_cmd,
@@ -498,6 +520,27 @@ def _flush_offload_dir(offload_dir: str) -> None:
         pass
 
 
+def _collect_ancestor_write_set(
+    node_id: str,
+    spec_by_id: Dict[str, MilestoneExecutionSpecDTO],
+) -> Set[str]:
+    """Collects transitive write_set paths of declared depends_on ancestors for cumulative Scope Guard checks."""
+    collected: Set[str] = set()
+    visited: Set[str] = set()
+    stack = list(spec_by_id[node_id].depends_on) if node_id in spec_by_id else []
+    while stack:
+        dep_id = stack.pop()
+        if dep_id in visited:
+            continue
+        visited.add(dep_id)
+        dep_spec = spec_by_id.get(dep_id)
+        if dep_spec is None:
+            continue
+        collected.update(dep_spec.write_set)
+        stack.extend(dep_spec.depends_on)
+    return collected
+
+
 def execute_plan_via_solo(
     plan_path: str,
     repo_root: str = _REPO_ROOT,
@@ -521,12 +564,16 @@ def execute_plan_via_solo(
     certify_purple_phase = resolved_cb.certify_purple_phase
     resolve_test_adapter = resolved_cb.resolve_test_adapter
 
-    specs = compile_plan_to_solo_specs(plan_path, repo_root=repo_root)
+    all_specs = compile_plan_to_solo_specs(plan_path, repo_root=repo_root)
+    spec_by_id = {s.node_id: s for s in all_specs}
+    specs = all_specs
+    completed_write_set: Set[str] = set()
     if milestone_filter and milestone_filter.strip():
         filt = milestone_filter.strip()
-        specs = [s for s in specs if s.node_id == filt]
+        specs = [s for s in all_specs if s.node_id == filt]
         if not specs:
             raise ValueError(f"Milestone '{filt}' not found in plan '{plan_path}'.")
+        completed_write_set.update(_collect_ancestor_write_set(filt, spec_by_id))
 
     resolved_log = (
         decision_log_path
@@ -535,6 +582,7 @@ def execute_plan_via_solo(
     )
     offload_dir = os.path.join(repo_root, "scratch", "offload")
 
+    derived_plan_slug = _derive_plan_slug(plan_path)
     milestones_passed = 0
     halted_at: Optional[str] = None
     receipt_paths: List[str] = []
@@ -559,9 +607,12 @@ def execute_plan_via_solo(
         )
         dag_exec = SelfHealingDAGExecutor(nodes={spec.node_id: dag_node}, repo_root=repo_root)
 
-        # 1. Scope Guard Pre-Check
+        # 1. Scope Guard Pre-Check (cumulative across completed milestones so M2+ never destroy M1 edits)
         if enforce_scope_guard and spec.write_set:
-            scope_ok, unauthorized = dag_exec.check_scope_guard_violation(dag_node)
+            scope_ok, unauthorized = dag_exec.check_scope_guard_violation(
+                dag_node,
+                allowed_extra_files=completed_write_set,
+            )
             node_result["phases"]["scope_guard"] = {
                 "passed": scope_ok,
                 "unauthorized": list(unauthorized),
@@ -602,6 +653,7 @@ def execute_plan_via_solo(
                 resolve_test_adapter=resolve_test_adapter,
                 certify_red_phase=certify_red_phase,
                 certify_green_phase=certify_green_phase,
+                plan_slug=derived_plan_slug,
             )
 
         # 3. Live Dynamic Mutation Sentinel (diff-scoped by default with full fallback & AST_CONTRACT_VERIFIED waiver)
@@ -655,6 +707,7 @@ def execute_plan_via_solo(
         milestone_results.append(node_result)
         if node_result["passed"]:
             milestones_passed += 1
+            completed_write_set.update(spec.write_set)
         else:
             halted_at = spec.node_id
             break

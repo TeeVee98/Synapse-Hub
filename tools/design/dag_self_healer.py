@@ -27,7 +27,7 @@ import re
 import shlex
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
@@ -393,9 +393,14 @@ class SelfHealingDAGExecutor:
         node.status = NodeStatus.FAILED
         return result
 
-    def check_scope_guard_violation(self, node: DAGNode) -> Tuple[bool, List[str]]:
+    def check_scope_guard_violation(
+        self,
+        node: DAGNode,
+        allowed_extra_files: Optional[Iterable[str]] = None,
+    ) -> Tuple[bool, List[str]]:
         """
-        Physical Scope Guard (Fail-Closed): Verifies git modified files do not exceed declared milestone write_set.
+        Physical Scope Guard (Fail-Closed): Verifies git modified files do not exceed declared milestone write_set
+        (plus optional cumulative write_set from already-completed ancestor milestones).
         Returns (is_valid, list_of_unauthorized_files_or_unverifiable_reasons).
         """
         if node is None or not isinstance(node.write_set, list):
@@ -459,11 +464,15 @@ class SelfHealingDAGExecutor:
         declared_set = {
             os.path.normpath(w).replace("\\", "/") for w in node.write_set
         }
+        if allowed_extra_files:
+            for extra in allowed_extra_files:
+                if isinstance(extra, str) and extra.strip():
+                    declared_set.add(os.path.normpath(extra.strip()).replace("\\", "/"))
 
         unauthorized: List[str] = []
         for f in actual_modified:
             norm_f = os.path.normpath(f).replace("\\", "/")
-            if norm_f not in declared_set and not any(norm_f.endswith(d) or d.endswith(norm_f) for d in declared_set):
+            if norm_f not in declared_set and not any(_path_matches_declared(norm_f, d) for d in declared_set):
                 unauthorized.append(f)
 
         return len(unauthorized) == 0, unauthorized
@@ -574,6 +583,90 @@ class SelfHealingDAGExecutor:
 
         return replacement_nodes
 
+    def _halt_on_scope_violation(
+        self,
+        node: DAGNode,
+        unauthorized: List[str],
+        scope_guard_violations: List[Dict[str, Any]],
+        phase_label: str = "",
+    ) -> None:
+        scope_guard_violations.append({"node_id": node.node_id, "unauthorized": list(unauthorized)})
+        suffix = f" ({phase_label})" if phase_label else ""
+        self.capture_failure_snapshot(
+            node,
+            "",
+            f"SCOPE_GUARD_VIOLATION{suffix}: unauthorized edits outside write_set: {unauthorized}",
+        )
+        self.safe_rollback(node, run_compensating_tx=True)
+        self.cancel_descendants_and_siblings(node)
+
+    def _recover_failed_node(
+        self,
+        node: DAGNode,
+        res: subprocess.CompletedProcess[str],
+        recovered_nodes: List[str],
+    ) -> None:
+        trace = (res.stderr or "") + "\n" + (res.stdout or "")
+        diff_res = subprocess.run(["git", "diff"], cwd=self.repo_root, capture_output=True, text=True, check=False)
+        snapshot = self.capture_failure_snapshot(node, diff_res.stdout or "", trace)
+        self.safe_rollback(node, run_compensating_tx=True)
+
+        if snapshot.failure_class == FailureClass.LOCAL_IMPL and node.retries < node.max_retries:
+            node.escalate_compute_tier()
+            node.retries += 1
+            node.status = NodeStatus.PENDING
+            recovered_nodes.append(f"{node.node_id} (retry {node.retries})")
+            return
+        affected = self.cancel_descendants_and_siblings(node)
+        deep_context = self.read_full_bodies_jit(snapshot.involved_symbols)
+        replanned = self.replan_subgraph(node, affected, deep_context, snapshot)
+        recovered_nodes.append(f"{node.node_id} -> {[n.node_id for n in replanned]}")
+
+    def _execute_single_live_node(
+        self,
+        node: DAGNode,
+        dry_run: bool,
+        enforce_scope_guard: bool,
+        completed_write_set: Set[str],
+        scope_guard_violations: List[Dict[str, Any]],
+        recovered_nodes: List[str],
+    ) -> bool:
+        """Executes one ready node; returns True if execution must halt on a Scope Guard violation."""
+        if dry_run or not node.pass_gate:
+            node.status = NodeStatus.SUCCESS
+            completed_write_set.update(node.write_set)
+            return False
+
+        if enforce_scope_guard and node.write_set:
+            scope_ok, unauthorized = self.check_scope_guard_violation(
+                node, allowed_extra_files=completed_write_set
+            )
+            if not scope_ok:
+                self._halt_on_scope_violation(node, unauthorized, scope_guard_violations)
+                return True
+
+        cmd_args = (
+            shlex.split(node.pass_gate, posix=(os.name != "nt"))
+            if isinstance(node.pass_gate, str)
+            else node.pass_gate
+        )
+        res = subprocess.run(cmd_args, cwd=self.repo_root, capture_output=True, text=True, check=False)
+        if res.returncode != 0:
+            self._recover_failed_node(node, res, recovered_nodes)
+            return False
+
+        if enforce_scope_guard and node.write_set:
+            post_ok, post_unauth = self.check_scope_guard_violation(
+                node, allowed_extra_files=completed_write_set
+            )
+            if not post_ok:
+                self._halt_on_scope_violation(node, post_unauth, scope_guard_violations, phase_label="post-gate")
+                return True
+
+        node.status = NodeStatus.SUCCESS
+        completed_write_set.update(node.write_set)
+        return False
+
     def run_dag_live(
         self,
         dry_run: bool = False,
@@ -586,6 +679,7 @@ class SelfHealingDAGExecutor:
         recovered_nodes: List[str] = []
         scope_guard_violations: List[Dict[str, Any]] = []
         halted_by_scope_guard = False
+        completed_write_set: Set[str] = set()
 
         while loops < max_loops and not halted_by_scope_guard:
             loops += 1
@@ -596,65 +690,12 @@ class SelfHealingDAGExecutor:
             for node in ready:
                 node.status = NodeStatus.RUNNING
                 executed_nodes.append(node.node_id)
-
-                if dry_run or not node.pass_gate:
-                    node.status = NodeStatus.SUCCESS
-                    continue
-
-                if enforce_scope_guard and node.write_set:
-                    scope_ok, unauthorized = self.check_scope_guard_violation(node)
-                    if not scope_ok:
-                        scope_guard_violations.append(
-                            {"node_id": node.node_id, "unauthorized": list(unauthorized)}
-                        )
-                        self.capture_failure_snapshot(
-                            node,
-                            "",
-                            f"SCOPE_GUARD_VIOLATION: unauthorized edits outside write_set: {unauthorized}",
-                        )
-                        self.safe_rollback(node, run_compensating_tx=True)
-                        self.cancel_descendants_and_siblings(node)
-                        halted_by_scope_guard = True
-                        break
-
-                # Live execution of pass_gate command without shell=True
-                cmd_args = shlex.split(node.pass_gate) if isinstance(node.pass_gate, str) else node.pass_gate
-                res = subprocess.run(cmd_args, cwd=self.repo_root, capture_output=True, text=True, check=False)
-                if res.returncode == 0:
-                    if enforce_scope_guard and node.write_set:
-                        post_ok, post_unauth = self.check_scope_guard_violation(node)
-                        if not post_ok:
-                            scope_guard_violations.append(
-                                {"node_id": node.node_id, "unauthorized": list(post_unauth)}
-                            )
-                            self.capture_failure_snapshot(
-                                node,
-                                "",
-                                f"SCOPE_GUARD_VIOLATION (post-gate): unauthorized edits: {post_unauth}",
-                            )
-                            self.safe_rollback(node, run_compensating_tx=True)
-                            self.cancel_descendants_and_siblings(node)
-                            halted_by_scope_guard = True
-                            break
-                    node.status = NodeStatus.SUCCESS
-                else:
-                    trace = (res.stderr or "") + "\n" + (res.stdout or "")
-                    diff_res = subprocess.run(["git", "diff"], cwd=self.repo_root, capture_output=True, text=True, check=False)
-                    diff = diff_res.stdout or ""
-
-                    snapshot = self.capture_failure_snapshot(node, diff, trace)
-                    self.safe_rollback(node, run_compensating_tx=True)
-
-                    if snapshot.failure_class == FailureClass.LOCAL_IMPL and node.retries < node.max_retries:
-                        node.escalate_compute_tier()
-                        node.retries += 1
-                        node.status = NodeStatus.PENDING  # Requeue for retry
-                        recovered_nodes.append(f"{node.node_id} (retry {node.retries})")
-                    else:
-                        affected = self.cancel_descendants_and_siblings(node)
-                        deep_context = self.read_full_bodies_jit(snapshot.involved_symbols)
-                        replanned = self.replan_subgraph(node, affected, deep_context, snapshot)
-                        recovered_nodes.append(f"{node.node_id} -> {[n.node_id for n in replanned]}")
+                if self._execute_single_live_node(
+                    node, dry_run, enforce_scope_guard, completed_write_set,
+                    scope_guard_violations, recovered_nodes,
+                ):
+                    halted_by_scope_guard = True
+                    break
 
         all_success = (
             not halted_by_scope_guard
@@ -671,13 +712,23 @@ class SelfHealingDAGExecutor:
         }
 
 
+def _path_matches_declared(norm_path: str, declared: str) -> bool:
+    """Returns True only on exact match or '/' path-segment boundary match."""
+    np_f = os.path.normpath(norm_path).replace("\\", "/").lstrip("./")
+    np_d = os.path.normpath(declared).replace("\\", "/").lstrip("./")
+    if not np_f or not np_d:
+        return False
+    return np_f == np_d or np_f.endswith(f"/{np_d}") or np_d.endswith(f"/{np_f}")
+
+
 def check_scope_guard_violation(
     node: DAGNode,
-    repo_root: str = _REPO_ROOT
+    repo_root: str = _REPO_ROOT,
+    allowed_extra_files: Optional[Iterable[str]] = None,
 ) -> Tuple[bool, List[str]]:
     """Physical Scope Guard standalone helper: verifies modified files do not exceed node write_set."""
     executor = SelfHealingDAGExecutor(repo_root=repo_root)
-    return executor.check_scope_guard_violation(node)
+    return executor.check_scope_guard_violation(node, allowed_extra_files=allowed_extra_files)
 
 
 def parse_plan_to_dag(plan_content: str, repo_root: str = _REPO_ROOT) -> SelfHealingDAGExecutor:

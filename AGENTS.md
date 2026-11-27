@@ -98,4 +98,4 @@ FSM: Phase 0 (model/thinking) -> Phase 1 (`skills_index.json` + `SKILL.md`) -> P
 
 ## 5. SPEC-DRIVEN PLANNING (/plan & /super-plan)
 
-Use `.agent/skills/super-plan/SKILL.md` (`tools/design/super_plan_engine.py`): **Tier 0** (<=2), **Tier 1** (3-5), **Tier 2** (>=6 + `docs/adr/`). Read first; emit Blast Radius (`::Symbol`), Interfaces, Atomic DAG (`<=3` files/milestone, Rollback), Verification Matrix; default to Single-Agent `/solo` (no `swarm` workers unless `/teamwork`); export `implementation_plan.md`.
+Use `.agent/skills/super-plan/SKILL.md` (`tools/design/super_plan_engine.py`): **Tier 0** (<=2), **Tier 1** (3-5), **Tier 2** (>=6 + `docs/adr/`). Read first; emit Blast Radius (`::Symbol`), Interfaces, Atomic DAG (`<=3` files/milestone, Rollback), Verification Matrix; default to Single-Agent `/solo` (no `swarm` workers unless `/teamwork`); export to unique `.synapse/plans/<slug>.md` (`--output auto`), isolate concurrent dirty sessions via `agent-qa worktree create --agent-id <slug>`, and clean up finished `.synapse/plans/<slug>.md` after DoD harvest.

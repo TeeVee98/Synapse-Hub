@@ -32,7 +32,8 @@ policies:
 
 ## ⚡ Ordered Execution Workflow
 
-When `/solo` is invoked for a task or a validated Super-Plan (`implementation_plan.md`), execute these steps sequentially:
+When `/solo` is invoked for a task or a validated Super-Plan (`.synapse/plans/<slug>.md` or legacy `implementation_plan.md`), execute these steps sequentially:
+- **Concurrent Session Isolation:** If another active plan or uncommitted diff from another task exists in the current workspace, isolate into a dedicated git worktree first (`agent-qa worktree create --agent-id <slug>`) before editing files.
 
 ### 🎯 Pre-Execution 3-Line Contract (In Your Own Words)
 Before creating Red tests or editing files, state in 3 concise lines:
@@ -96,12 +97,13 @@ Before creating Red tests or editing files, state in 3 concise lines:
    python3 tools/lint/infer_linter.py
    python3 tools/core/verify_all.py --mode hub --tier impact
    ```
-3. **Closed-Loop Plan Execution & Decision Trail (`--from-plan`):**
-   Compile and execute a validated Super-Plan Markdown DAG sequentially across milestones with Scope Guard enforcement, path-scoped rollback on unauthorized edits, O(1) memory flushing, strict `decisions.tsv` audit logging, and **automatic post-`/solo` `/review` verification**:
+3. **Closed-Loop Plan Verification Bridge (`--from-plan`):**
+   `agent-qa solo --from-plan` is a **deterministic milestone verifier & gate orchestrator** (it does not synthesize code; the agent writes Red tests and implementation per milestone, then invokes `--from-plan` to verify). It compiles a validated Super-Plan Markdown DAG sequentially across milestones with **cumulative ancestor Scope Guard** enforcement (preserving completed earlier milestone edits across M1 -> M2 -> ... while enforcing `/` path-segment boundary matching and path-scoped rollback on unauthorized edits), O(1) memory flushing, strict `decisions.tsv` audit logging, and **automatic post-`/solo` `/review` verification**:
    ```bash
-   agent-qa solo --from-plan implementation_plan.md --strict-red --json
-   # Or run a single milestone from a plan (diff-scoped mutation by default; add --full-file to scan entire files):
-   agent-qa solo --from-plan implementation_plan.md --milestone M1 --strict-red --json
+   # Recommended per-milestone loop: write Red tests -> certify --red -> implement -> verify milestone:
+   agent-qa solo --from-plan <plan_path> --milestone M1 --strict-red --json
+   # Verify full DAG sequentially (cumulative Scope Guard preserves completed M1..Mk edits across milestones):
+   agent-qa solo --from-plan <plan_path> --strict-red --json
    # Audit the decision trail strictly before handoff:
    python3 tools/core/decision_log.py --log decisions.tsv --audit --strict --json
    ```

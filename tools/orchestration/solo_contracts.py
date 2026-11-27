@@ -28,6 +28,7 @@ import shlex
 import stat
 import subprocess
 import sys
+import unicodedata
 from typing import Any, Dict, List, Optional, Tuple
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -73,15 +74,154 @@ def resolve_red_receipt_path(
     repo_root: str,
     milestone_id: Optional[str] = None,
     explicit_path: Optional[str] = None,
+    plan_slug: Optional[str] = None,
 ) -> str:
-    """Resolves milestone-scoped Red receipt path with legacy global fallback."""
+    """Resolves milestone- and optional plan-slug-scoped Red receipt path with legacy global fallback."""
     if explicit_path and str(explicit_path).strip():
         p = str(explicit_path).strip()
         return p if os.path.isabs(p) else os.path.join(repo_root, p)
     if milestone_id and str(milestone_id).strip():
         safe_id = re.sub(r"[^A-Za-z0-9_\-]", "_", str(milestone_id).strip())
+        if plan_slug and str(plan_slug).strip():
+            safe_slug = re.sub(r"[^A-Za-z0-9_\-]", "_", str(plan_slug).strip())
+            return os.path.join(repo_root, "reports", "solo_receipts", f"{safe_slug}__{safe_id}_red.json")
         return os.path.join(repo_root, "reports", "solo_receipts", f"{safe_id}_red.json")
     return os.path.join(repo_root, "reports", "tdd_red_receipt.json")
+
+
+def build_plan_slug(task_text: str, max_len: int = 48) -> str:
+    """Normalizes task text into a collision-safe ASCII slug for .synapse/plans/<slug>.md."""
+    raw = str(task_text or "").strip()
+    if not raw:
+        return "plan"
+    raw = raw.replace("đ", "d").replace("Đ", "D")
+    normalized = unicodedata.normalize("NFKD", raw)
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii").lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", ascii_text).strip("-")
+    if not slug:
+        return "plan"
+    limit = max(8, int(max_len))
+    if len(slug) > limit:
+        slug = slug[:limit].rstrip("-")
+    return slug or "plan"
+
+
+def resolve_slugged_plan_path(
+    task_text: str,
+    repo_root: str,
+    explicit_path: Optional[str] = None,
+    auto_unique: bool = True,
+) -> str:
+    """Resolves a collision-free plan path under .synapse/plans/<slug>.md unless explicit_path is given."""
+    if explicit_path and str(explicit_path).strip() and str(explicit_path).strip().lower() != "auto":
+        p = str(explicit_path).strip()
+        return p if os.path.isabs(p) else os.path.join(repo_root, p)
+
+    plans_dir = os.path.join(repo_root, ".synapse", "plans")
+    slug = build_plan_slug(task_text)
+    candidate = os.path.join(plans_dir, f"{slug}.md")
+    if not auto_unique or not os.path.exists(candidate):
+        return candidate
+
+    counter = 2
+    while True:
+        numbered = os.path.join(plans_dir, f"{slug}-{counter}.md")
+        if not os.path.exists(numbered):
+            return numbered
+        counter += 1
+
+
+def resolve_active_plan_path(
+    repo_root: str,
+    explicit_path: Optional[str] = None,
+) -> Optional[str]:
+    """Resolves the active implementation plan: explicit -> SYNAPSE_ACTIVE_PLAN -> root -> latest .synapse/plans/*.md."""
+    if explicit_path and str(explicit_path).strip():
+        p = str(explicit_path).strip()
+        cand = p if os.path.isabs(p) else os.path.join(repo_root, p)
+        return cand if os.path.isfile(cand) else None
+
+    env_plan = os.environ.get("SYNAPSE_ACTIVE_PLAN", "").strip()
+    if env_plan:
+        cand = env_plan if os.path.isabs(env_plan) else os.path.join(repo_root, env_plan)
+        if os.path.isfile(cand):
+            return cand
+
+    root_plan = os.path.join(repo_root, "implementation_plan.md")
+    if os.path.isfile(root_plan):
+        return root_plan
+
+    plans_dir = os.path.join(repo_root, ".synapse", "plans")
+    if not os.path.isdir(plans_dir):
+        return None
+    md_files = [
+        os.path.join(plans_dir, name)
+        for name in os.listdir(plans_dir)
+        if name.endswith(".md") and os.path.isfile(os.path.join(plans_dir, name))
+    ]
+    if not md_files:
+        return None
+    md_files.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    return md_files[0]
+
+
+def _run_git_status_porcelain(repo_root: str) -> List[str]:
+    """Returns git status --porcelain lines outside .synapse/, or [] if repo_root is not a git repo."""
+    if not repo_root or not os.path.isdir(repo_root):
+        return []
+    try:
+        res = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if res.returncode != 0:
+        return []
+    lines: List[str] = []
+    for raw in res.stdout.splitlines():
+        if not raw.strip():
+            continue
+        rel = raw[3:].strip().replace("\\", "/")
+        if rel.startswith(".synapse/"):
+            continue
+        lines.append(raw)
+    return lines
+
+
+def inspect_workspace_concurrency(repo_root: str, task: str = "") -> Dict[str, Any]:
+    """Detects concurrent plans or uncommitted edits and suggests isolated plan/worktree targets."""
+    slug = build_plan_slug(task)
+    suggested_abs = resolve_slugged_plan_path(task, repo_root, auto_unique=True)
+    suggested_rel = os.path.relpath(suggested_abs, repo_root).replace("\\", "/")
+
+    active_plans: List[str] = []
+    if os.path.isdir(repo_root):
+        root_plan = os.path.join(repo_root, "implementation_plan.md")
+        if os.path.isfile(root_plan):
+            active_plans.append("implementation_plan.md")
+        plans_dir = os.path.join(repo_root, ".synapse", "plans")
+        if os.path.isdir(plans_dir):
+            for name in sorted(os.listdir(plans_dir)):
+                full = os.path.join(plans_dir, name)
+                if name.endswith(".md") and os.path.isfile(full):
+                    active_plans.append(f".synapse/plans/{name}")
+
+    dirty_lines = _run_git_status_porcelain(repo_root)
+    is_concurrent = bool(active_plans or dirty_lines)
+    return {
+        "concurrency_status": "CONCURRENT_SESSION_DETECTED" if is_concurrent else "CLEAN",
+        "active_plans": active_plans,
+        "dirty_files_count": len(dirty_lines),
+        "suggested_plan_path": suggested_rel,
+        "recommended_worktree_cmd": f"agent-qa worktree create --agent-id {slug}",
+    }
 
 
 def _parse_positive_int(raw: Any) -> Optional[int]:

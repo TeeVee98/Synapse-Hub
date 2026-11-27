@@ -686,11 +686,11 @@ def generate_slash_workflow_markdown(workflow: str, ide: str = "claude") -> str:
 > **Unified CLI:** `agent-qa super-plan` (or `python3 tools/design/super_plan_engine.py`)
 
 ## Workflow Steps
-1. **Risk-Routing & AST Grounding:** Read target files and run `agent-qa super-plan route --task "<task>" --files <files...> --json`.
+1. **Risk-Routing, Slugged Path & Worktree Check:** Read target files and run `agent-qa super-plan route --task "<task>" --files <files...> --json` to get a collision-free `suggested_plan_path` (`.synapse/plans/<slug>.md`). If `concurrency_status == "CONCURRENT_SESSION_DETECTED"`, isolate into a worktree via `agent-qa worktree create --agent-id <slug> --plan <plan_path>` before editing code.
 2. **Ambiguity Gate:** Run `agent-qa super-plan ambiguity-check --task "<task>" --json` and resolve architectural forks before drafting.
-3. **Execution DAG & Typed Manifests:** Generate `implementation_plan.md` with `<= 3`-file atomic milestones, `depends_on`, `Write Set`, `Rollback Hook`, and `Pass Gate`. Default execution mode is Single-Agent sequential `/solo` (no `swarm` workers unless `/teamwork` is explicitly requested).
-4. **Mechanical Validation & 12-Mutant Red-Teaming:** Run `agent-qa lint-plan --file implementation_plan.md --mode super` and `agent-qa plan-mutate --file implementation_plan.md --threshold 90.0`.
-5. **Clean Handoff:** Hand off `implementation_plan.md` to `/solo` (`agent-qa solo --from-plan implementation_plan.md`).
+3. **Execution DAG & Typed Manifests:** Export to the unique `.synapse/plans/<slug>.md` (`--output auto`) with `<= 3`-file atomic milestones, `depends_on`, `Write Set`, `Rollback Hook`, and `Pass Gate`. Default execution mode is Single-Agent sequential `/solo` (no `swarm` workers unless `/teamwork` is explicitly requested).
+4. **Mechanical Validation & 12-Mutant Red-Teaming:** Run `agent-qa lint-plan --file <plan_path> --mode super` and `agent-qa plan-mutate --file <plan_path> --threshold 90.0`.
+5. **Clean Handoff & Post-DoD Cleanup:** Hand off `<plan_path>` to `/solo` (`agent-qa solo --from-plan <plan_path>`), and remove the finished `.synapse/plans/<slug>.md` draft (plus any ephemeral worktree) after DoD harvest.
 """
 
     if wf == "review":
@@ -706,10 +706,10 @@ def generate_slash_workflow_markdown(workflow: str, ide: str = "claude") -> str:
 - Re-verify HMAC signatures, post-Red `test_tree_hash`, AST contracts, and downstream callers directly from disk truth.
 
 ## Workflow Steps
-1. **Plan-vs-Solo Closed-Loop Audit:** Reconcile diffs and `/solo` forensic receipts against the approved Super-Plan:
-   `agent-qa review --plan implementation_plan.md --strict-solo --json`
+1. **Plan-vs-Solo Closed-Loop Audit:** Reconcile diffs and `/solo` forensic receipts against the approved Super-Plan (`.synapse/plans/<slug>.md` or `implementation_plan.md`):
+   `agent-qa review --plan <plan_path> --strict-solo --json`
 2. **Milestone-Scoped Audit:** Scope reconciliation to a single milestone write set and receipt:
-   `agent-qa review --plan implementation_plan.md --milestone M1 --strict --json`
+   `agent-qa review --plan <plan_path> --milestone M1 --strict --json`
 3. **Ad-Hoc Diff / PR Review (6-Pillar AST + 4-Angle `simplify`):**
    `agent-qa review --staged` (or `agent-qa review --branch main --output-md reports/code_review.md --verify-cove`)
 4. **Verdict & Signed Receipt:** Inspect `reports/code_review_receipt.json` (`APPROVED` / `APPROVED_WITH_NOTES` / `CHANGES_REQUESTED`) and hand any `Must fix` blockers back to `/solo`.
@@ -736,8 +736,8 @@ def generate_slash_workflow_markdown(workflow: str, ide: str = "claude") -> str:
 4. **Phase 3 (Purple Auditor):** Run live mutation (`>= 80%`) and Purple audit (standalone `--purple` auto-runs `/review --strict-solo`; pass `--milestone <ID>` for milestone receipts or `--no-review` to opt out):
    `agent-qa solo --mutation --target <source.py> --test-cmd "python3 -m pytest tests/<target>.py" --threshold 80.0`
    `agent-qa solo --purple --json`
-5. **Closed-Loop Plan Execution & Auto-`/review`:** Execute validated plan DAGs end-to-end with Scope Guard, `decisions.tsv`, and automatic post-`/solo` `/review` reconciliation (`--no-review` to opt out):
-   `agent-qa solo --from-plan implementation_plan.md --json`
+5. **Closed-Loop Plan Execution & Auto-`/review`:** Execute validated plan DAGs end-to-end with Scope Guard, `decisions.tsv`, and automatic post-`/solo` `/review` reconciliation (`--no-review` to opt out); isolate via `agent-qa worktree create --agent-id <slug>` if another task is active in the workspace:
+   `agent-qa solo --from-plan <plan_path> --json`
 6. **Phase 4 (Automatic `/review` Handoff):** After standalone `/solo` finishes Phase 3, `solo_runner.py --purple` automatically runs `/review --strict-solo` (pass `--milestone <ID>` for milestone receipts, or `--no-review` at CLI to opt out); when invoking `/review` directly in standalone mode, run `agent-qa review --plan <plan.md> --strict-solo --json` or `agent-qa review --staged --strict-solo --json` (add `--milestone <ID>` if using milestone receipts) before reporting done.
 """
 

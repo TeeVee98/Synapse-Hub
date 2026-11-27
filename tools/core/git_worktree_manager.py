@@ -24,14 +24,15 @@ except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
     pass
 
 
-import sys
-import os
-import re
-import subprocess
 import argparse
 import json
+import os
+import re
+import shutil
+import subprocess
+import sys
 import time
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, "reconfigure"):
@@ -80,12 +81,25 @@ class WorktreeManager:
             worktrees.append(current)
         return worktrees
 
-    def create_worktree(self, agent_id: str, branch_name: Optional[str] = None) -> Dict[str, Any]:
+    def create_worktree(
+        self,
+        agent_id: str,
+        branch_name: Optional[str] = None,
+        plan_path: Optional[str] = None,
+        share_dependencies: bool = True,
+    ) -> Dict[str, Any]:
         os.makedirs(self.base_dir, exist_ok=True)
         timestamp = int(time.time())
         clean_agent_id = re.sub(r'[^a-zA-Z0-9_.-]', '-', agent_id)
         branch = branch_name or f"subagent/{clean_agent_id}-{timestamp}"
         target_path = os.path.abspath(os.path.join(self.base_dir, f"{clean_agent_id}-{timestamp}"))
+
+        abs_base = os.path.abspath(self.base_dir)
+        source_root = (
+            os.path.dirname(os.path.dirname(abs_base))
+            if os.path.basename(os.path.dirname(abs_base)) == ".synapse"
+            else os.getcwd()
+        )
 
         res = run_git(["worktree", "add", "-b", branch, target_path, "HEAD"])
         if res.returncode != 0:
@@ -98,12 +112,34 @@ class WorktreeManager:
                     "path": target_path
                 }
 
+        linked_deps: Dict[str, Any] = {}
+        if share_dependencies:
+            try:
+                from tools.orchestration.worktree_manager import link_shared_dependencies
+
+                linked_deps = link_shared_dependencies(source_root, target_path)
+            except ImportError:
+                linked_deps = {"linked": [], "errors": ["worktree_manager unavailable"]}
+
+        copied_plan_path: Optional[str] = None
+        if plan_path and str(plan_path).strip():
+            raw_plan = str(plan_path).strip()
+            src_plan = raw_plan if os.path.isabs(raw_plan) else os.path.join(source_root, raw_plan)
+            if os.path.isfile(src_plan):
+                rel_dest = os.path.join(".synapse", "plans", os.path.basename(src_plan))
+                dest_plan = os.path.join(target_path, rel_dest)
+                os.makedirs(os.path.dirname(dest_plan), exist_ok=True)
+                shutil.copy2(src_plan, dest_plan)
+                copied_plan_path = rel_dest.replace("\\", "/")
+
         return {
             "success": True,
             "agent_id": agent_id,
             "worktree_path": target_path,
             "branch": branch,
-            "created_at": timestamp
+            "created_at": timestamp,
+            "linked_dependencies": linked_deps,
+            "copied_plan_path": copied_plan_path,
         }
 
     def remove_worktree(self, worktree_path: str, delete_branch: bool = True) -> Dict[str, Any]:
@@ -143,10 +179,24 @@ class WorktreeManager:
             "output": res.stdout.strip()
         }
 
+def _emit_worktree_result(res: Dict[str, Any], as_json: bool, success_msg: str, fail_prefix: str) -> None:
+    """Formats worktree CLI action result and exits non-zero on failure."""
+    if as_json:
+        print(json.dumps(res, indent=2))
+        return
+    if res.get("success"):
+        print(success_msg)
+        return
+    print(f"[ERROR] {fail_prefix}: {res.get('error')}", file=sys.stderr)
+    sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Manage ephemeral git worktrees for subagent isolation.")
     parser.add_argument("action", choices=["list", "create", "remove", "prune"], help="Action to execute.")
     parser.add_argument("--agent-id", help="Subagent identifier for creation.")
+    parser.add_argument("--plan", help="Optional plan file to copy into the isolated worktree.")
+    parser.add_argument("--no-share-deps", action="store_true", help="Skip linking shared node_modules/.venv directories.")
     parser.add_argument("--path", help="Worktree path for removal.")
     parser.add_argument("--json", action="store_true", help="Output JSON format.")
     args = parser.parse_args()
@@ -157,45 +207,39 @@ def main():
         items = manager.list_worktrees()
         if args.json:
             print(json.dumps(items, indent=2))
-        else:
-            print(f"[WORKTREE MANAGER] Active Worktrees ({len(items)}):")
-            for it in items:
-                print(f"  - {it.get('path')} ({it.get('branch', 'detached')})")
+            return
+        print(f"[WORKTREE MANAGER] Active Worktrees ({len(items)}):")
+        for it in items:
+            print(f"  - {it.get('path')} ({it.get('branch', 'detached')})")
+        return
 
-    elif args.action == "create":
+    if args.action == "create":
         if not args.agent_id:
             print("Error: --agent-id is required for create.", file=sys.stderr)
             sys.exit(1)
-        res = manager.create_worktree(args.agent_id)
-        if args.json:
-            print(json.dumps(res, indent=2))
-        else:
-            if res["success"]:
-                print(f"[WORKTREE CREATED] Path: {res['worktree_path']} (Branch: {res['branch']})")
-            else:
-                print(f"[ERROR] Failed to create worktree: {res.get('error')}", file=sys.stderr)
-                sys.exit(1)
+        res = manager.create_worktree(
+            args.agent_id,
+            plan_path=getattr(args, "plan", None),
+            share_dependencies=not getattr(args, "no_share_deps", False),
+        )
+        msg = f"[WORKTREE CREATED] Path: {res.get('worktree_path')} (Branch: {res.get('branch')})"
+        _emit_worktree_result(res, args.json, msg, "Failed to create worktree")
+        return
 
-    elif args.action == "remove":
+    if args.action == "remove":
         if not args.path:
             print("Error: --path is required for remove.", file=sys.stderr)
             sys.exit(1)
         res = manager.remove_worktree(args.path)
-        if args.json:
-            print(json.dumps(res, indent=2))
-        else:
-            if res["success"]:
-                print(f"[WORKTREE REMOVED] {res['path']} - Deleted branch: {res.get('deleted_branch')}")
-            else:
-                print(f"[ERROR] Failed to remove worktree: {res.get('error')}", file=sys.stderr)
-                sys.exit(1)
+        msg = f"[WORKTREE REMOVED] {res.get('path')} - Deleted branch: {res.get('deleted_branch')}"
+        _emit_worktree_result(res, args.json, msg, "Failed to remove worktree")
+        return
 
-    elif args.action == "prune":
-        res = manager.prune_stale()
-        if args.json:
-            print(json.dumps(res, indent=2))
-        else:
-            print(f"[WORKTREE PRUNED] Output: {res['output'] or 'Zero stale worktrees.'}")
+    res = manager.prune_stale()
+    if args.json:
+        print(json.dumps(res, indent=2))
+    else:
+        print(f"[WORKTREE PRUNED] Output: {res['output'] or 'Zero stale worktrees.'}")
 
 if __name__ == "__main__":
     main()

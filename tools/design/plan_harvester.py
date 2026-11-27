@@ -204,24 +204,70 @@ def _extract_milestone_write_sets(plan_content: str) -> Dict[str, List[str]]:
     return mapping
 
 
-def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -> Dict[str, Any]:
-    """Compares planned target files against git status/diff to measure Plan Drift."""
-    import subprocess
+def _check_planned_symbol_drift(
+    planned_files: List[str],
+    planned_symbols: List[str],
+    planned_arities: Dict[str, int],
+    planned_hashes: Dict[str, str],
+    repo_root: str,
+) -> List[str]:
+    """Compares declared Section 2 symbols/arities against AST signatures on disk."""
+    if not (planned_symbols and planned_files):
+        return []
+    all_real_symbols: Dict[str, Dict[str, Any]] = {}
+    all_short_symbols: Dict[str, Dict[str, Any]] = {}
+    for pf in planned_files:
+        full_pf = pf if (os.path.isabs(pf) or os.path.isfile(pf)) else os.path.join(repo_root, pf)
+        if not os.path.isfile(full_pf):
+            continue
+        try:
+            ast_res = parse_polyglot_signatures(full_pf)
+            for s in ast_res.get("symbols", []):
+                all_real_symbols[s["name"]] = s
+                all_short_symbols[s["name"].split(".")[-1]] = s
+        except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+            continue
 
-    planned_files: List[str] = []
-    for line in plan_content.splitlines():
-        if "|" in line and any(tag in line for tag in ("[MODIFY]", "[CREATE]", "[DELETE]")):
-            matched_files = re.findall(r"`([a-zA-Z0-9_\-./\\:]+\.[a-zA-Z0-9]{1,6})`", line)
-            for f in matched_files:
-                if not f.startswith(("pytest", "python", "[")):
-                    norm_f = f.replace("\\", "/").strip()
-                    if norm_f not in planned_files:
-                        planned_files.append(norm_f)
+    drifted_symbols: List[str] = []
+    for sym in planned_symbols:
+        matched_s = all_real_symbols.get(sym) or all_short_symbols.get(sym)
+        if not matched_s:
+            drifted_symbols.append(sym)
+            continue
+        if sym not in planned_arities:
+            continue
+        m_args = re.search(r"\(([^)]*)\)", matched_s.get("signature", ""))
+        if not m_args:
+            continue
+        actual_args = [
+            a.strip().split(":")[0].strip()
+            for a in m_args.group(1).split(",")
+            if a.strip() and a.strip() not in ("self", "cls", "this")
+        ]
+        if len(actual_args) != planned_arities[sym]:
+            drifted_symbols.append(f"{sym} (arity drift: planned {planned_arities[sym]}, got {len(actual_args)})")
+            continue
+        real_norm_sig = re.sub(r"\s+", " ", matched_s.get("signature", "").strip())
+        real_h = hashlib.sha256(real_norm_sig.encode("utf-8")).hexdigest()[:8]
+        p_hash = planned_hashes.get(sym)
+        if p_hash and real_h != p_hash:
+            drifted_symbols.append(f"{sym} (signature hash drift: planned {p_hash}, got {real_h})")
+    return drifted_symbols
+
+
+def _collect_git_changed_files(repo_root: str) -> List[str]:
+    """Collects modified and untracked files outside ephemeral/.git/adr prefixes."""
+    import subprocess
 
     actual_files: List[str] = []
     try:
-        cmd = ["git", "diff", "--name-only", "HEAD"]
-        git_diff_res = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True, check=False)
+        git_diff_res = subprocess.run(
+            ["git", "diff", "--name-only", "HEAD"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         for diff_line in git_diff_res.stdout.strip().splitlines():
             nl = diff_line.replace("\\", "/").strip()
             if nl and nl not in actual_files and not nl.startswith((".git", "docs/adr")):
@@ -235,16 +281,35 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
             check=False,
         )
         for status_line in git_untracked_res.stdout.splitlines():
-            if status_line.startswith("?? "):
-                nl = status_line[3:].replace("\\", "/").strip()
-                if nl and nl not in actual_files and not nl.startswith((".git", "docs/adr", "scratch")):
-                    actual_files.append(nl)
+            if not status_line.startswith("?? "):
+                continue
+            nl = status_line[3:].replace("\\", "/").strip()
+            if nl and nl not in actual_files and not nl.startswith((".git", ".synapse", "docs/adr", "scratch")):
+                actual_files.append(nl)
     except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
         pass
+    return actual_files
+
+
+def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -> Dict[str, Any]:
+    """Compares planned target files against git status/diff to measure Plan Drift."""
+    planned_files: List[str] = []
+    for line in plan_content.splitlines():
+        if "|" not in line or not any(tag in line for tag in ("[MODIFY]", "[CREATE]", "[DELETE]")):
+            continue
+        matched_files = re.findall(r"`([a-zA-Z0-9_\-./\\:]+\.[a-zA-Z0-9]{1,6})`", line)
+        for f in matched_files:
+            if f.startswith(("pytest", "python", "[")):
+                continue
+            norm_f = f.replace("\\", "/").strip()
+            if norm_f not in planned_files:
+                planned_files.append(norm_f)
+
+    actual_files = _collect_git_changed_files(repo_root)
 
     unplanned_files = [
         f for f in actual_files
-        if f not in planned_files and not f.endswith("implementation_plan.md") and not f.startswith("docs/adr")
+        if f not in planned_files and not f.endswith("implementation_plan.md") and not f.startswith((".synapse/", "docs/adr"))
     ]
     drift_ratio = len(unplanned_files) / max(len(actual_files), 1) if actual_files else 0.0
     accuracy_score = max(0.0, 1.0 - drift_ratio)
@@ -291,45 +356,13 @@ def calibrate_plan_against_git(plan_content: str, repo_root: str = _REPO_ROOT) -
             planned_signatures[c_name] = f"class {c_name}"
             planned_hashes[c_name] = hashlib.sha256(f"class {c_name}".encode("utf-8")).hexdigest()[:8]
 
-    drifted_symbols: List[str] = []
-    if planned_symbols and planned_files:
-        all_real_symbols: Dict[str, Dict[str, Any]] = {}
-        all_short_symbols: Dict[str, Dict[str, Any]] = {}
-        for pf in planned_files:
-            full_pf = pf if (os.path.isabs(pf) or os.path.isfile(pf)) else os.path.join(repo_root, pf)
-            if os.path.isfile(full_pf):
-                try:
-                    ast_res = parse_polyglot_signatures(full_pf)
-                    for s in ast_res.get("symbols", []):
-                        all_real_symbols[s["name"]] = s
-                        all_short_symbols[s["name"].split(".")[-1]] = s
-                except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
-                    pass
-
-        for sym in planned_symbols:
-            matched_s = all_real_symbols.get(sym) or all_short_symbols.get(sym)
-            if not matched_s:
-                drifted_symbols.append(sym)
-            elif sym in planned_arities:
-                sig = matched_s.get("signature", "")
-                m_args = re.search(r"\(([^)]*)\)", sig)
-                if m_args:
-                    actual_args = [
-                        a.strip().split(":")[0].strip()
-                        for a in m_args.group(1).split(",")
-                        if a.strip() and a.strip() not in ("self", "cls", "this")
-                    ]
-                    if len(actual_args) != planned_arities[sym]:
-                        drift_desc = f"{sym} (arity drift: planned {planned_arities[sym]}, got {len(actual_args)})"
-                        drifted_symbols.append(drift_desc)
-                    else:
-                        # Hash comparison for exact type / signature drift
-                        real_norm_sig = re.sub(r"\s+", " ", sig.strip())
-                        real_h = hashlib.sha256(real_norm_sig.encode("utf-8")).hexdigest()[:8]
-                        p_hash = planned_hashes.get(sym)
-                        if p_hash and real_h != p_hash:
-                            drift_desc = f"{sym} (signature hash drift: planned {p_hash}, got {real_h})"
-                            drifted_symbols.append(drift_desc)
+    drifted_symbols = _check_planned_symbol_drift(
+        planned_files=planned_files,
+        planned_symbols=planned_symbols,
+        planned_arities=planned_arities,
+        planned_hashes=planned_hashes,
+        repo_root=repo_root,
+    )
 
     semantic_drift_ratio = round(len(drifted_symbols) / max(len(planned_symbols), 1), 3) if planned_symbols else 0.0
     semantic_accuracy_score = round(max(0.0, 1.0 - semantic_drift_ratio), 3)
@@ -486,6 +519,11 @@ def is_adr_worthy_decision(content: str, parsed: Dict[str, Any]) -> Tuple[bool, 
     return False, "STANDARD", "Routine implementation or local refactoring (ADR bypassed to prevent ADR fatigue)"
 
 
+def _is_ephemeral_synapse_plan(plan_path: str) -> bool:
+    norm = os.path.abspath(plan_path).replace("\\", "/")
+    return "/.synapse/plans/" in norm and norm.endswith(".md")
+
+
 def harvest_plan(
     plan_path: str,
     output_dir: str,
@@ -493,6 +531,7 @@ def harvest_plan(
     status: str = "Accepted (DoD Certified)",
     force: bool = False,
     repo_root: str = _REPO_ROOT,
+    cleanup_ephemeral: bool = True,
 ) -> Tuple[bool, str, Dict[str, Any]]:
     """Harvests an implementation plan into an ADR markdown file."""
     if not os.path.isfile(plan_path):
@@ -508,8 +547,18 @@ def harvest_plan(
     if not dry_run:
         update_project_state_calibration(calibration, repo_root=repo_root)
 
+    def _maybe_cleanup_ephemeral() -> bool:
+        if not dry_run and cleanup_ephemeral and _is_ephemeral_synapse_plan(plan_path):
+            try:
+                os.remove(plan_path)
+                return True
+            except OSError:
+                return False
+        return False
+
     is_worthy, impact_level, reason = is_adr_worthy_decision(content, parsed)
     if not is_worthy and not force:
+        cleaned = _maybe_cleanup_ephemeral()
         result_data = {
             "index": next_idx,
             "title": parsed["title"],
@@ -517,6 +566,7 @@ def harvest_plan(
             "impact_level": impact_level,
             "reason": reason,
             "dry_run": dry_run,
+            "cleaned_up_plan": cleaned,
             "calibration": calibration,
         }
         return True, f"Plan calibration updated in project_state.json; ADR file bypassed ({reason})", result_data
@@ -533,6 +583,7 @@ def harvest_plan(
         with open(target_path, "w", encoding="utf-8") as f:
             f.write(adr_content)
         update_adr_readme(output_dir)
+    cleaned = _maybe_cleanup_ephemeral()
 
     result_data = {
         "index": next_idx,
@@ -542,34 +593,49 @@ def harvest_plan(
         "adr_created": True,
         "impact_level": impact_level,
         "dry_run": dry_run,
+        "cleaned_up_plan": cleaned,
         "calibration": calibration,
     }
     return True, f"Harvested ADR-{next_idx:04d} into {filename}", result_data
+
+
+def _effective_harvester_root(repo_root_arg: Optional[str] = None) -> str:
+    if repo_root_arg and str(repo_root_arg).strip():
+        return os.path.abspath(str(repo_root_arg).strip())
+    cwd = os.path.abspath(os.getcwd())
+    if os.path.exists(os.path.join(cwd, ".git")):
+        return cwd
+    return _REPO_ROOT
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Plan Harvester: Converts verified plans to ADRs")
     parser.add_argument("--file", help="Path to implementation_plan.md to harvest", default="templates/test-plan/spec-driven-plan-template.md")
     parser.add_argument("--output-dir", help="Target ADR directory", default=os.path.join(_REPO_ROOT, "docs", "adr"))
+    parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     parser.add_argument("--status", help="ADR status string", default="Accepted (DoD Certified)")
     parser.add_argument("--dry-run", action="store_true", help="Preview ADR extraction without writing to disk")
     parser.add_argument("--force", action="store_true", help="Force ADR file generation regardless of Architectural-Impact level")
+    parser.add_argument("--no-cleanup-plan", action="store_true", help="Keep finished .synapse/plans/*.md draft after harvesting")
     parser.add_argument("--update-index", action="store_true", help="Re-indexes docs/adr/README.md")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     args = parser.parse_args()
 
+    effective_root = _effective_harvester_root(getattr(args, "repo_root", None))
     if args.update_index:
         update_adr_readme(args.output_dir)
         print(f"Updated index in {args.output_dir}/README.md")
         return 0
 
-    plan_path = args.file if os.path.isabs(args.file) else os.path.join(_REPO_ROOT, args.file)
+    plan_path = args.file if os.path.isabs(args.file) else os.path.join(effective_root, args.file)
     success, msg, data = harvest_plan(
         plan_path,
         output_dir=args.output_dir,
         dry_run=args.dry_run,
         status=args.status,
         force=args.force,
+        repo_root=effective_root,
+        cleanup_ephemeral=not getattr(args, "no_cleanup_plan", False),
     )
 
     if args.json:

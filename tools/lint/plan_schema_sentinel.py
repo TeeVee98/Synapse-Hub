@@ -497,6 +497,52 @@ def verify_plan_ast_grounding(content: str, repo_root: str = _REPO_ROOT) -> Dict
     }
 
 
+_PLACEHOLDER_SENTINEL_RE = re.compile(
+    r"(?:<<\s*FILL\s*:[^>]+>>|<TBD>|\bTODO\s*:\s*fill\b)",
+    re.IGNORECASE,
+)
+
+
+def detect_unfilled_placeholders_or_boilerplate(
+    content: str,
+    is_super: bool = True,
+) -> List[str]:
+    """Detects unfilled <<FILL:...>> sentinels, UNRESOLVED_BLOCKER headers, or unedited generic scaffold boilerplate."""
+    found: List[str] = []
+    for m_ph in _PLACEHOLDER_SENTINEL_RE.finditer(content):
+        token = m_ph.group(0)
+        found.append(
+            f"Unfilled plan sentinel placeholder detected: '{token}'. Replace with concrete task-grounded content."
+        )
+        break
+
+    if not is_super:
+        return found
+
+    if re.search(r"Ambiguity\s+Gate\s+Status\s*[\*:]*\s*UNRESOLVED_BLOCKER", content, re.IGNORECASE):
+        found.append(
+            "Ambiguity Gate Status is UNRESOLVED_BLOCKER: resolve architectural forks before finalizing plan."
+        )
+
+    has_generic_sec2 = (
+        bool(re.search(r"\bclass\s+ExecutionInputDTO\b", content))
+        and bool(re.search(r"\bclass\s+ExecutionResultDTO\b", content))
+        and bool(re.search(r"\bdef\s+execute_operation\s*\(", content))
+    )
+    generic_matrix_hits = sum(
+        1
+        for tok in ("test_happy_path", "test_empty_input", "test_timeout_fallback")
+        if tok in content
+    )
+    if has_generic_sec2 and generic_matrix_hits >= 2:
+        found.append(
+            "Unedited generic boilerplate template detected in Section 2/4 "
+            "(ExecutionInputDTO/execute_operation with generic test_happy_path/test_empty_input); "
+            "customize contracts and verification scenarios for the concrete task."
+        )
+    return found
+
+
 def detect_section2_type_widening(content: str) -> List[str]:
     """Detects untyped bare `: Any` / `: any` contract widenings in Section 2 fenced code blocks.
 
@@ -536,6 +582,67 @@ def detect_section2_type_widening(content: str) -> List[str]:
             if field_name not in widened:
                 widened.append(field_name)
     return widened
+
+
+def _validate_super_dag_integrity(
+    node_ids: Set[str],
+    dag_graph: Dict[str, List[str]],
+    parallel_node_ids: Set[str],
+    node_write_sets: Dict[str, Set[str]],
+    node_consumes: Dict[str, Set[str]],
+    node_produces: Dict[str, Set[str]],
+    content: str,
+    issues: List[str],
+    details: Dict[str, Any],
+) -> None:
+    """Validates Super-Mode DAG dependencies, cycles, parallel write-set collisions, and contract flow."""
+    execution_graph: Dict[str, List[str]] = {nid: [] for nid in node_ids}
+    for nid, deps in dag_graph.items():
+        for dep in deps:
+            matched_known = [
+                known for known in node_ids
+                if dep.lower() in known.lower() or known.lower() in dep.lower()
+            ]
+            if not matched_known and not dep.startswith("Milestone"):
+                issues.append(f"DAG Node '{nid}' depends on unknown milestone '{dep}'.")
+                continue
+            for known in matched_known:
+                execution_graph[known].append(nid)
+
+    cycles = detect_dag_cycles(dag_graph)
+    details["dag_cycles"] = cycles
+    if cycles:
+        issues.append(f"Circular dependency cycle detected in Execution DAG: {cycles}")
+
+    sorted_parallel = sorted(parallel_node_ids)
+    for idx_u, u in enumerate(sorted_parallel):
+        for v in sorted_parallel[idx_u + 1 :]:
+            if is_reachable(execution_graph, u, v) or is_reachable(execution_graph, v, u):
+                continue
+            overlap = node_write_sets.get(u, set()) & node_write_sets.get(v, set())
+            if overlap:
+                issues.append(
+                    f"Parallel Collision detected between '{u}' and '{v}': both declare [PARALLEL_OK] "
+                    f"but share write-set {sorted(list(overlap))}. Revoke [PARALLEL_OK] or sequence with depends_on."
+                )
+
+    defined_dtos = set(re.findall(r"\bclass\s+([a-zA-Z0-9_]+)", content))
+    for v, consumed_set in node_consumes.items():
+        has_ancestors = any(is_reachable(execution_graph, u, v) for u in node_ids if u != v)
+        for c in consumed_set:
+            produced_by_ancestor = any(
+                is_reachable(execution_graph, u, v) and c in node_produces.get(u, set())
+                for u in node_ids if u != v
+            )
+            if has_ancestors and not produced_by_ancestor:
+                issues.append(
+                    f"Contract Disconnect: Milestone '{v}' consumes contract '{c}' which is not "
+                    f"produced by any prerequisite ancestor node in the DAG."
+                )
+            elif not has_ancestors and c not in defined_dtos:
+                issues.append(
+                    f"Contract Disconnect: Root milestone '{v}' consumes undeclared contract '{c}'."
+                )
 
 
 def _is_valid_verification_command(cmd: str) -> bool:
@@ -590,6 +697,7 @@ def validate_plan_content(
         "dag_nodes": [],
         "dag_cycles": [],
         "type_widening_detected": [],
+        "placeholder_or_boilerplate_issues": [],
         "milestone_verification_commands": {},
     }
 
@@ -705,58 +813,17 @@ def validate_plan_content(
 
     # Super Mode DAG validation
     if is_super and dag_graph:
-        # Build forward execution graph (dep -> node_id)
-        execution_graph: Dict[str, List[str]] = {nid: [] for nid in node_ids}
-        # Check referenced dependencies exist
-        for nid, deps in dag_graph.items():
-            for dep in deps:
-                # Allow referencing either ID like 'M1' or 'Milestone 1'
-                matched = any(dep.lower() in known.lower() or known.lower() in dep.lower() for known in node_ids)
-                if not matched and not dep.startswith("Milestone"):
-                    issues.append(f"DAG Node '{nid}' depends on unknown milestone '{dep}'.")
-                else:
-                    for known in node_ids:
-                        if dep.lower() in known.lower() or known.lower() in dep.lower():
-                            execution_graph[known].append(nid)
-
-        # Check for cycles
-        cycles = detect_dag_cycles(dag_graph)
-        details["dag_cycles"] = cycles
-        if cycles:
-            issues.append(f"Circular dependency cycle detected in Execution DAG: {cycles}")
-
-        # Check Parallel Write-Set Collisions between [PARALLEL_OK] nodes
-        for u in parallel_node_ids:
-            for v in parallel_node_ids:
-                if u < v:
-                    # Check if they are truly independent (neither executes before the other)
-                    if not is_reachable(execution_graph, u, v) and not is_reachable(execution_graph, v, u):
-                        overlap = node_write_sets.get(u, set()) & node_write_sets.get(v, set())
-                        if overlap:
-                            issues.append(
-                                f"Parallel Collision detected between '{u}' and '{v}': both declare [PARALLEL_OK] "
-                                f"but share write-set {sorted(list(overlap))}. Revoke [PARALLEL_OK] or sequence with depends_on."
-                            )
-
-        # Formal Contract Verification across DAG edges:
-        # If node v consumes contract C, verify C is produced by an ancestor u or defined in Section 2
-        defined_dtos = set(re.findall(r"\bclass\s+([a-zA-Z0-9_]+)", content))
-        for v, consumed_set in node_consumes.items():
-            for c in consumed_set:
-                produced_by_ancestor = any(
-                    is_reachable(execution_graph, u, v) and c in node_produces.get(u, set())
-                    for u in node_ids if u != v
-                )
-                has_ancestors = any(is_reachable(execution_graph, u, v) for u in node_ids if u != v)
-                if has_ancestors and not produced_by_ancestor:
-                    issues.append(
-                        f"Contract Disconnect: Milestone '{v}' consumes contract '{c}' which is not "
-                        f"produced by any prerequisite ancestor node in the DAG."
-                    )
-                elif not has_ancestors and c not in defined_dtos:
-                    issues.append(
-                        f"Contract Disconnect: Root milestone '{v}' consumes undeclared contract '{c}'."
-                    )
+        _validate_super_dag_integrity(
+            node_ids=node_ids,
+            dag_graph=dag_graph,
+            parallel_node_ids=parallel_node_ids,
+            node_write_sets=node_write_sets,
+            node_consumes=node_consumes,
+            node_produces=node_produces,
+            content=content,
+            issues=issues,
+            details=details,
+        )
 
     # Pillar 4: Verification Matrix Determinism
     m_sec4 = re.search(r"#+\s*(?:4[.\s]*)?Verification\s+Matrix.*?(?=(?:\n#+\s+)|\Z)", content, re.IGNORECASE | re.DOTALL)
@@ -775,6 +842,11 @@ def validate_plan_content(
             phrase = match.group(0)
             details["forbidden_phrases_detected"].append(phrase)
             issues.append(f"Forbidden generic test description detected in {filename}: '{phrase}'. Specify concrete input/output.")
+
+    # Check for unfilled sentinel placeholders or unedited generic boilerplate
+    placeholder_issues = detect_unfilled_placeholders_or_boilerplate(content, is_super=is_super)
+    details["placeholder_or_boilerplate_issues"] = placeholder_issues
+    issues.extend(placeholder_issues)
 
     # Super Mode: Line Anchors check in Section 1 & Section 2 Type Widening check
     if is_super:

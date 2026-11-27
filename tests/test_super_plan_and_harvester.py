@@ -90,6 +90,95 @@ Pass Gate: `pytest tests/test_event_bus.py`
 | Migration | Failure | Safe revert | `git checkout -- file` |
 """
 
+VALID_6NODE_CALIBRATION_PLAN = """<!--
+# Author: Thế Vị (@TeeVee98) | MIT License
+-->
+# Spec-Driven Implementation Plan: Six-Node Calibration Fixture
+
+> Reference: standards/qa-process/plan-protocol.md
+> Ambiguity Gate Status: Resolved
+> Plan Changelog (v1.0): Self-contained 6-node DAG calibration fixture.
+
+## 1. Affected Files & Blast Radius
+| Action | File Path & Line Anchor | Scope |
+|---|---|---|
+| `[MODIFY]` | `tools/core/agent_runner.py` (L10-L45) | Core dispatch contract |
+| `[MODIFY]` | `tools/design/super_plan_engine.py` (L1196-L1262) | Calibration entrypoint |
+
+Direct Callers: `tools/core/cli.py`
+Regression Risk: Low
+
+## 2. Data Flow & Interface Signatures
+```python
+def calibrate_and_refine_plan(plan_path: str, repo_root: str | None = None) -> dict:
+    ...
+```
+
+## 3. Atomic Milestones (Execution DAG)
+### Milestone 1: Core Dispatch Contract `[PARALLEL_OK]`
+- **Node ID:** `M1` | **depends_on:** `[]`
+- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
+- **Write Set:** `['tools/core/agent_runner.py']`
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Keep existing CLI intact
+- **Rollback Hook:** `git checkout -- tools/core/agent_runner.py`
+- **Pass Gate:** `pytest tests/test_super_plan_and_harvester.py -q`
+
+### Milestone 2: Catalog Sync Adapter `[PARALLEL_OK]`
+- **Node ID:** `M2` | **depends_on:** `[]`
+- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
+- **Write Set:** `['tools/core/sync_agent_rules.py']`
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Keep sync_all clean
+- **Rollback Hook:** `git checkout -- tools/core/sync_agent_rules.py`
+- **Pass Gate:** `pytest tests/test_sync_agent_rules.py -q`
+
+### Milestone 3: Diff Sentinel Adapter `[PARALLEL_OK]`
+- **Node ID:** `M3` | **depends_on:** `[]`
+- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
+- **Write Set:** `['tools/orchestration/senior_code_review.py']`
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Preserve JSON stdout
+- **Rollback Hook:** `git checkout -- tools/orchestration/senior_code_review.py`
+- **Pass Gate:** `pytest tests/test_senior_code_review.py -q`
+
+### Milestone 4: State Sync Adapter `[PARALLEL_OK]`
+- **Node ID:** `M4` | **depends_on:** `[]`
+- **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
+- **Write Set:** `['tools/core/project_state.py']`
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Keep state block compact
+- **Rollback Hook:** `git checkout -- tools/core/project_state.py`
+- **Pass Gate:** `pytest tests/test_super_plan_and_harvester.py -q`
+
+### Milestone 5: Calibration Orchestrator
+- **Node ID:** `M5` | **depends_on:** `[M1, M2]`
+- **Compute Tier:** `[Model: Pro | Thinking: High]`
+- **Write Set:** `['tools/design/super_plan_engine.py']`
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Keep validation compatible
+- **Rollback Hook:** `git checkout -- tools/design/super_plan_engine.py`
+- **Pass Gate:** `pytest tests/test_super_plan_and_harvester.py -q`
+
+### Milestone 6: Final Integration Verification
+- **Node ID:** `M6` | **depends_on:** `[M3, M4, M5]`
+- **Compute Tier:** `[Model: Pro | Thinking: High]`
+- **Write Set:** `['tools/core/cli.py']`
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Zero CLI smoke regressions
+- **Rollback Hook:** `git checkout -- tools/core/cli.py`
+- **Pass Gate:** `pytest tests/test_cli_smoke.py -q`
+
+## 4. Verification Matrix
+| ID | Scenario | Input | Expected Output | Command |
+|---|---|---|---|---|
+| TC-01 | Positive Calibration | 6-node DAG plan | Status CALIBRATED, loss 0.0 | `pytest tests/test_super_plan_and_harvester.py -q` |
+
+## 5. Tri-Vulnerability Self-Critique & Mitigations
+1. Concurrency / Race Condition: M1-M4 write sets are disjoint.
+2. Resource Extremes / Boundary: Dry-run calibration avoids disk writes.
+3. Blast Radius / Backward Compatibility: Default parameters preserve existing callers.
+
+## 6. Rollback & State-Migration Matrix (Zero-Downtime Guard)
+| Phase | Trigger Scenario | Mitigation | Rollback Command |
+|---|---|---|---|
+| Migration | Failure | Safe revert | `git checkout -- tools/design/super_plan_engine.py` |
+"""
+
 
 class TestSuperPlanAndHarvester(unittest.TestCase):
 
@@ -539,9 +628,10 @@ pytest tests/test_agent_runner.py
     def test_calibrate_and_refine_plan_positive_phase2_wiring(self):
         from tools.design.super_plan_engine import calibrate_and_refine_plan
 
-        plan_file = "implementation_plan_phase2_wiring.md"
-        with open(plan_file, "r", encoding="utf-8") as fh:
-            plan_before = fh.read()
+        plan_file = os.path.join(self.temp_dir, "calibration_6node_plan.md")
+        with open(plan_file, "w", encoding="utf-8") as fh:
+            fh.write(VALID_6NODE_CALIBRATION_PLAN)
+        plan_before = VALID_6NODE_CALIBRATION_PLAN
         state_path = "project_state.json"
         state_before = None
         if os.path.isfile(state_path):
@@ -643,13 +733,17 @@ pytest tests/test_agent_runner.py
         import subprocess
         import sys
 
+        plan_file = os.path.join(self.temp_dir, "cli_calibration_6node_plan.md")
+        with open(plan_file, "w", encoding="utf-8") as fh:
+            fh.write(VALID_6NODE_CALIBRATION_PLAN)
+
         res_json = subprocess.run(
             [
                 sys.executable,
                 "tools/design/super_plan_engine.py",
                 "calibrate",
                 "--file",
-                "implementation_plan_phase2_wiring.md",
+                plan_file,
                 "--json",
             ],
             capture_output=True,
@@ -669,7 +763,7 @@ pytest tests/test_agent_runner.py
                 "tools/design/super_plan_engine.py",
                 "calibrate",
                 "--file",
-                "implementation_plan_phase2_wiring.md",
+                plan_file,
             ],
             capture_output=True,
             text=True,

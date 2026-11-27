@@ -139,6 +139,125 @@ def _strip_inline_comment(line: str, fence_lang: str) -> str:
     return line.split("#", 1)[0]
 
 
+def _audit_fenced_code_gradients(lines: List[str]) -> List[PlanQualityGradientDTO]:
+    """Audits fenced code blocks for static sleeps, untyped `: Any` widening, and anti-full-code bloat."""
+    gradients: List[PlanQualityGradientDTO] = []
+    in_section_2_langs = {"python", "py", "ts", "typescript", ""}
+    fn_state: Dict[str, Any] = {"start": 0, "body": 0, "section": "", "name": ""}
+
+    def _flush_fn_body() -> None:
+        if fn_state["start"] and fn_state["body"] > 25:
+            gradients.append(
+                PlanQualityGradientDTO(
+                    section=fn_state["section"] or "Data Flow & Interface Signatures",
+                    line=fn_state["start"],
+                    category="ANTI_FULL_CODE_VIOLATION",
+                    severity=0.25,
+                    critique=(
+                        f"Function '{fn_state['name']}' in Section 2 spans {fn_state['body']} executable lines, "
+                        "violating the Anti-Full-Code signature-only invariant."
+                    ),
+                    remediation="Replace full implementation body with typed signature and '...' ellipsis.",
+                )
+            )
+        fn_state.update({"start": 0, "body": 0, "section": "", "name": ""})
+
+    prev_line_no = -1
+    for line_no, section, fence_lang, raw_line in _iter_fenced_code_lines(lines):
+        if prev_line_no != -1 and line_no > prev_line_no + 1:
+            _flush_fn_body()
+        prev_line_no = line_no
+
+        code_line = _strip_inline_comment(raw_line, fence_lang)
+        stripped = code_line.strip()
+
+        if _STATIC_SLEEP_RE.search(code_line):
+            gradients.append(
+                PlanQualityGradientDTO(
+                    section=section,
+                    line=line_no,
+                    category="FLAKINESS_INVARIANT",
+                    severity=0.35,
+                    critique="Static sleep call detected inside fenced code block in implementation plan.",
+                    remediation="Replace static sleeps with deterministic smart waits or event-driven assertions.",
+                )
+            )
+
+        is_sec2 = bool(re.search(r"(?:2[.\s]*)?(?:Data\s+Flow|Interface\s+Signatures|Schemas|DTO)", section, re.IGNORECASE))
+        if not (is_sec2 and fence_lang in in_section_2_langs):
+            continue
+
+        for m_any in _UNTYPED_ANY_RE.finditer(code_line):
+            field_name = m_any.group(1)
+            gradients.append(
+                PlanQualityGradientDTO(
+                    section=section,
+                    line=line_no,
+                    category="CONTRACT_WIDENING",
+                    severity=0.30,
+                    critique=f"Untyped contract widening '{field_name}: Any' weakens Section 2 interface contract.",
+                    remediation=f"Specify a concrete scalar, dataclass DTO, or parameterized type for '{field_name}'.",
+                )
+            )
+
+        m_def = re.match(r"^(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", stripped)
+        if m_def:
+            _flush_fn_body()
+            fn_state.update({"start": line_no, "body": 0, "section": section, "name": m_def.group(1)})
+        elif fn_state["start"] and stripped and not stripped.startswith(('"""', "'''", "...", "pass")):
+            if raw_line.startswith((" ", "\t")):
+                fn_state["body"] += 1
+            else:
+                _flush_fn_body()
+
+    _flush_fn_body()
+    return gradients
+
+
+def _audit_prose_gradients(lines: List[str]) -> List[PlanQualityGradientDTO]:
+    """Audits non-fenced prose lines for vague verification statements and dangerous rollback hooks."""
+    gradients: List[PlanQualityGradientDTO] = []
+    in_fence = False
+    current_section = "preamble"
+    for line_no, raw_line in enumerate(lines, 1):
+        stripped = raw_line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if stripped.startswith("#"):
+            current_section = stripped.lstrip("#").strip()
+            continue
+
+        if not _NEGATION_GUARD_RE.search(raw_line):
+            vague_hit = next((pat.search(raw_line) for pat in _VAGUE_VERIFICATION_PATTERNS if pat.search(raw_line)), None)
+            if vague_hit:
+                gradients.append(
+                    PlanQualityGradientDTO(
+                        section=current_section,
+                        line=line_no,
+                        category="VAGUE_VERIFICATION",
+                        severity=0.40,
+                        critique=f"Vague verification phrase detected: '{vague_hit.group(0)}'.",
+                        remediation="Replace with concrete input, expected output, and executable test command.",
+                    )
+                )
+
+        if re.search(r"Rollback(?:\s+Hook)?\**\s*:", raw_line, re.IGNORECASE) and _DANGEROUS_ROLLBACK_RE.search(raw_line):
+            gradients.append(
+                PlanQualityGradientDTO(
+                    section=current_section,
+                    line=line_no,
+                    category="DANGEROUS_ROLLBACK",
+                    severity=0.45,
+                    critique="Destructive rollback command detected on milestone Rollback Hook.",
+                    remediation="Use path-scoped restoration (`git checkout -- <files>` or `git restore`).",
+                )
+            )
+    return gradients
+
+
 def evaluate_plan_markdown_loss(
     plan_content: str,
     filename: str = "implementation_plan.md",
@@ -155,131 +274,8 @@ def evaluate_plan_markdown_loss(
 
     lines = plan_content.splitlines()
     gradients: List[PlanQualityGradientDTO] = []
-
-    # 1. Inspect fenced code blocks ONLY (prose mentions of anti-patterns do not trigger loss)
-    in_section_2_langs = {"python", "py", "ts", "typescript", ""}
-    fn_start_line: int = 0
-    fn_body_lines: int = 0
-    fn_section: str = ""
-    fn_name: str = ""
-
-    def _flush_fn_body() -> None:
-        nonlocal fn_start_line, fn_body_lines, fn_section, fn_name
-        if fn_start_line and fn_body_lines > 25:
-            gradients.append(
-                PlanQualityGradientDTO(
-                    section=fn_section or "Data Flow & Interface Signatures",
-                    line=fn_start_line,
-                    category="ANTI_FULL_CODE_VIOLATION",
-                    severity=0.25,
-                    critique=(
-                        f"Function '{fn_name}' in Section 2 spans {fn_body_lines} executable lines, "
-                        "violating the Anti-Full-Code signature-only invariant."
-                    ),
-                    remediation="Replace full implementation body with typed signature and '...' ellipsis.",
-                )
-            )
-        fn_start_line = 0
-        fn_body_lines = 0
-        fn_section = ""
-        fn_name = ""
-
-    prev_line_no = -1
-    for line_no, section, fence_lang, raw_line in _iter_fenced_code_lines(lines):
-        if prev_line_no != -1 and line_no > prev_line_no + 1:
-            _flush_fn_body()
-        prev_line_no = line_no
-
-        code_line = _strip_inline_comment(raw_line, fence_lang)
-        stripped = code_line.strip()
-
-        # 1a. Flakiness invariant: static sleep inside fenced code block
-        if _STATIC_SLEEP_RE.search(code_line):
-            gradients.append(
-                PlanQualityGradientDTO(
-                    section=section,
-                    line=line_no,
-                    category="FLAKINESS_INVARIANT",
-                    severity=0.35,
-                    critique="Static sleep call detected inside fenced code block in implementation plan.",
-                    remediation="Replace static sleeps with deterministic smart waits or event-driven assertions.",
-                )
-            )
-
-        # 1b. Section 2 contract checks (untyped : Any widening & full-body bloat)
-        is_sec2 = bool(re.search(r"(?:2[.\s]*)?(?:Data\s+Flow|Interface\s+Signatures|Schemas|DTO)", section, re.IGNORECASE))
-        if is_sec2 and fence_lang in in_section_2_langs:
-            for m_any in _UNTYPED_ANY_RE.finditer(code_line):
-                field_name = m_any.group(1)
-                gradients.append(
-                    PlanQualityGradientDTO(
-                        section=section,
-                        line=line_no,
-                        category="CONTRACT_WIDENING",
-                        severity=0.30,
-                        critique=f"Untyped contract widening '{field_name}: Any' weakens Section 2 interface contract.",
-                        remediation=f"Specify a concrete scalar, dataclass DTO, or parameterized type for '{field_name}'.",
-                    )
-                )
-
-            m_def = re.match(r"^(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", stripped)
-            if m_def:
-                _flush_fn_body()
-                fn_start_line = line_no
-                fn_body_lines = 0
-                fn_section = section
-                fn_name = m_def.group(1)
-            elif fn_start_line:
-                if stripped and not stripped.startswith(('"""', "'''", "...", "pass")):
-                    if raw_line.startswith((" ", "\t")):
-                        fn_body_lines += 1
-                    else:
-                        _flush_fn_body()
-    _flush_fn_body()
-
-    # 2. Outside fenced code blocks: vague verification & dangerous rollback lines
-    in_fence = False
-    current_section = "preamble"
-    for line_no, raw_line in enumerate(lines, 1):
-        stripped = raw_line.strip()
-        if stripped.startswith("```"):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        if stripped.startswith("#"):
-            current_section = stripped.lstrip("#").strip()
-            continue
-
-        # 2a. Vague verification prose (ignoring negated rule descriptions like "Zero vague statements like 'write unit tests'")
-        if not _NEGATION_GUARD_RE.search(raw_line):
-            for pat in _VAGUE_VERIFICATION_PATTERNS:
-                if pat.search(raw_line):
-                    gradients.append(
-                        PlanQualityGradientDTO(
-                            section=current_section,
-                            line=line_no,
-                            category="VAGUE_VERIFICATION",
-                            severity=0.40,
-                            critique=f"Vague verification phrase detected: '{pat.search(raw_line).group(0)}'.",
-                            remediation="Replace with concrete input, expected output, and executable test command.",
-                        )
-                    )
-                    break
-
-        # 2b. Dangerous rollback command on a Rollback / Rollback Hook line
-        if re.search(r"Rollback(?:\s+Hook)?\**\s*:", raw_line, re.IGNORECASE):
-            if _DANGEROUS_ROLLBACK_RE.search(raw_line):
-                gradients.append(
-                    PlanQualityGradientDTO(
-                        section=current_section,
-                        line=line_no,
-                        category="DANGEROUS_ROLLBACK",
-                        severity=0.45,
-                        critique="Destructive rollback command detected on milestone Rollback Hook.",
-                        remediation="Use path-scoped restoration (`git checkout -- <files>` or `git restore`).",
-                    )
-                )
+    gradients.extend(_audit_fenced_code_gradients(lines))
+    gradients.extend(_audit_prose_gradients(lines))
 
     # 3. Structural section-level checks (only when the corresponding section exists in the plan)
     # 3a. Section 4 Verification Matrix must include concrete executable commands
@@ -328,6 +324,48 @@ def evaluate_plan_markdown_loss(
                     remediation="Anchor each `[MODIFY]` file to its target symbol or line range.",
                 )
             )
+
+    # 3c. Unfilled placeholders / unedited generic scaffold boilerplate & pending ambiguity status
+    m_fill = re.search(r"(?:<<\s*FILL\s*:[^>]+>>|<TBD>|\bTODO\s*:\s*fill\b)", plan_content, re.IGNORECASE)
+    has_generic_boilerplate = (
+        bool(re.search(r"\bclass\s+ExecutionInputDTO\b", plan_content))
+        and bool(re.search(r"\bdef\s+execute_operation\s*\(", plan_content))
+        and "test_happy_path" in plan_content
+    )
+    if m_fill or has_generic_boilerplate:
+        hit_line = plan_content[: m_fill.start()].count("\n") + 1 if m_fill else 1
+        gradients.append(
+            PlanQualityGradientDTO(
+                section="2. Data Flow & Interface Signatures",
+                line=hit_line,
+                category="PLACEHOLDER_OR_BOILERPLATE",
+                severity=0.40,
+                critique=(
+                    f"Unfilled sentinel placeholder '{m_fill.group(0)}' detected."
+                    if m_fill
+                    else "Unedited generic scaffold boilerplate (ExecutionInputDTO/execute_operation/test_happy_path) detected."
+                ),
+                remediation="Replace placeholder/boilerplate DTOs and test cases with task-specific contracts and test commands.",
+            )
+        )
+
+    m_amb_pending = re.search(
+        r"Ambiguity\s+Gate\s+Status\s*[\*:]*\s*(?:Pending\s+User\s+Confirmation|UNRESOLVED_BLOCKER)",
+        plan_content,
+        re.IGNORECASE,
+    )
+    if m_amb_pending:
+        amb_line = plan_content[: m_amb_pending.start()].count("\n") + 1
+        gradients.append(
+            PlanQualityGradientDTO(
+                section="Ambiguity Gate",
+                line=amb_line,
+                category="AMBIGUITY_PENDING",
+                severity=0.20,
+                critique="Plan still has unresolved Ambiguity Gate architectural forks pending confirmation.",
+                remediation="Confirm architectural decisions via `--decisions key=value` or explicit task invariants.",
+            )
+        )
 
     raw_loss = sum(g.severity for g in gradients)
     loss = round(min(1.0, max(0.0, raw_loss)), 4)

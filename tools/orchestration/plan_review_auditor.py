@@ -61,6 +61,7 @@ HIGH_FAN_IN_THRESHOLD = 15
 
 _EPHEMERAL_PREFIXES = (
     ".git/",
+    ".synapse/",
     "docs/adr/",
     "reports/",
     "scratch/",
@@ -127,6 +128,14 @@ def _norm_rel(path: str) -> str:
     while cleaned.startswith("./"):
         cleaned = cleaned[2:]
     return cleaned
+
+
+def _safe_relpath(path: str, start: str) -> str:
+    """Computes normalized relative path safely across Windows drive mounts without raising ValueError."""
+    try:
+        return _norm_rel(os.path.relpath(path, start))
+    except ValueError:
+        return _norm_rel(os.path.abspath(path))
 
 
 def _is_test_file(rel_path: str) -> bool:
@@ -508,18 +517,142 @@ def _audit_matrix_py_file(
             )
 
 
+def _audit_matrix_py_dir(
+    repo_root: str,
+    norm_dir: str,
+    k_expr: Optional[str],
+    scoped_files: Optional[Set[str]],
+    missing_tests: List[str],
+    findings: List[Dict[str, str]],
+) -> None:
+    """Audits directory-scoped pytest commands (e.g. `pytest tests/ -k "expr"`) across Python test files."""
+    clean_dir = norm_dir.rstrip("/") or "."
+    abs_dir = os.path.join(repo_root, clean_dir)
+    if not os.path.isdir(abs_dir):
+        desc = f"{clean_dir} (missing test directory)"
+        missing_tests.append(desc)
+        findings.append(
+            _make_finding(
+                severity="Must fix",
+                code="UNVERIFIED_MATRIX_SCENARIOS",
+                title=f"Verification Matrix test directory missing: {clean_dir}",
+                file_path=clean_dir,
+                line_no=1,
+                what_is=f"Directory '{clean_dir}' referenced by Section 4 does not exist.",
+                problem="Planned verification command cannot discover any test files.",
+                fix=f"Create '{clean_dir}' or point Section 4 to an existing test file.",
+                if_skipped="Planned verification scenarios never run.",
+            )
+        )
+        return
+
+    skip_dirs = {".git", "__pycache__", ".venv", "venv", "node_modules", ".pytest_cache"}
+    candidate_files: List[str] = []
+    for root, dirs, files in os.walk(abs_dir):
+        dirs[:] = [d for d in sorted(dirs) if d not in skip_dirs]
+        for fname in sorted(files):
+            if fname.endswith(".py") and (fname.startswith("test_") or fname.endswith("_test.py")):
+                rel_p = _safe_relpath(os.path.join(root, fname), repo_root)
+                candidate_files.append(rel_p)
+
+    if scoped_files is not None:
+        in_scope = [f for f in candidate_files if f in scoped_files]
+        if in_scope:
+            candidate_files = in_scope
+
+    all_funcs: List[ast.FunctionDef | ast.AsyncFunctionDef] = []
+    combined_class_map: Dict[int, str] = {}
+    fn_origin: Dict[int, Tuple[str, str]] = {}
+    for rel_tf in candidate_files:
+        abs_tf = os.path.join(repo_root, rel_tf)
+        try:
+            src = open(abs_tf, "r", encoding="utf-8", errors="replace").read()
+            tree = ast.parse(src, filename=rel_tf)
+        except (OSError, SyntaxError):
+            continue
+        t_funcs, c_map = _collect_py_test_functions(tree)
+        for fn in t_funcs:
+            all_funcs.append(fn)
+            fn_origin[id(fn)] = (rel_tf, src)
+        combined_class_map.update(c_map)
+
+    target_funcs = all_funcs
+    if k_expr:
+        matched_funcs, missing_toks = _match_k_expression(k_expr, all_funcs, combined_class_map)
+        if missing_toks or not matched_funcs:
+            miss_label = ", ".join(missing_toks) if missing_toks else k_expr
+            missing_tests.append(f"{clean_dir}::{miss_label} (missing test function)")
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="UNVERIFIED_MATRIX_SCENARIOS",
+                    title=f"Planned Verification Matrix test missing: {miss_label}",
+                    file_path=clean_dir,
+                    line_no=1,
+                    what_is=f"Section 4 requires test matching '-k {k_expr}' under '{clean_dir}'.",
+                    problem="No test function matching the planned -k selector exists in the target directory.",
+                    fix=f"Implement a non-tautological test matching '{miss_label}' under '{clean_dir}'.",
+                    if_skipped="Planned Verification Matrix scenario is silently unverified.",
+                )
+            )
+            return
+        target_funcs = matched_funcs
+    elif not all_funcs:
+        missing_tests.append(f"{clean_dir} (zero test functions)")
+        findings.append(
+            _make_finding(
+                severity="Must fix",
+                code="UNVERIFIED_MATRIX_SCENARIOS",
+                title=f"Verification Matrix directory contains zero test functions: {clean_dir}",
+                file_path=clean_dir,
+                line_no=1,
+                what_is=f"Directory '{clean_dir}' has no discoverable Python test functions.",
+                problem="Planned Verification Matrix command executes zero tests.",
+                fix=f"Add concrete pytest tests under '{clean_dir}'.",
+                if_skipped="Planned contract guarantees ship untested.",
+            )
+        )
+        return
+
+    for fn in target_funcs:
+        rel_tf, src = fn_origin[id(fn)]
+        fn_src = ast.get_source_segment(src, fn) or ""
+        taut_findings = AstTautologyAnalyzer(flag_true_tautologies=True).analyze_source(fn_src) if fn_src else []
+        if taut_findings or not _function_has_real_assertion(fn):
+            reason = taut_findings[0][2] if taut_findings else "zero assertions in test body"
+            missing_tests.append(f"{rel_tf}::{fn.name} ({reason})")
+            findings.append(
+                _make_finding(
+                    severity="Must fix",
+                    code="UNVERIFIED_MATRIX_SCENARIOS",
+                    title=f"Tautological or empty Verification Matrix test: {fn.name}",
+                    file_path=rel_tf,
+                    line_no=fn.lineno,
+                    what_is=f"Test '{fn.name}' fails non-tautological assertion verification ({reason}).",
+                    problem="Tautological or empty tests create fake passes and hide real defects.",
+                    fix="Replace with behavioral assertions against real production outputs.",
+                    if_skipped="Fake-pass tests violate Truth Anchor invariant.",
+                )
+            )
+
+
 def _audit_verification_matrix(
     repo_root: str,
     plan_content: str,
     scoped_files: Optional[Set[str]],
     findings: List[Dict[str, str]],
 ) -> Tuple[List[str], int]:
-    """Verifies Section 4 Verification Matrix test files (Python & JS/TS), -k expressions, and non-tautological assertions."""
+    """Verifies Section 4 Verification Matrix test files (Python & JS/TS), directory -k commands, and non-tautological assertions."""
     section4 = _extract_section(plan_content, 4)
     missing_tests: List[str] = []
     checks_count = 0
     js_test_re = re.compile(r"([A-Za-z0-9_.\-/]+\.(?:spec|test)\.(?:ts|js|tsx|jsx))")
     py_test_re = re.compile(r"((?:tests/[A-Za-z0-9_.\-/]+|test_[A-Za-z0-9_.\-/]+)\.py)")
+    py_dir_re = re.compile(
+        r"\b(?:pytest|python3?\s+-m\s+pytest)\s+(?:(?:--?[A-Za-z0-9_\-]+(?:\s+[^\s`\"']+)?)\s+)*([A-Za-z0-9_.\-/]+/?)(?=\s|$|`)",
+        re.IGNORECASE,
+    )
+    tc_row_re = re.compile(r"^\*{0,2}((?:TC|SC)-\d+[A-Za-z0-9_-]*)\*{0,2}$", re.IGNORECASE)
 
     for line in section4.splitlines():
         if "|" not in line or re.match(r"^\s*\|[\s\-:|]+\|\s*$", line):
@@ -527,16 +660,41 @@ def _audit_verification_matrix(
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         cmd_targets = [
             c for c in reversed(cells)
-            if (py_test_re.search(c) or js_test_re.search(c))
+            if (py_test_re.search(c) or js_test_re.search(c) or py_dir_re.search(c))
             and re.search(r"\b(?:pytest|python3?|npx|npm|jest|vitest)\b", c, re.IGNORECASE)
         ]
         scan_target = cmd_targets[0] if cmd_targets else line
         py_files = py_test_re.findall(scan_target)
         js_files = js_test_re.findall(scan_target)
-        if not py_files and not js_files:
-            continue
         k_match = re.search(r'-k\s+["\']([^"\']+)["\']', scan_target)
         k_expr = k_match.group(1).strip() if k_match else None
+
+        if not py_files and not js_files:
+            m_dir = py_dir_re.search(scan_target)
+            if m_dir:
+                cand_dir = _norm_rel(m_dir.group(1))
+                if cand_dir and not cand_dir.startswith("-") and "." not in os.path.basename(cand_dir.rstrip("/")):
+                    checks_count += 1
+                    _audit_matrix_py_dir(repo_root, cand_dir, k_expr, scoped_files, missing_tests, findings)
+                    continue
+            if cells and tc_row_re.match(cells[0]):
+                tc_id = tc_row_re.match(cells[0]).group(1)  # type: ignore[union-attr]
+                checks_count += 1
+                missing_tests.append(f"{tc_id} (unverifiable matrix command)")
+                findings.append(
+                    _make_finding(
+                        severity="Should fix",
+                        code="UNVERIFIABLE_MATRIX_ROW",
+                        title=f"Verification Matrix row '{tc_id}' lacks a parseable automated test target",
+                        file_path="section4_verification_matrix",
+                        line_no=1,
+                        what_is=f"Row '{tc_id}' does not reference a Python/JS/TS test file or pytest directory target.",
+                        problem="Unparseable verification commands are skipped and cannot verify planned behavior.",
+                        fix=f"Bind '{tc_id}' to a concrete `pytest tests/<file>.py -k \"...\"` or spec file command.",
+                        if_skipped="Planned acceptance criteria cannot be mechanically audited.",
+                    )
+                )
+            continue
 
         for jf in dict.fromkeys(js_files):
             norm_jf = _norm_rel(jf)
@@ -668,6 +826,7 @@ def _reconcile_plan(
     plan_path: str,
     milestone_id: Optional[str],
     findings: List[Dict[str, str]],
+    baseline_files: Optional[Sequence[str]] = None,
 ) -> PlanReconciliationDTO:
     resolved_plan = (
         plan_path
@@ -761,12 +920,13 @@ def _reconcile_plan(
                 )
             )
 
-    plan_rel = _norm_rel(os.path.relpath(resolved_plan, repo_root))
+    plan_rel = _safe_relpath(resolved_plan, repo_root)
     planned_set = set(planned_files)
+    baseline_set = {_norm_rel(str(b)) for b in (baseline_files or ()) if str(b).strip()}
     unplanned: List[str] = []
     for cf in changed_files:
         ncf = _norm_rel(cf)
-        if not ncf or ncf in planned_set or ncf == plan_rel or ncf.endswith("implementation_plan.md"):
+        if not ncf or ncf in planned_set or ncf in baseline_set or ncf == plan_rel or ncf.endswith("implementation_plan.md"):
             continue
         if ncf.startswith(_EPHEMERAL_PREFIXES) or os.path.basename(ncf) in ("decisions.tsv", "decisions.tsv.lock"):
             continue
@@ -1131,8 +1291,12 @@ def _audit_solo_provenance(
     if os.path.isdir(solo_dir) and not has_legacy_standalone:
         if has_milestone:
             safe_ms = re.sub(r"[^A-Za-z0-9_\-]", "_", str(milestone_id).strip())
+            slugged_reds = sorted(glob.glob(os.path.join(solo_dir, f"*__{safe_ms}_red.json")))
             r_cand = os.path.join(solo_dir, f"{safe_ms}_red.json")
             m_cand = os.path.join(solo_dir, f"{safe_ms}_mutation.json")
+            for sr in slugged_reds:
+                if os.path.isfile(sr):
+                    red_files.append(sr)
             if os.path.isfile(r_cand):
                 red_files.append(r_cand)
             if os.path.isfile(m_cand):
@@ -1212,7 +1376,7 @@ def _audit_solo_provenance(
     failed_checks = 0
 
     for rf in red_files:
-        rel_rf = _norm_rel(os.path.relpath(rf, repo_root))
+        rel_rf = _safe_relpath(rf, repo_root)
         try:
             with open(rf, "r", encoding="utf-8") as fh:
                 payload = json.load(fh)
@@ -1267,7 +1431,7 @@ def _audit_solo_provenance(
         valid_reds.append(rel_rf)
 
     for mf in mut_files:
-        rel_mf = _norm_rel(os.path.relpath(mf, repo_root))
+        rel_mf = _safe_relpath(mf, repo_root)
         try:
             with open(mf, "r", encoding="utf-8") as fh:
                 payload = json.load(fh)
@@ -2012,6 +2176,7 @@ def audit_plan_and_solo_execution(
     strict_solo: bool = False,
     require_mutation_receipt: bool = True,
     decision_log_path: Optional[str] = None,
+    baseline_files: Optional[Sequence[str]] = None,
 ) -> Tuple[Optional[PlanReconciliationDTO], Optional[SoloProvenanceAuditDTO], CallerCompatibilityDTO, List[Dict[str, str]]]:
     """Reconciles git diff & disk state against /super-plan contracts, /solo HMAC receipts, and CallGraph callers."""
     abs_root = os.path.abspath(repo_root)
@@ -2026,6 +2191,7 @@ def audit_plan_and_solo_execution(
             plan_path=str(plan_path).strip(),
             milestone_id=milestone_id,
             findings=findings,
+            baseline_files=baseline_files,
         )
 
     planned_set = set(plan_dto.planned_files) if plan_dto and plan_dto.planned_files else None

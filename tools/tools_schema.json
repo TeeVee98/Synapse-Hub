@@ -2500,6 +2500,12 @@
           "required": false,
           "help": "Milestone Node ID (e.g. M1) for milestone-scoped receipts and --from-plan filtering"
         },
+        "--plan-slug": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Optional plan slug to namespace milestone Red receipts (<slug>__<milestone>_red.json)"
+        },
         "--require-four-scenarios": {
           "type": "boolean",
           "default": false,
@@ -2516,13 +2522,19 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "help": "Require prior milestone Red receipt in --from-plan instead of allowing verified_replay"
+          "help": "Require prior milestone Red receipt in --from-plan instead of allowing verified_replay (default on CLI)"
+        },
+        "--allow-replay": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Allow verified_replay in --from-plan without prior milestone Red receipt"
         },
         "--no-review": {
           "type": "boolean",
           "default": false,
           "required": false,
-          "help": "Skip automatic closed-loop /review verification at the end of --from-plan"
+          "help": "Skip automatic closed-loop /review verification in --from-plan or standalone --purple"
         },
         "--ttl": {
           "type": "integer",
@@ -2646,6 +2658,11 @@
           "required": false,
           "help": "List of candidate files"
         },
+        "--repo-root": {
+          "type": "string",
+          "required": false,
+          "help": "Optional target repository/worktree root"
+        },
         "--json": {
           "type": "boolean",
           "default": false,
@@ -2656,7 +2673,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "help": "Headless CI mode: auto-selects (Recommended) choices without blocking"
+          "help": "Headless CI mode: fail closed on unresolved architectural forks"
         },
         "--tier": {
           "type": "string",
@@ -2686,10 +2703,15 @@
           "required": false,
           "help": "Generate 3-way orthogonal tournament Trade-off Matrix"
         },
+        "--decisions": {
+          "type": "string",
+          "required": false,
+          "help": "Optional JSON or k=v,k2=v2 architectural decisions resolving Ambiguity Gate forks"
+        },
         "--output": {
           "type": "string",
           "required": false,
-          "help": "Optional output filepath to save plan"
+          "help": "Optional output directory to persist pipeline stage artifacts"
         },
         "--file": {
           "type": "string",
@@ -2808,6 +2830,11 @@
           "required": false,
           "help": "Target ADR directory"
         },
+        "--repo-root": {
+          "type": "string",
+          "required": false,
+          "help": "Optional target repository/worktree root"
+        },
         "--status": {
           "type": "string",
           "default": "Accepted (DoD Certified)",
@@ -2825,6 +2852,12 @@
           "default": false,
           "required": false,
           "help": "Force ADR file generation regardless of Architectural-Impact level"
+        },
+        "--no-cleanup-plan": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Keep finished .synapse/plans/*.md draft after harvesting"
         },
         "--update-index": {
           "type": "boolean",
@@ -4071,6 +4104,17 @@
           "type": "string",
           "required": false,
           "help": "Output path for HMAC-signed code_review_receipt.json"
+        },
+        "--baseline-files": {
+          "type": "array",
+          "required": false,
+          "help": "Pre-existing dirty files to exclude from unplanned scope-creep findings"
+        },
+        "--no-receipt": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Strict zero-write diagnostic mode: skip writing code_review_receipt.json"
         }
       }
     }

@@ -7,7 +7,7 @@
 
 # Historical v4 Implementation Plans Archive
 
-This archive consolidates the completed v4.x engineering implementation plans relocated from the repository root during the Synapse Hub v5.0 workspace hygiene pass (`M9`–`M10`), while preserving `implementation_plan_phase2_wiring.md` at the repository root as a live fixture required by `tests/test_super_plan_and_harvester.py`.
+This archive merges the completed v4.x engineering implementation plans relocated from the repository root (`tests/test_super_plan_and_harvester.py` uses a self-contained inline 6-node fixture instead of a root plan file).
 
 ---
 
@@ -34,3 +34,11 @@ This archive consolidates the completed v4.x engineering implementation plans re
   1. Hardened all 5 AI/Agent evaluation sensors (`eval_runner.py`, `agent_canary.py`, `ai_eval_sentinel.py`, `synapse_qa_bench.py`, `harness_sentinel.py`), raising `agent_canary.py` to `100.0%` (`Level 5.0`) and enabling open-pool CLI retrieval.
   2. Introduced in-memory gate DTO handoffs from `verify_all.py`, removing shared JSON file races and synthetic `95.58` mutation fallbacks.
   3. Enforced fail-closed multi-turn transcript auditing (`is_trustworthy = False` on zero turns, hallucination, or prompt injection).
+
+## 4. `implementation_plan_phase2_wiring.md` (Archived)
+
+- **Scope:** Phase 2 Adapter & CLI Wiring (`DEEP_SUPER_PLAN`, `RiskScore = 0.749`, `FanIn = 72`, Milestones `M1`–`M6`).
+- **Governing Rulings:**
+  1. Wired `BM25Index`, `ActionBundler`, and `CodeActEngine` into `MetaToolEngine` / `SynapseMetaMCPServer` while preserving `< 350`-token MCP schemas.
+  2. Wired `SchemaMinifier`, `kv_cache_sentinel`, `ContextCachingProxy`, `ChainOfVerificationEngine`, `OutputDiffSentinel`, `QAMemoryOS`, `FederatedKnowledgeLake`, `SelfHealingDAGExecutor`, `plan_harvester`, and `TextGradOptimizer` into live Hub entrypoints and `cli_specs.json`.
+  3. Replaced the root file dependency in `tests/test_super_plan_and_harvester.py` with a self-contained inline 6-node fixture before removing the root file.

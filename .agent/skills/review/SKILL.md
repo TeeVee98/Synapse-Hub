@@ -26,8 +26,8 @@ policies:
 ## Strict Read-Only Diagnostic Boundary
 
 - **Zero Auto-Edits:** `/review` operates in strict **DIAGNOSTIC (read-only)** mode. NEVER modify user source code, tests, or plans during `/review`.
-- **Read-Only Key Lookup:** HMAC verification uses `get_receipt_hmac_key_readonly()` so `/review` never generates `.git/synapse_receipt_hmac.key` on disk during read-only inspection. (Signed review receipts are written only when `--plan`, `--strict-solo`, or `--receipt-out` is passed.)
-- **Zero-Trust Verification:** Re-verify cryptographic HMAC signatures, post-Red SHA-256 `test_tree_hash` snapshots, AST DTO/class-method/return signatures, untracked `[CREATE]` files, and downstream callers directly from disk truth. Never trust self-reported agent text.
+- **Read-Only Key Lookup & Optional Zero-Write Mode:** HMAC verification uses `get_receipt_hmac_key_readonly()` so `/review` never generates `.git/synapse_receipt_hmac.key` on disk during read-only inspection. Signed review receipts (`reports/code_review_receipt.json`) are written when `--plan`, `--strict-solo`, or `--receipt-out` is passed; pass `--no-receipt` for strict zero-write diagnostics, and `--baseline-files <files...>` to exclude known pre-existing dirty files from unplanned scope-creep findings.
+- **Zero-Trust Verification:** Re-verify cryptographic HMAC signatures, post-Red SHA-256 `test_tree_hash` snapshots, AST DTO/class-method/return signatures, directory-scoped `-k` Verification Matrix commands (zero silent row skips), cross-drive plan paths, untracked `[CREATE]` files, and downstream callers directly from disk truth. Never trust self-reported agent text.
 - **Collision-Free Scope:** `/review` audits post-implementation code diffs, PRs, and `/solo` deliveries. Specification, BRD, and Gherkin `.feature` stress-testing remains owned by `review-spec` (`skills/02-test-design/review-spec/SKILL.md`).
 
 ---
@@ -37,11 +37,11 @@ policies:
 When `/review` is invoked, run the deterministic auditor first, then synthesize findings with exact `file:line`, failure scenario, and minimal fix:
 
 ```bash
-# Formal closed-loop audit reconciling /solo against /super-plan
-agent-qa review --plan implementation_plan.md --strict-solo --json
+# Formal closed-loop audit reconciling /solo against /super-plan (.synapse/plans/<slug>.md or implementation_plan.md)
+agent-qa review --plan <plan_path> --strict-solo --json
 
 # Single-milestone audit
-agent-qa review --plan implementation_plan.md --milestone M1 --strict --json
+agent-qa review --plan <plan_path> --milestone M1 --strict --json
 
 # Ad-hoc uncommitted, staged, or branch diff review
 agent-qa review --staged

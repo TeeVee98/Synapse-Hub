@@ -46,6 +46,11 @@ from tools.core.bilingual_intent_normalizer import (
     is_non_auth_token_context,
     normalize_bilingual_intent,
 )
+from tools.orchestration.solo_contracts import (
+    build_plan_slug,
+    inspect_workspace_concurrency,
+    resolve_slugged_plan_path,
+)
 
 
 @dataclass(frozen=True)
@@ -396,6 +401,24 @@ AMBIGUITY_DEFINITIONS = [
             "api_key": ("api_key", "static", "header", "secret")
         }
     ),
+    (
+        "resilience_retry",
+        re.compile(r"\b(?:retry|retries|backoff|circuit\s*breaker)\b", re.I),
+        "Which retry and fault-tolerance strategy should be used?",
+        [
+            ("sync_backoff", "Synchronous bounded retry with exponential backoff and jitter",
+             "Counter-Argument: Holds caller thread during retry wait windows."),
+            ("async_backoff", "Asynchronous non-blocking retry with cancellation token",
+             "Counter-Argument: Requires async caller propagation and event-loop lifecycle handling."),
+            ("circuit_breaker", "Fail-fast circuit breaker with half-open recovery probe",
+             "Counter-Argument: Rejects transient bursts immediately until cooldown expires.")
+        ],
+        {
+            "sync_backoff": ("sync", "synchronous", "bounded", "jitter"),
+            "async_backoff": ("async", "asyncio", "non-blocking", "queue"),
+            "circuit_breaker": ("circuit", "breaker", "fail-fast", "half-open")
+        }
+    ),
 ]
 
 
@@ -421,9 +444,105 @@ def _match_keyword_polarity(context: str, kw: str) -> Tuple[bool, bool]:
     return has_pos, has_neg
 
 
+def _parse_decisions_arg(raw: Optional[str]) -> Dict[str, str]:
+    """Parses --decisions CLI argument from JSON dict or comma-separated key=value pairs."""
+    if not raw or not str(raw).strip():
+        return {}
+    text = str(raw).strip()
+    if text.startswith("{"):
+        parsed = json.loads(text)
+        if not isinstance(parsed, dict):
+            raise ValueError("--decisions JSON must be an object mapping category to choice.")
+        return {str(k).strip(): str(v).strip() for k, v in parsed.items() if str(k).strip() and str(v).strip()}
+    result: Dict[str, str] = {}
+    for pair in text.split(","):
+        if "=" not in pair:
+            continue
+        k, v = pair.split("=", 1)
+        if k.strip() and v.strip():
+            result[k.strip()] = v.strip()
+    return result
+
+
+def _evaluate_ambiguity_category(
+    category: str,
+    question_text: str,
+    options_data: List[Tuple[str, str, str]],
+    keyword_maps: Dict[str, Tuple[str, ...]],
+    full_context: str,
+    explicit_decisions: Dict[str, str],
+) -> Dict[str, Any]:
+    """Resolves polarity, negations, explicit decisions, and counter-arguments for one ambiguity fork."""
+    positive_keys: List[str] = []
+    negated_keys: Set[str] = set()
+    for opt_key, kws in keyword_maps.items():
+        hits = [_match_keyword_polarity(full_context, kw) for kw in kws]
+        opt_pos = any(p for p, _ in hits)
+        opt_neg = any(n for _, n in hits)
+        if opt_pos:
+            positive_keys.append(opt_key)
+        elif opt_neg:
+            negated_keys.add(opt_key)
+
+    valid_positives = [k for k in positive_keys if k not in negated_keys]
+    remaining_options = [opt_key for opt_key, _, _ in options_data if opt_key not in negated_keys]
+
+    chosen_key: Optional[str] = None
+    resolved_by_invariant = False
+    resolved_by_decision = False
+    dec_val = explicit_decisions.get(category.lower())
+    if dec_val:
+        opt_keys = [opt_key for opt_key, _, _ in options_data]
+        matched_dec = next(
+            (ok for ok in opt_keys if ok.lower() == dec_val.lower() or dec_val.lower() in ok.lower()),
+            None,
+        )
+        chosen_key = matched_dec or (opt_keys[0] if opt_keys else None)
+        resolved_by_invariant = True
+        resolved_by_decision = True
+    elif valid_positives:
+        chosen_key = valid_positives[0]
+        resolved_by_invariant = True
+    elif remaining_options:
+        chosen_key = remaining_options[0]
+        resolved_by_invariant = len(remaining_options) == 1 and bool(negated_keys)
+    elif options_data:
+        chosen_key = options_data[0][0]
+
+    counter_args: Dict[str, str] = {}
+    options: List[str] = []
+    rec_text: Optional[str] = None
+    rec_counter = ""
+
+    for opt_key, opt_label, counter_arg in options_data:
+        counter_args[opt_label] = counter_arg
+        counter_args[f"(Recommended) {opt_label}"] = counter_arg
+        if opt_key == chosen_key:
+            labeled = f"(Recommended) {opt_label}"
+            options.insert(0, labeled)
+            rec_text = labeled
+            rec_counter = counter_arg
+        else:
+            options.append(opt_label)
+
+    return {
+        "category": category,
+        "question": question_text,
+        "options": options,
+        "recommended": rec_text,
+        "resolved_by_invariant": resolved_by_invariant,
+        "resolved_by_decision": resolved_by_decision,
+        "decision_value": dec_val,
+        "excluded_by_negation": sorted(list(negated_keys)),
+        "counter_arguments": counter_args,
+        "recommended_counter_argument": rec_counter,
+    }
+
+
 def check_ambiguities(
     task_description: str,
     invariants: Optional[List[str]] = None,
+    decisions: Optional[Dict[str, str]] = None,
 ) -> List[Dict[str, Any]]:
     """Analyzes task description to identify architectural forks with negation-aware recommendations."""
     questions: List[Dict[str, Any]] = []
@@ -431,75 +550,25 @@ def check_ambiguities(
     canonical_task = norm_dto.canonical_text
     inv_text = " ".join(invariants or []).lower()
     full_context = f"{canonical_task.lower()} {inv_text}"
+    explicit_decisions = {
+        str(k).strip().lower(): str(v).strip()
+        for k, v in (decisions or {}).items()
+        if str(k).strip() and str(v).strip()
+    }
 
     for category, pattern, question_text, options_data, keyword_maps in AMBIGUITY_DEFINITIONS:
         if category == "auth_security" and is_non_auth_token_context(task_description or ""):
             if not re.search(r"\b(?:auth|jwt|session|oauth|security|credential)\b", canonical_task, re.I):
                 continue
-        if pattern.search(canonical_task):
-            positive_keys: List[str] = []
-            negated_keys: Set[str] = set()
-            for opt_key, kws in keyword_maps.items():
-                opt_pos = False
-                opt_neg = False
-                for kw in kws:
-                    p_hit, n_hit = _match_keyword_polarity(full_context, kw)
-                    opt_pos = opt_pos or p_hit
-                    opt_neg = opt_neg or n_hit
-                if opt_pos and not opt_neg:
-                    positive_keys.append(opt_key)
-                elif opt_neg and not opt_pos:
-                    negated_keys.add(opt_key)
-                elif opt_pos and opt_neg:
-                    # Explicit positive mention alongside negation elsewhere still counts unless directly negated
-                    positive_keys.append(opt_key)
-
-            valid_positives = [k for k in positive_keys if k not in negated_keys]
-            remaining_options = [opt_key for opt_key, _, _ in options_data if opt_key not in negated_keys]
-
-            chosen_key: Optional[str] = None
-            resolved_by_invariant = False
-            if valid_positives:
-                chosen_key = valid_positives[0]
-                resolved_by_invariant = True
-            elif remaining_options:
-                chosen_key = remaining_options[0]
-                resolved_by_invariant = len(remaining_options) == 1 and bool(negated_keys)
-            elif options_data:
-                chosen_key = options_data[0][0]
-
-            counter_args = {}
-            options = []
-            rec_text = None
-            rec_counter = ""
-
-            for opt_key, opt_label, counter_arg in options_data:
-                counter_args[opt_label] = counter_arg
-                counter_args[f"(Recommended) {opt_label}"] = counter_arg
-                if opt_key == chosen_key:
-                    labeled = f"(Recommended) {opt_label}"
-                    options.append(labeled)
-                    rec_text = labeled
-                    rec_counter = counter_arg
-                else:
-                    options.append(opt_label)
-
-            if rec_text and rec_text in options:
-                options.remove(rec_text)
-                options.insert(0, rec_text)
-
-            questions.append({
-                "category": category,
-                "question": question_text,
-                "options": options,
-                "recommended": rec_text,
-                "resolved_by_invariant": resolved_by_invariant,
-                "excluded_by_negation": sorted(list(negated_keys)),
-                "counter_arguments": counter_args,
-                "recommended_counter_argument": rec_counter,
-            })
-            if len(questions) >= 3:
-                break
+        if not pattern.search(canonical_task):
+            continue
+        questions.append(
+            _evaluate_ambiguity_category(
+                category, question_text, options_data, keyword_maps, full_context, explicit_decisions
+            )
+        )
+        if len(questions) >= 3:
+            break
 
     if not questions and norm_dto.needs_clarification and norm_dto.clarifying_questions:
         questions.extend(dict(q) for q in norm_dto.clarifying_questions)
@@ -721,9 +790,9 @@ def evaluate_orthogonal_tournament(
     arch_hits = len(tokens & _ARCH_TOURNAMENT_KEYWORDS)
     perf_hits = len(tokens & _PERF_TOURNAMENT_KEYWORDS)
 
-    # Dynamic criteria weights sum to 1.0
+    # Dynamic criteria weights sum to 1.0 (driven by genuine risk/intent signals, not unconditional tier bias)
     w_blast = 0.35 if metric.risk_score < 0.45 else 0.20
-    w_arch = 0.45 if (metric.cross_boundary or metric.state_mutation or tier == PlanningTier.TIER_2_DEEP or arch_hits > 0) else 0.25
+    w_arch = 0.45 if (metric.cross_boundary or metric.state_mutation or arch_hits > 0 or metric.fan_in >= 15) else 0.25
     w_perf = 0.45 if perf_hits > 0 else 0.15
     w_reg = 0.25
     total_w = w_blast + w_arch + w_perf + w_reg
@@ -749,7 +818,7 @@ def evaluate_orthogonal_tournament(
         7.5 * weights["blast_radius_control"]
         + (9.5 if (metric.cross_boundary or metric.state_mutation or arch_hits > 0) else 7.5) * weights["extensibility_isolation"]
         + 6.5 * weights["performance_throughput"]
-        + (9.0 if (metric.fan_in >= 10 or tier == PlanningTier.TIER_2_DEEP) else 7.5) * weights["regression_safety"]
+        + (9.0 if (metric.fan_in >= 10 or metric.cross_boundary or arch_hits > 0) else 7.5) * weights["regression_safety"]
     )
     if arch_hits > 0:
         score_b += min(1.5, 0.5 * arch_hits)
@@ -812,7 +881,7 @@ def evaluate_orthogonal_tournament(
 | **Execution Speed** | Standard | High maintainability | Maximum sub-millisecond throughput |
 | **Selection Verdict** | {verdict_a} | {verdict_b} | {verdict_c} |
 
-> **Ruling:** Selected Branch: **[{selected_branch}]** — {rationale}.
+> **Ruling:** Selected Branch: **[{selected_branch}]** (Heuristic Baseline — confirm/override per architecture) — {rationale}.
 
 ---
 """
@@ -827,92 +896,254 @@ def evaluate_orthogonal_tournament(
     }
 
 
+_ANCHOR_STOP_WORDS = frozenset({
+    "add", "fix", "update", "create", "remove", "delete", "edit", "change",
+    "refactor", "with", "for", "the", "and", "from", "into", "to", "in",
+    "of", "on", "by", "as", "an", "a", "new", "use", "using", "get", "set",
+    "run", "make", "code", "file", "files", "plan", "test", "tests", "module",
+})
+
+
+def _is_test_target(path: str) -> bool:
+    norm = path.replace("\\", "/").strip().lower()
+    base = os.path.basename(norm)
+    return (
+        norm.startswith("tests/")
+        or "/tests/" in norm
+        or base.startswith("test_")
+        or base.endswith(("_test.py", ".spec.ts", ".test.ts", ".spec.js", ".test.js"))
+    )
+
+
+def _derive_task_contract_names(task: str) -> Tuple[str, str, str, str, str]:
+    """Derives task-grounded DTO & operation names instead of generic ExecutionInputDTO boilerplate."""
+    slug = build_plan_slug(task or "")
+    raw_words = [w for w in slug.split("-") if w and w.isidentifier()]
+    meaningful = [w for w in raw_words if w not in _ANCHOR_STOP_WORDS]
+    chosen = (meaningful or raw_words)[:4]
+    if not chosen:
+        chosen = ["workflow", "task"]
+    pascal = "".join(w.capitalize() for w in chosen)
+    if pascal.lower() == "execution":
+        pascal = "WorkflowTask"
+    snake = "_".join(chosen)
+    if snake == "operation":
+        snake = "workflow_task"
+    return (
+        f"{pascal}InputDTO",
+        f"{pascal}ResultDTO",
+        f"{pascal}IntegrationResult",
+        f"execute_{snake}",
+        snake,
+    )
+
+
+def _collect_direct_callers_summary(target_files: List[str], repo_root: str) -> Tuple[List[str], bool]:
+    """Queries CallGraphIndexer for real direct callers of target_files."""
+    try:
+        graph = get_or_build_call_graph(repo_root)
+        norm_targets = {f.replace("\\", "/").lstrip("./") for f in target_files}
+        callers: Set[str] = set()
+        for f in target_files:
+            for dep in graph.get_dependents(f):
+                nd = dep.replace("\\", "/").lstrip("./")
+                if nd and nd not in norm_targets:
+                    callers.add(nd)
+        return sorted(callers), True
+    except Exception:  # synapse-ignore: SWALLOWED_EXCEPTION
+        return [], False
+
+
+def _partition_tdd_milestones(target_files: List[str]) -> List[List[str]]:
+    """Groups >2 target files into TDD-aligned milestones (<=3 files) pairing source with matching test files."""
+    tests = [f for f in target_files if _is_test_target(f)]
+    sources = [f for f in target_files if not _is_test_target(f)]
+    used_tests: Set[str] = set()
+    ordered: List[str] = []
+
+    for src in sources:
+        src_stem = os.path.splitext(os.path.basename(src))[0].lower()
+        src_toks = {t for t in re.split(r"[_\-]+", src_stem) if len(t) > 2}
+        best_t: Optional[str] = None
+        best_overlap = 0
+        for tf in tests:
+            if tf in used_tests:
+                continue
+            t_stem = os.path.splitext(os.path.basename(tf))[0].lower()
+            t_toks = {t for t in re.split(r"[_\-]+", t_stem) if len(t) > 2 and t != "test"}
+            overlap = len(src_toks & t_toks)
+            if src_stem and src_stem in t_stem:
+                overlap += 3
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_t = tf
+        ordered.append(src)
+        if best_t is not None:
+            ordered.append(best_t)
+            used_tests.add(best_t)
+
+    for tf in tests:
+        if tf not in used_tests:
+            ordered.append(tf)
+
+    # Partition paired (source, test) slices into ceil(N / 2) atomic milestones (<= 2 files each, within <= 3 budget)
+    return [ordered[i : i + 2] for i in range(0, len(ordered), 2)]
+
+
+def _extract_target_ast_anchor(full_path: str, task_tokens: Set[str]) -> Tuple[str, str]:
+    """Resolves action ([MODIFY]/[CREATE]) and AST symbol anchor for a single target file."""
+    info = extract_file_signatures(full_path)
+    if not info.get("exists"):
+        return "[CREATE]", "(New)"
+    if not (info.get("symbols") or info.get("signatures")):
+        return "[MODIFY]", "(AST: module_root)"
+
+    meaningful_tokens = task_tokens - _ANCHOR_STOP_WORDS
+    scoring_tokens = meaningful_tokens if meaningful_tokens else task_tokens
+
+    chosen_sym_name: Optional[str] = None
+    best_score = 0
+    for sym in info.get("symbols", []):
+        sym_name = sym.get("name", "")
+        sym_tokens = tokenize_text(sym_name) - _ANCHOR_STOP_WORDS
+        score = len(scoring_tokens & sym_tokens)
+        if score > best_score:
+            best_score = score
+            chosen_sym_name = sym_name
+
+    if not chosen_sym_name and info.get("signatures"):
+        raw_sig = info["signatures"][0]
+        m_anchor = re.search(r"\[AST:\s*([^\]]+)\]", raw_sig)
+        if m_anchor:
+            chosen_sym_name = re.sub(r"(\||:)\s*L\d+(-L?\d+)?", "", m_anchor.group(1)).strip()
+        else:
+            chosen_sym_name = raw_sig.split()[-1].replace("[", "").replace("]", "")
+
+    anchor_str = f"(AST: {chosen_sym_name})" if chosen_sym_name else "(AST: module_root)"
+    return "[MODIFY]", anchor_str
+
+
 def scaffold_super_plan(
     task: str,
     target_files: Optional[List[str]] = None,
     tournament: bool = False,
     tier: Optional[PlanningTier] = None,
     execution_mode: str = "solo",
+    plan_output_path: Optional[str] = None,
+    decisions: Optional[Dict[str, str]] = None,
+    repo_root: Optional[str] = None,
 ) -> str:
-    """Generates a grounded Spec-Driven Super-Plan markdown skeleton."""
+    """Generates a task-grounded, TDD-aligned Spec-Driven Super-Plan markdown draft."""
     if execution_mode not in ("solo", "teamwork"):
         raise ValueError(
             f"Unsupported execution_mode '{execution_mode}'; expected 'solo' or 'teamwork'."
         )
     is_teamwork = execution_mode == "teamwork"
     parallel_tag = " [PARALLEL_OK]" if is_teamwork else ""
+    effective_root = repo_root or _REPO_ROOT
 
     if not target_files:
         target_files = ["src/target_module.py", "tests/test_target_module.py"]
 
     if tier is None:
-        tier, metric = calculate_risk_routing(task, target_files, repo_root=_REPO_ROOT)
+        tier, metric = calculate_risk_routing(task, target_files, repo_root=effective_root)
     else:
-        _, metric = calculate_risk_routing(task, target_files, repo_root=_REPO_ROOT)
+        _, metric = calculate_risk_routing(task, target_files, repo_root=effective_root)
 
     rec_model, rec_rationale = _recommend_execution_profile(tier)
+    handoff_target = (plan_output_path or "implementation_plan.md").replace("\\", "/")
     mode_banner = (
         "/teamwork (Multi-Worker Parallel on disjoint `[PARALLEL_OK]` milestones)"
         if is_teamwork
         else "Single-Agent Sequential (`/solo`) — One session, one recommended model/thinking level; execute milestones sequentially. Do NOT spawn `swarm` workers or parallel subagents."
     )
     handoff_cmd = (
-        '"Read implementation_plan.md and execute via /teamwork"'
+        f'"Read {handoff_target} and execute via /teamwork"'
         if is_teamwork
-        else '"Read implementation_plan.md and execute sequentially via /solo (single-agent mode, no swarm workers)"'
+        else f'"Read {handoff_target} and execute sequentially via /solo (single-agent mode, no swarm workers)"'
     )
 
     cognitive_brief = synthesize_cognitive_planning_brief(task, tier)
     cognitive_block = _format_cognitive_grounding_block(cognitive_brief)
+    input_dto, result_dto, integration_dto, entry_fn, task_snake = _derive_task_contract_names(task)
+
+    # Real Ambiguity Gate telemetry (never hardcodes Resolved when forks remain open)
+    amb_questions = check_ambiguities(task, decisions=decisions)
+    unresolved_forks = [q for q in amb_questions if not q.get("resolved_by_invariant", False)]
+    if decisions:
+        dec_summary = ", ".join(f"{k}={v}" for k, v in sorted(decisions.items()))
+    else:
+        dec_summary = ""
+    if unresolved_forks:
+        open_cats = ", ".join(q["category"] for q in unresolved_forks)
+        ambiguity_status = (
+            f"Pending User Confirmation ({len(unresolved_forks)} open fork(s): {open_cats}; "
+            "confirm via `--decisions`)"
+        )
+    elif dec_summary:
+        ambiguity_status = f"Resolved (Confirmed decisions: {dec_summary})"
+    elif amb_questions:
+        resolved_cats = ", ".join(q["category"] for q in amb_questions)
+        ambiguity_status = f"Resolved (Invariant-grounded: {resolved_cats})"
+    else:
+        ambiguity_status = "Clear (No open architectural forks detected)"
+
+    # Real Regression Risk & Direct Callers from CallGraphIndexer
+    direct_callers, graph_ok = _collect_direct_callers_summary(target_files, effective_root)
+    if tier == PlanningTier.TIER_2_DEEP or metric.fan_in >= 15 or metric.blast_radius >= 10:
+        regression_risk_label = (
+            f"High (risk_score={metric.risk_score}, fan_in={metric.fan_in}, "
+            f"blast_radius={metric.blast_radius}; backward-compatible adapter required)"
+        )
+    elif tier == PlanningTier.TIER_1_STANDARD or metric.fan_in >= 5 or metric.cross_boundary or metric.state_mutation:
+        regression_risk_label = (
+            f"Medium (risk_score={metric.risk_score}, fan_in={metric.fan_in}, "
+            f"blast_radius={metric.blast_radius})"
+        )
+    else:
+        regression_risk_label = (
+            f"Low (risk_score={metric.risk_score}, fan_in={metric.fan_in}, "
+            f"blast_radius={metric.blast_radius})"
+        )
+
+    if direct_callers:
+        shown = ", ".join(f"`{c}`" for c in direct_callers[:6])
+        more = f" (+{len(direct_callers) - 6} more)" if len(direct_callers) > 6 else ""
+        callers_summary = f"{shown}{more} (total fan-in: {metric.fan_in})"
+    elif graph_ok:
+        callers_summary = f"None detected in indexed call graph (fan-in: {metric.fan_in})"
+    else:
+        callers_summary = f"Call graph unavailable (fallback fan-in estimate: {metric.fan_in})"
 
     file_rows: List[str] = []
+    task_tokens = tokenize_text(task)
     for f in target_files:
-        rel = os.path.relpath(f, _REPO_ROOT) if os.path.isabs(f) else f
-        full_path = os.path.join(_REPO_ROOT, rel)
-        info = extract_file_signatures(full_path)
-        if info.get("exists") and (info.get("symbols") or info.get("signatures")):
-            task_tokens = tokenize_text(task)
-            chosen_sym_name = None
-            symbols = info.get("symbols", [])
-            if symbols:
-                best_score = 0
-                best_sym = None
-                for sym in symbols:
-                    sym_tokens = tokenize_text(sym.get("name", ""))
-                    score = len(task_tokens & sym_tokens)
-                    if score > best_score:
-                        best_score = score
-                        best_sym = sym
-                if best_score > 0 and best_sym:
-                    chosen_sym_name = best_sym.get("name", "")
-
-            if not chosen_sym_name and info.get("signatures"):
-                raw_sig = info["signatures"][0]
-                m_anchor = re.search(r"\[AST:\s*([^\]]+)\]", raw_sig)
-                if m_anchor:
-                    clean_sym = re.sub(r"(\||:)\s*L\d+(-L?\d+)?", "", m_anchor.group(1)).strip()
-                    chosen_sym_name = clean_sym
-                else:
-                    anchor = raw_sig.split()[-1]
-                    chosen_sym_name = anchor.replace("[", "").replace("]", "")
-
-            if chosen_sym_name:
-                anchor_str = f"(AST: {chosen_sym_name})"
-            else:
-                anchor_str = "(AST: module_root)"
-            action = "[MODIFY]"
-        elif info.get("exists"):
-            anchor_str = "(AST: module_root)"
-            action = "[MODIFY]"
-        else:
-            anchor_str = "(New)"
-            action = "[CREATE]"
-        file_rows.append(f"| `{action}` | `{rel}` {anchor_str} | Core implementation or test coverage |")
+        rel = os.path.relpath(f, effective_root) if os.path.isabs(f) else f
+        full_path = os.path.join(effective_root, rel)
+        action, anchor_str = _extract_target_ast_anchor(full_path, task_tokens)
+        role_desc = "Automated test coverage" if _is_test_target(rel) else "Core implementation"
+        file_rows.append(f"| `{action}` | `{rel}` {anchor_str} | {role_desc} |")
 
     files_table = "\n".join(file_rows)
 
-    # Tier 0 Fast-Track Micro-Plan: bypass heavy tournament and red-teaming for sub-10s turnaround
+    existing_test_targets = [f for f in target_files if _is_test_target(f)]
+    primary_test_target = (
+        existing_test_targets[0]
+        if existing_test_targets
+        else f"tests/test_{task_snake}.py"
+    )
+
+    # Tier 0 Fast-Track Micro-Plan: includes ALL target_files in Write Set (source + test)
     if tier == PlanningTier.TIER_0_FAST and not tournament:
+        t0_files = list(target_files[:3])
+        t0_files_csv = ", ".join(f"`{fp}`" for fp in t0_files)
+        t0_ws_repr = "[" + ", ".join(f"'{fp}'" for fp in t0_files) + "]"
+        t0_rollback = " ".join(t0_files)
+        t0_gate = (
+            f"python3 -m pytest {' '.join(existing_test_targets)} -q"
+            if existing_test_targets
+            else f"python3 -m py_compile {' '.join(t0_files)}"
+        )
         return f"""<!--
 # SPDX-FileCopyrightText: Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.
 # SPDX-License-Identifier: MIT
@@ -945,8 +1176,8 @@ def scaffold_super_plan(
 ## 2. Data Flow & Interface Signatures
 
 ```python
-# Minimal complete interface
-def execute_quick_fix() -> bool:
+# Minimal complete interface for {task}
+def {entry_fn}() -> bool:
     ...
 ```
 
@@ -957,10 +1188,11 @@ def execute_quick_fix() -> bool:
 ### Milestone 1: Implementation & Verification{parallel_tag}
 - **Node ID:** `M1` | **depends_on:** `[]`
 - **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
-- **Files Modified (Max 2):** `{target_files[0] if target_files else 'src/types.py'}`
-- **Write Set:** `['{target_files[0] if target_files else 'src/types.py'}']`
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched | Rollback: `git checkout -- {target_files[0] if target_files else 'src/types.py'}`
-- **Pass Gate:** `pytest {target_files[1] if len(target_files) > 1 else 'tests/'}`
+- **Files Modified (Max 3):** {t0_files_csv}
+- **Write Set:** `{t0_ws_repr}`
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched | Rollback: `git checkout -- {t0_rollback}`
+- **Rollback Hook:** `git checkout -- {t0_rollback}`
+- **Pass Gate:** `{t0_gate}`
 
 ---
 
@@ -968,14 +1200,15 @@ def execute_quick_fix() -> bool:
 
 | ID | Test Scenario | Input / Precondition | Expected Output / Assertion | Verification Command |
 |---|---|---|---|---|
-| **TC-01** | Happy Path | Valid input | Success, exit code 0 | `pytest {target_files[1] if len(target_files) > 1 else 'tests/'}` |
-| **TC-02** | Boundary / Negative | Handled gracefully | No unhandled exception | `pytest {target_files[1] if len(target_files) > 1 else 'tests/'}` |
+| **TC-01** | Positive (Happy Path) | Valid input for `{entry_fn}` | Success, exit code 0 | `python3 -m pytest {primary_test_target} -k "test_{task_snake}_positive"` |
+| **TC-02** | Boundary / Negative | Empty or invalid input | Handled gracefully, zero unhandled exceptions | `python3 -m pytest {primary_test_target} -k "test_{task_snake}_negative"` |
 
 ---
 
 ## 5. Execution Handoff
 - **Recommended Execution Model & Thinking Level:** `{rec_model}` — {rec_rationale}
 - **Clean Context Handoff:** {handoff_cmd}
+- **Closed-Loop CLI Handoff:** `agent-qa solo --from-plan {handoff_target} --json`
 """
 
     include_tournament = tournament or tier == PlanningTier.TIER_2_DEEP
@@ -984,43 +1217,72 @@ def execute_quick_fix() -> bool:
         tournament_eval = evaluate_orthogonal_tournament(task, metric, tier)
         tournament_block = tournament_eval["markdown_block"]
 
-    # Partition target_files into <=2-file TDD-aligned milestones (preserving exact 2-milestone default for <=2 files)
+    decisions_block = ""
+    if dec_summary:
+        decisions_block = f"\n> **Confirmed Architectural Decisions:** `{dec_summary}`"
+
+    # Partition target_files into TDD-aligned milestones (<= 3 files per milestone)
     milestone_sections: List[str] = []
     if len(target_files) <= 2:
-        f1 = target_files[0] if target_files else "src/types.py"
-        f2 = target_files[1] if len(target_files) > 1 else "tests/test_feature.py"
+        f1 = target_files[0]
+        f2 = target_files[1] if len(target_files) > 1 else f"tests/test_{task_snake}.py"
+        if not is_teamwork and len(target_files) == 2 and _is_test_target(f2) and not _is_test_target(f1):
+            # TDD order: Test Harness & Contract first (M1), Core Implementation & Regression second (M2)
+            m1_file, m2_file = f2, f1
+            m1_title = "Test Harness & Interface Contract (Red-First)"
+            m1_gate = f"python3 -m pytest {m1_file} -q"
+            m2_title = "Core Business Logic & Regression Verification"
+            m2_gate = f"python3 -m pytest {m1_file} -q"
+        else:
+            m1_file, m2_file = f1, f2
+            m1_title = "Interfaces, Types & Test Harness"
+            m1_gate = (
+                f"python3 -m pytest {m1_file} -q"
+                if _is_test_target(m1_file)
+                else f"python3 -m py_compile {m1_file}"
+            )
+            m2_title = "Core Business Logic & Unit Tests"
+            m2_gate = (
+                f"python3 -m pytest {m2_file} -q"
+                if _is_test_target(m2_file)
+                else f"python3 -m py_compile {m2_file}"
+            )
+
+        m2_deps = "[]" if is_teamwork else "[M1]"
+        m2_consumes = "[]" if is_teamwork else f'[{{"contract": "{result_dto}"}}]'
+        m2_tag = parallel_tag if is_teamwork else ""
         milestone_sections.append(
-            f"""### Milestone 1: Interfaces, Types & Test Harness{parallel_tag}
+            f"""### Milestone 1: {m1_title}{parallel_tag}
 - **Node ID:** `M1` | **depends_on:** `[]`
 - **Compute Tier:** `[Model: Flash | Thinking: Off | Temp: 0.1]`
-- **Files Modified (Max 2):** `{f1}`
-- **Write Set:** `['{f1}']`
+- **Files Modified (Max 3):** `{m1_file}`
+- **Write Set:** `['{m1_file}']`
 - **Typed Interface Manifest:**
   - **consumes:** `[]`
-  - **produces:** `[{{"contract": "ExecutionResultDTO", "fields": {{"success": "bool"}}}}]`
+  - **produces:** `[{{"contract": "{result_dto}", "fields": {{"success": "bool"}}}}]`
   - **invariants:** `["idempotent(task_id)", "timeout_ms <= 5000"]`
-- **Goal:** Define DTOs, type contracts, and compile check.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched | Rollback: `git checkout -- {f1}`
-- **Rollback Hook:** `git checkout -- {f1}`
-- **Pass Gate:** `python3 -m py_compile {f1}`"""
+- **Goal:** Define typed contracts and Red-First verification harness for `{m1_file}`.
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched | Rollback: `git checkout -- {m1_file}`
+- **Rollback Hook:** `git checkout -- {m1_file}`
+- **Pass Gate:** `{m1_gate}`"""
         )
         milestone_sections.append(
-            f"""### Milestone 2: Core Business Logic & Unit Tests
-- **Node ID:** `M2` | **depends_on:** `[M1]`
+            f"""### Milestone 2: {m2_title}{m2_tag}
+- **Node ID:** `M2` | **depends_on:** `{m2_deps}`
 - **Compute Tier:** `[Model: Pro / Reasoning | Thinking: High | Best-of-3]`
-- **Files Modified (Max 2):** `{f2}`
-- **Write Set:** `['{f2}']`
+- **Files Modified (Max 3):** `{m2_file}`
+- **Write Set:** `['{m2_file}']`
 - **Typed Interface Manifest:**
-  - **consumes:** `[{{"contract": "ExecutionResultDTO"}}]`
-  - **produces:** `[{{"contract": "ExecutionIntegrationResult", "fields": {{"verified": "bool"}}}}]`
+  - **consumes:** `{m2_consumes}`
+  - **produces:** `[{{"contract": "{integration_dto}", "fields": {{"verified": "bool"}}}}]`
   - **invariants:** `["zero_unhandled_exceptions"]`
-- **Goal:** Implement core logic satisfying deterministic test scenarios.
-- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if new dependency introduced | Rollback: `git checkout -- {f2}`
-- **Rollback Hook:** `git checkout -- {f2}`
-- **Pass Gate:** `pytest {f2}`"""
+- **Goal:** Implement core logic in `{m2_file}` satisfying deterministic verification scenarios.
+- **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if new dependency introduced | Rollback: `git checkout -- {m2_file}`
+- **Rollback Hook:** `git checkout -- {m2_file}`
+- **Pass Gate:** `{m2_gate}`"""
         )
     else:
-        chunks = [target_files[i : i + 2] for i in range(0, len(target_files), 2)]
+        chunks = _partition_tdd_milestones(target_files)
         prev_contract = ""
         for idx, chunk in enumerate(chunks, 1):
             node_id = f"M{idx}"
@@ -1036,16 +1298,16 @@ def execute_quick_fix() -> bool:
             files_csv = ", ".join(f"`{fp}`" for fp in chunk)
             write_set_repr = "[" + ", ".join(f"'{fp}'" for fp in chunk) + "]"
             rollback_targets = " ".join(chunk)
-            test_candidates = [fp for fp in chunk if os.path.basename(fp).startswith("test_")]
+            test_candidates = [fp for fp in chunk if _is_test_target(fp)]
             pass_gate = (
                 f"python3 -m pytest {' '.join(test_candidates)} -q"
                 if test_candidates
                 else f"python3 -m py_compile {' '.join(chunk)}"
             )
             produces_contract = (
-                "ExecutionResultDTO"
+                result_dto
                 if is_first
-                else ("ExecutionIntegrationResult" if is_last else f"ExecutionStage{idx}DTO")
+                else (integration_dto if is_last else f"{result_dto}Stage{idx}")
             )
             if is_first or is_teamwork:
                 consumes_str = "[]"
@@ -1054,7 +1316,7 @@ def execute_quick_fix() -> bool:
             prev_contract = produces_contract
 
             title_label = (
-                "Interfaces, Types & Contract Lock"
+                "Interfaces, Contracts & TDD Harness"
                 if is_first
                 else ("Verification, Integration & Quality Gates" if is_last else f"Core Implementation Slice {idx}")
             )
@@ -1062,13 +1324,13 @@ def execute_quick_fix() -> bool:
                 f"""### Milestone {idx}: {title_label}{tag}
 - **Node ID:** `{node_id}` | **depends_on:** `{depends_str}`
 - **Compute Tier:** `{tier_annot}`
-- **Files Modified (Max 2):** {files_csv}
+- **Files Modified (Max 3):** {files_csv}
 - **Write Set:** `{write_set_repr}`
 - **Typed Interface Manifest:**
   - **consumes:** `{consumes_str}`
   - **produces:** `[{{"contract": "{produces_contract}", "fields": {{"success": "bool"}}}}]`
   - **invariants:** `["idempotent(task_id)", "zero_unhandled_exceptions"]`
-- **Goal:** Implement and TDD-verify `{', '.join(chunk)}` within atomic file budget.
+- **Goal:** Implement and TDD-verify `{', '.join(chunk)}` within atomic file budget (<= 3 files).
 - **Circuit Breaker:** Max Fix Attempts: 2 | Scope Guard: Halt if out-of-scope files touched | Rollback: `git checkout -- {rollback_targets}`
 - **Rollback Hook:** `git checkout -- {rollback_targets}`
 - **Pass Gate:** `{pass_gate}`"""
@@ -1088,9 +1350,9 @@ def execute_quick_fix() -> bool:
 > **Reference Protocol:** [AGENTS.md §5](AGENTS.md), [standards/qa-process/plan-protocol.md](standards/qa-process/plan-protocol.md)
 > **Pre-Plan Model Fit Gate:** Recommended `{rec_model}` — {rec_rationale}
 > **Execution Mode:** {mode_banner}
-> **Ambiguity Gate Status:** Resolved (Architectural choices confirmed upfront)
+> **Ambiguity Gate Status:** {ambiguity_status}{decisions_block}
 > 📝 **Plan Changelog (v1.0):**
-> - Initial super-plan drafted with verified grounding and DAG constraints.
+> - Initial super-plan drafted with verified AST grounding, real call-graph risk telemetry, and TDD DAG constraints.
 {tournament_block}
 ---
 
@@ -1106,9 +1368,9 @@ def execute_quick_fix() -> bool:
 {files_table}
 
 ### Blast Radius & Downstream Dependencies
-- **Direct Callers:** Downstream modules referencing modified symbols.
-- **Downstream Tests:** Targeted regression suite.
-- **Regression Risk:** Low (Strict backward compatibility adapter enforced).
+- **Direct Callers:** {callers_summary}
+- **Downstream Tests:** `{primary_test_target}` (targeted 4-scenario regression suite).
+- **Regression Risk:** {regression_risk_label}
 
 ---
 
@@ -1118,21 +1380,21 @@ def execute_quick_fix() -> bool:
 
 ```python
 from dataclasses import dataclass
-from typing import Optional
+from typing import Dict, Optional
 
 @dataclass(frozen=True)
-class ExecutionInputDTO:
+class {input_dto}:
     task_id: str
-    payload: dict
+    payload: Dict[str, str]
     dry_run: bool = False
 
 @dataclass(frozen=True)
-class ExecutionResultDTO:
+class {result_dto}:
     success: bool
     message: str
     error_code: Optional[str] = None
 
-def execute_operation(input_data: ExecutionInputDTO) -> ExecutionResultDTO:
+def {entry_fn}(input_data: {input_dto}) -> {result_dto}:
     \"\"\"Executes {task} idempotently.
     Guarantees:
       - Validates schema before mutation.
@@ -1155,9 +1417,10 @@ def execute_operation(input_data: ExecutionInputDTO) -> ExecutionResultDTO:
 
 | ID | Test Scenario | Input / Precondition | Expected Output / Assertion | Verification Command |
 |---|---|---|---|---|
-| **TC-01** | Happy Path | `ExecutionInputDTO(task_id="T1", payload={{"valid": True}})` | `ExecutionResultDTO.success == True` | `pytest tests/ -k "test_happy_path"` |
-| **TC-02** | Boundary (Empty Input) | `ExecutionInputDTO(task_id="", payload={{}})` | Raises `ValueError` handled gracefully | `pytest tests/ -k "test_empty_input"` |
-| **TC-03** | Error Handling / Timeout | Downstream dependency fails | Fallback triggered, error logged | `pytest tests/ -k "test_timeout_fallback"` |
+| **TC-01** | Positive (Happy Path) | `{input_dto}(task_id="T1", payload={{"valid": "true"}})` | `{result_dto}.success == True` | `python3 -m pytest {primary_test_target} -k "test_{task_snake}_positive"` |
+| **TC-02** | Negative (Error Handling) | Malformed payload or downstream failure | Controlled error code returned, zero unhandled crash | `python3 -m pytest {primary_test_target} -k "test_{task_snake}_negative"` |
+| **TC-03** | Boundary (Empty Input) | `{input_dto}(task_id="", payload={{}})` | Raises `ValueError` handled gracefully | `python3 -m pytest {primary_test_target} -k "test_{task_snake}_boundary"` |
+| **TC-04** | Resilience / CLI Contract | Repeated idempotent invocation & `--json` output | Stable deterministic output, exit code 0 | `python3 -m pytest {primary_test_target} -k "test_{task_snake}_resilience"` |
 
 ---
 
@@ -1170,7 +1433,7 @@ def execute_operation(input_data: ExecutionInputDTO) -> ExecutionResultDTO:
    - *Risk:* Unbounded execution or network stall.
    - *Mitigation:* Apply strict 5s timeout guard with graceful fallback.
 3. **Vulnerability 3 (Blast Radius / Backward Compatibility):**
-   - *Risk:* Breaking changes affecting legacy callers.
+   - *Risk:* Breaking changes affecting legacy callers ({callers_summary}).
    - *Mitigation:* Maintain parameter defaults and adapter wrapper.
 
 ---
@@ -1179,7 +1442,7 @@ def execute_operation(input_data: ExecutionInputDTO) -> ExecutionResultDTO:
 
 | Phase | Trigger Scenario | Mitigation / Dual-mode | Rollback Command |
 |---|---|---|---|
-| State Migration | Schema/state corruption | Atomic transaction with checkpoint | `git checkout -- <file>` |
+| State Migration | Schema/state corruption | Atomic transaction with checkpoint | `git checkout -- {' '.join(target_files[:3])}` |
 | Service Cutover | High error rate (> 1%) | Instant flag toggle fallback | Revert commit or toggle feature flag |
 
 ---
@@ -1188,8 +1451,9 @@ def execute_operation(input_data: ExecutionInputDTO) -> ExecutionResultDTO:
 - **Execution Mode:** {mode_banner}
 - **Recommended Execution Model & Thinking Level:** `{rec_model}` — {rec_rationale}
 - **Clean Context Handoff:** {handoff_cmd} (pass only this plan + AST slices).
+- **Closed-Loop CLI Handoff:** `agent-qa solo --from-plan {handoff_target} --json`
 - **Surgical Patch Protocol:** Edit only targeted blocks upon feedback with Changelog update; forbid whole-file regenerations.
-- **Plan Harvesting Hook:** Upon passing all 11 DoD Quality Gates, harvest decisions into `docs/adr/`.
+- **Plan Harvesting Hook:** Upon passing all 11 DoD Quality Gates, harvest decisions into `docs/adr/` and clean up ephemeral `.synapse/plans/` drafts.
 """
 
 
@@ -1283,6 +1547,7 @@ def run_super_plan_pipeline(
     execute_dod_harvest: bool = False,
     debt_scan_dir: Optional[str] = None,
     repo_root: Optional[str] = None,
+    decisions: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """
     Unified Super-Plan stage orchestrator chaining:
@@ -1294,8 +1559,18 @@ def run_super_plan_pipeline(
         raise ValueError("Task description must be a non-empty string.")
 
     effective_root = repo_root or _REPO_ROOT
+    slug = build_plan_slug(task)
+    if plan_output_path:
+        resolved_plan_path = os.path.abspath(
+            plan_output_path if os.path.isabs(plan_output_path) else os.path.join(effective_root, plan_output_path)
+        )
+    elif output_dir:
+        resolved_plan_path = os.path.abspath(os.path.join(output_dir, "03_implementation_plan.md"))
+    else:
+        resolved_plan_path = os.path.abspath(resolve_slugged_plan_path(task, effective_root))
+
     stage_dir = os.path.abspath(
-        output_dir or os.path.join(effective_root, "reports", "super_plan_pipeline")
+        output_dir or os.path.join(effective_root, "reports", "super_plan_pipeline", slug)
     )
     os.makedirs(stage_dir, exist_ok=True)
 
@@ -1335,7 +1610,7 @@ def run_super_plan_pipeline(
     _record_stage("route", "ROUTED", route_path, True, {"tier": chosen_tier.value, "risk_score": metric.risk_score})
 
     # Stage 2: Ambiguity Gate
-    questions = check_ambiguities(task)
+    questions = check_ambiguities(task, decisions=decisions)
     unresolved = [q for q in questions if not q.get("resolved_by_invariant", False)]
     amb_blocked = bool(non_interactive and unresolved)
     amb_state = "AMBIGUITY_BLOCKED" if amb_blocked else "AMBIGUITY_CLEARED"
@@ -1375,15 +1650,19 @@ def run_super_plan_pipeline(
     tournament_eval = (
         evaluate_orthogonal_tournament(task, metric, chosen_tier) if include_tournament else None
     )
+    try:
+        rel_plan_display = os.path.relpath(resolved_plan_path, effective_root).replace("\\", "/")
+    except ValueError:
+        rel_plan_display = resolved_plan_path.replace("\\", "/")
     plan_md = scaffold_super_plan(
         task,
         target_files=target_files,
         tournament=include_tournament,
         tier=chosen_tier,
         execution_mode=execution_mode,
-    )
-    resolved_plan_path = os.path.abspath(
-        plan_output_path or os.path.join(stage_dir, "03_implementation_plan.md")
+        plan_output_path=rel_plan_display,
+        decisions=decisions,
+        repo_root=effective_root,
     )
     os.makedirs(os.path.dirname(resolved_plan_path), exist_ok=True)
     with open(resolved_plan_path, "w", encoding="utf-8") as fh:
@@ -1522,6 +1801,19 @@ def run_super_plan_pipeline(
     return manifest
 
 
+def _effective_cli_repo_root(repo_root_arg: Optional[str] = None) -> str:
+    """Resolves workspace root for CLI invocations (explicit -> env -> active cwd worktree/temp -> _REPO_ROOT)."""
+    if repo_root_arg and str(repo_root_arg).strip():
+        return os.path.abspath(str(repo_root_arg).strip())
+    env_root = os.environ.get("SYNAPSE_REPO_ROOT", "").strip()
+    if env_root:
+        return os.path.abspath(env_root)
+    cwd = os.path.abspath(os.getcwd())
+    if os.path.exists(os.path.join(cwd, ".git")) or cwd != os.path.abspath(_REPO_ROOT):
+        return cwd
+    return _REPO_ROOT
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Super-Plan Engine: Automated scaffold, ambiguity gate, and validator")
     subparsers = parser.add_subparsers(dest="command", help="Available sub-commands")
@@ -1530,6 +1822,7 @@ def main() -> int:
     route_parser = subparsers.add_parser("route", help="Determines deterministic planning tier and risk score")
     route_parser.add_argument("--task", required=True, help="Task description")
     route_parser.add_argument("--files", nargs="*", help="Candidate target files")
+    route_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     route_parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     # ambiguity-check sub-command
@@ -1545,7 +1838,9 @@ def main() -> int:
     scaff_parser.add_argument("--tier", choices=["fast", "standard", "deep", "auto"], default="auto", help="Planning tier override (default auto)")
     scaff_parser.add_argument("--execution-mode", choices=["solo", "teamwork"], default="solo", help="Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork")
     scaff_parser.add_argument("--tournament", action="store_true", help="Generate 3-way orthogonal tournament Trade-off Matrix")
-    scaff_parser.add_argument("--output", help="Optional output filepath to save plan")
+    scaff_parser.add_argument("--decisions", help="Optional JSON or k=v,k2=v2 architectural decisions resolving Ambiguity Gate forks")
+    scaff_parser.add_argument("--output", help="Optional output filepath to save plan (pass 'auto' for .synapse/plans/<slug>.md)")
+    scaff_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     scaff_parser.add_argument("--json", action="store_true", help="Output metadata in JSON format")
 
     # validate sub-command
@@ -1566,6 +1861,7 @@ def main() -> int:
         help="Calibrates a plan via DAG parsing, dry-run harvesting, and TextGrad loss evaluation",
     )
     cal_parser.add_argument("--file", required=True, help="Path to markdown plan")
+    cal_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     cal_parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     # run-pipeline sub-command (reuses registered flag names)
@@ -1578,221 +1874,268 @@ def main() -> int:
     pipe_parser.add_argument("--tier", choices=["fast", "standard", "deep", "auto"], default="auto", help="Planning tier override (default auto)")
     pipe_parser.add_argument("--execution-mode", choices=["solo", "teamwork"], default="solo", help="Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork")
     pipe_parser.add_argument("--output", help="Optional output directory to persist pipeline stage artifacts")
+    pipe_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     pipe_parser.add_argument("--threshold", type=float, default=90.0, help="Pass gate threshold (default 90.0)")
+    pipe_parser.add_argument("--decisions", help="Optional JSON or k=v,k2=v2 architectural decisions resolving Ambiguity Gate forks")
     pipe_parser.add_argument("--non-interactive", action="store_true", help="Headless CI mode: fail closed on unresolved architectural forks")
     pipe_parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     args = parser.parse_args()
-
-    if args.command == "route":
-        tier, metric = calculate_risk_routing(args.task, args.files, repo_root=_REPO_ROOT)
-        model_fit = assess_pre_plan_model_fit(tier)
-        if args.json:
-            print(json.dumps({
-                "task": args.task,
-                "tier": tier.value,
-                "risk_score": metric.risk_score,
-                "recommended_model": metric.recommended_model,
-                "model_fit": model_fit,
-                "metrics": {
-                    "fan_in": metric.fan_in,
-                    "transitive_fan_in": metric.transitive_fan_in,
-                    "coupling_memory_penalty": metric.coupling_memory_penalty,
-                    "blast_radius": metric.blast_radius,
-                    "cross_boundary": metric.cross_boundary,
-                    "state_mutation": metric.state_mutation,
-                    "history_drift": metric.history_drift,
-                }
-            }, indent=2))
-        else:
-            print(f"[RISK ROUTING] Task: '{args.task}'")
-            print(f"  -> Planning Tier: {tier.value} (RiskScore: {metric.risk_score})")
-            print(
-                f"  -> Breakdown: FanIn={metric.fan_in}, TransitiveFanIn={metric.transitive_fan_in}, "
-                f"CouplingPenalty={metric.coupling_memory_penalty}, BlastRadius={metric.blast_radius}, "
-                f"CrossBoundary={metric.cross_boundary}, StateMutation={metric.state_mutation}, "
-                f"HistoryDrift={metric.history_drift}"
-            )
-            print(f"  -> Recommended Model: {metric.recommended_model}")
-        return 0
-
-    elif args.command == "ambiguity-check":
-        questions = check_ambiguities(args.task)
-        if getattr(args, "auto_recommend", False):
-            unresolved = [q for q in questions if not q.get("resolved_by_invariant", False)]
-            if unresolved:
-                if args.json:
-                    print(json.dumps({
-                        "task": args.task,
-                        "status": "UNRESOLVED_FORK",
-                        "has_ambiguity": True,
-                        "auto_recommended": False,
-                        "unresolved_count": len(unresolved),
-                        "questions": questions,
-                    }, indent=2))
-                else:
-                    print(f"[AMBIGUITY GATE BLOCKED — UNRESOLVED_FORK] {len(unresolved)} ungrounded architectural fork(s) require explicit user or invariant specification:")
-                    for idx, q in enumerate(unresolved, 1):
-                        print(f"  {idx}. {q['question']} (specify concrete choice instead of generic trigger noun)")
-                return 3
-            if questions:
-                auto_choices = [q['options'][0] for q in questions]
-                if args.json:
-                    print(json.dumps({
-                        "task": args.task,
-                        "status": "RESOLVED_BY_INVARIANT",
-                        "has_ambiguity": True,
-                        "auto_recommended": True,
-                        "selected": auto_choices,
-                        "questions": questions
-                    }, indent=2))
-                else:
-                    print(f"[AMBIGUITY GATE AUTO-RECOMMEND] Headless mode resolved {len(questions)} grounded choice(s):")
-                    for idx, q in enumerate(questions, 1):
-                        print(f"  {idx}. {q['question']} -> {q['options'][0]}")
-            else:
-                if args.json:
-                    print(json.dumps({"task": args.task, "status": "CLEAR", "has_ambiguity": False, "auto_recommended": True, "questions": []}, indent=2))
-                else:
-                    print("[AMBIGUITY GATE CLEAR] Task has unambiguous constraints. Ready for planning.")
-            return 0
-
-        if args.json:
-            print(json.dumps({"task": args.task, "has_ambiguity": len(questions) > 0, "questions": questions}, indent=2))
-        else:
-            if questions:
-                print(f"[AMBIGUITY GATE TRIGGERED] Found {len(questions)} architectural decision fork(s):")
-                for idx, q in enumerate(questions, 1):
-                    print(f"\n{idx}. {q['question']}")
-                    for opt in q['options']:
-                        counter = q.get('counter_arguments', {}).get(opt, "")
-                        print(f"   - {opt}")
-                        if counter:
-                            print(f"     ⚠️ {counter}")
-            else:
-                print("[AMBIGUITY GATE CLEAR] Task has unambiguous constraints. Ready for planning.")
-        return 0
-
-    elif args.command == "scaffold":
-        tier_arg = getattr(args, "tier", "auto")
-        chosen_tier = None
-        if tier_arg == "fast":
-            chosen_tier = PlanningTier.TIER_0_FAST
-        elif tier_arg == "standard":
-            chosen_tier = PlanningTier.TIER_1_STANDARD
-        elif tier_arg == "deep":
-            chosen_tier = PlanningTier.TIER_2_DEEP
-
-        plan_md = scaffold_super_plan(
-            args.task,
-            args.files,
-            tournament=getattr(args, "tournament", False),
-            tier=chosen_tier,
-            execution_mode=getattr(args, "execution_mode", "solo"),
-        )
-        if args.output:
-            out_dir = os.path.dirname(os.path.abspath(args.output))
-            os.makedirs(out_dir, exist_ok=True)
-            with open(args.output, "w", encoding="utf-8") as fh:
-                fh.write(plan_md)
-            print(f"[SCAFFOLD COMPLETE] Saved grounded plan to {args.output}")
-        elif args.json:
-            print(json.dumps({"task": args.task, "plan_markdown": plan_md}, indent=2))
-        else:
-            print(plan_md)
-        return 0
-
-    elif args.command == "validate":
-        if not os.path.isfile(args.file):
-            print(f"Error: File not found: {args.file}")
-            return 1
-        with open(args.file, "r", encoding="utf-8", errors="replace") as fh:
-            content = fh.read()
-        passed, issues, details = validate_plan_content(content, filename=args.file, mode=args.mode)
-        if args.json:
-            print(json.dumps({"passed": passed, "issues": issues, "details": details}, indent=2))
-        else:
-            status_str = "PASS" if passed else "FAIL"
-            print(f"[{status_str}] {args.file}")
-            for issue in issues:
-                print(f"  - [X] {issue}")
-        return 0 if passed else 1
-
-    elif args.command == "mutate":
-        if not os.path.isfile(args.file):
-            print(f"Error: File not found: {args.file}")
-            return 1
-        with open(args.file, "r", encoding="utf-8", errors="replace") as fh:
-            content = fh.read()
-        report = run_plan_mutation_audit(content, threshold=args.threshold)
-        if args.json:
-            print(json.dumps(asdict(report), indent=2))
-        else:
-            status_str = "PASS" if report.passed else "FAIL"
-            print(f"[{status_str}] Plan Mutation Kill Score: {report.kill_score}% ({report.killed_mutants}/{report.total_mutants})")
-            for m, res in report.details.items():
-                k_str = "[KILL]" if res["killed"] else "[SURVIVE]"
-                print(f"  {k_str} {m}: {res['verdict']}")
-        return 0 if report.passed else 1
-
-    elif args.command == "calibrate":
-        try:
-            result = calibrate_and_refine_plan(args.file, repo_root=_REPO_ROOT)
-        except FileNotFoundError as exc:
-            if args.json:
-                print(json.dumps({"status": "ERROR", "error": str(exc)}, indent=2))
-            else:
-                print(f"Error: {exc}")
-            return 1
-        if args.json:
-            print(json.dumps(result, indent=2))
-        else:
-            print(
-                f"[CALIBRATE:{result['status']}] {result['plan_path']} "
-                f"(DAG nodes: {result['dag_node_count']}, "
-                f"TextGrad loss: {result['textgrad_loss']}, "
-                f"Accuracy: {result['calibration'].get('accuracy_score', 1.0)})"
-            )
-        return 0
-
-    elif args.command == "run-pipeline":
-        tier_arg = getattr(args, "tier", "auto")
-        chosen_tier = None
-        if tier_arg == "fast":
-            chosen_tier = PlanningTier.TIER_0_FAST
-        elif tier_arg == "standard":
-            chosen_tier = PlanningTier.TIER_1_STANDARD
-        elif tier_arg == "deep":
-            chosen_tier = PlanningTier.TIER_2_DEEP
-        try:
-            pipe_res = run_super_plan_pipeline(
-                task=args.task,
-                target_files=args.files,
-                tier=chosen_tier,
-                execution_mode=getattr(args, "execution_mode", "solo"),
-                output_dir=args.output,
-                mutation_threshold=getattr(args, "threshold", 90.0),
-                non_interactive=getattr(args, "non_interactive", False),
-                repo_root=_REPO_ROOT,
-            )
-        except ValueError as exc:
-            if args.json:
-                print(json.dumps({"status": "ERROR", "passed": False, "error": str(exc)}, indent=2))
-            else:
-                print(f"Error: {exc}")
-            return 1
-        if args.json:
-            print(json.dumps(pipe_res, indent=2))
-        else:
-            print(
-                f"[PIPELINE:{pipe_res['lifecycle_state']}] passed={pipe_res['passed']} "
-                f"stages={len(pipe_res['stages'])} manifest={pipe_res['manifest_path']}"
-            )
-        return 0 if pipe_res.get("passed", False) else 1
-
-    else:
+    dispatch = {
+        "route": _cli_handle_route,
+        "ambiguity-check": _cli_handle_ambiguity_check,
+        "scaffold": _cli_handle_scaffold,
+        "validate": _cli_handle_validate,
+        "mutate": _cli_handle_mutate,
+        "calibrate": _cli_handle_calibrate,
+        "run-pipeline": _cli_handle_run_pipeline,
+    }
+    handler = dispatch.get(args.command)
+    if handler is None:
         parser.print_help()
         return 1
+    return handler(args)
+
+
+def _parse_tier_override(tier_arg: str) -> Optional[PlanningTier]:
+    mapping = {
+        "fast": PlanningTier.TIER_0_FAST,
+        "standard": PlanningTier.TIER_1_STANDARD,
+        "deep": PlanningTier.TIER_2_DEEP,
+    }
+    return mapping.get(tier_arg)
+
+
+def _cli_handle_route(args: argparse.Namespace) -> int:
+    target_root = _effective_cli_repo_root(getattr(args, "repo_root", None))
+    tier, metric = calculate_risk_routing(args.task, args.files, repo_root=target_root)
+    model_fit = assess_pre_plan_model_fit(tier)
+    concurrency = inspect_workspace_concurrency(target_root, task=args.task)
+    if args.json:
+        print(json.dumps({
+            "task": args.task,
+            "tier": tier.value,
+            "risk_score": metric.risk_score,
+            "recommended_model": metric.recommended_model,
+            "model_fit": model_fit,
+            "suggested_plan_path": concurrency["suggested_plan_path"],
+            "concurrency_status": concurrency["concurrency_status"],
+            "active_plans": concurrency["active_plans"],
+            "dirty_files_count": concurrency["dirty_files_count"],
+            "recommended_worktree_cmd": concurrency["recommended_worktree_cmd"],
+            "metrics": {
+                "fan_in": metric.fan_in,
+                "transitive_fan_in": metric.transitive_fan_in,
+                "coupling_memory_penalty": metric.coupling_memory_penalty,
+                "blast_radius": metric.blast_radius,
+                "cross_boundary": metric.cross_boundary,
+                "state_mutation": metric.state_mutation,
+                "history_drift": metric.history_drift,
+            }
+        }, indent=2))
+        return 0
+    print(f"[RISK ROUTING] Task: '{args.task}'")
+    print(f"  -> Planning Tier: {tier.value} (RiskScore: {metric.risk_score})")
+    print(
+        f"  -> Breakdown: FanIn={metric.fan_in}, TransitiveFanIn={metric.transitive_fan_in}, "
+        f"CouplingPenalty={metric.coupling_memory_penalty}, BlastRadius={metric.blast_radius}, "
+        f"CrossBoundary={metric.cross_boundary}, StateMutation={metric.state_mutation}, "
+        f"HistoryDrift={metric.history_drift}"
+    )
+    print(f"  -> Recommended Model: {metric.recommended_model}")
+    print(f"  -> Suggested Plan Path: {concurrency['suggested_plan_path']} ({concurrency['concurrency_status']})")
+    if concurrency["concurrency_status"] == "CONCURRENT_SESSION_DETECTED":
+        print(f"  -> Isolate Workspace: {concurrency['recommended_worktree_cmd']}")
+    return 0
+
+
+def _cli_handle_ambiguity_check(args: argparse.Namespace) -> int:
+    questions = check_ambiguities(args.task)
+    if getattr(args, "auto_recommend", False):
+        unresolved = [q for q in questions if not q.get("resolved_by_invariant", False)]
+        if unresolved:
+            if args.json:
+                print(json.dumps({
+                    "task": args.task,
+                    "status": "UNRESOLVED_FORK",
+                    "has_ambiguity": True,
+                    "auto_recommended": False,
+                    "unresolved_count": len(unresolved),
+                    "questions": questions,
+                }, indent=2))
+            else:
+                print(f"[AMBIGUITY GATE BLOCKED — UNRESOLVED_FORK] {len(unresolved)} ungrounded architectural fork(s) require explicit user or invariant specification:")
+                for idx, q in enumerate(unresolved, 1):
+                    print(f"  {idx}. {q['question']} (specify concrete choice instead of generic trigger noun)")
+            return 3
+        if questions:
+            auto_choices = [q["options"][0] for q in questions]
+            if args.json:
+                print(json.dumps({
+                    "task": args.task,
+                    "status": "RESOLVED_BY_INVARIANT",
+                    "has_ambiguity": True,
+                    "auto_recommended": True,
+                    "selected": auto_choices,
+                    "questions": questions,
+                }, indent=2))
+            else:
+                print(f"[AMBIGUITY GATE AUTO-RECOMMEND] Headless mode resolved {len(questions)} grounded choice(s):")
+                for idx, q in enumerate(questions, 1):
+                    print(f"  {idx}. {q['question']} -> {q['options'][0]}")
+            return 0
+        if args.json:
+            print(json.dumps({"task": args.task, "status": "CLEAR", "has_ambiguity": False, "auto_recommended": True, "questions": []}, indent=2))
+        else:
+            print("[AMBIGUITY GATE CLEAR] Task has unambiguous constraints. Ready for planning.")
+        return 0
+
+    if args.json:
+        print(json.dumps({"task": args.task, "has_ambiguity": len(questions) > 0, "questions": questions}, indent=2))
+        return 0
+    if not questions:
+        print("[AMBIGUITY GATE CLEAR] Task has unambiguous constraints. Ready for planning.")
+        return 0
+    print(f"[AMBIGUITY GATE TRIGGERED] Found {len(questions)} architectural decision fork(s):")
+    for idx, q in enumerate(questions, 1):
+        print(f"\n{idx}. {q['question']}")
+        for opt in q["options"]:
+            print(f"   - {opt}")
+            counter = q.get("counter_arguments", {}).get(opt, "")
+            if counter:
+                print(f"     ⚠️ {counter}")
+    return 0
+
+
+def _cli_handle_scaffold(args: argparse.Namespace) -> int:
+    chosen_tier = _parse_tier_override(getattr(args, "tier", "auto"))
+    target_root = _effective_cli_repo_root(getattr(args, "repo_root", None))
+    out_arg = getattr(args, "output", None)
+    resolved_out = None
+    display_out = None
+    if out_arg:
+        resolved_out = os.path.abspath(
+            resolve_slugged_plan_path(args.task, target_root, explicit_path=out_arg, auto_unique=True)
+        )
+        try:
+            display_out = os.path.relpath(resolved_out, target_root).replace("\\", "/")
+        except ValueError:
+            display_out = resolved_out.replace("\\", "/")
+
+    parsed_decisions = _parse_decisions_arg(getattr(args, "decisions", None))
+    plan_md = scaffold_super_plan(
+        args.task,
+        args.files,
+        tournament=getattr(args, "tournament", False),
+        tier=chosen_tier,
+        execution_mode=getattr(args, "execution_mode", "solo"),
+        plan_output_path=display_out,
+        decisions=parsed_decisions or None,
+        repo_root=target_root,
+    )
+    if resolved_out:
+        os.makedirs(os.path.dirname(resolved_out), exist_ok=True)
+        with open(resolved_out, "w", encoding="utf-8") as fh:
+            fh.write(plan_md)
+        if args.json:
+            print(json.dumps({"task": args.task, "plan_path": resolved_out, "plan_rel_path": display_out, "plan_markdown": plan_md}, indent=2))
+        else:
+            print(f"[SCAFFOLD COMPLETE] Saved grounded plan to {resolved_out}")
+        return 0
+    if args.json:
+        print(json.dumps({"task": args.task, "plan_markdown": plan_md}, indent=2))
+    else:
+        print(plan_md)
+    return 0
+
+
+def _cli_handle_validate(args: argparse.Namespace) -> int:
+    if not os.path.isfile(args.file):
+        print(f"Error: File not found: {args.file}")
+        return 1
+    with open(args.file, "r", encoding="utf-8", errors="replace") as fh:
+        content = fh.read()
+    passed, issues, details = validate_plan_content(content, filename=args.file, mode=args.mode)
+    if args.json:
+        print(json.dumps({"passed": passed, "issues": issues, "details": details}, indent=2))
+        return 0 if passed else 1
+    status_str = "PASS" if passed else "FAIL"
+    print(f"[{status_str}] {args.file}")
+    for issue in issues:
+        print(f"  - [X] {issue}")
+    return 0 if passed else 1
+
+
+def _cli_handle_mutate(args: argparse.Namespace) -> int:
+    if not os.path.isfile(args.file):
+        print(f"Error: File not found: {args.file}")
+        return 1
+    with open(args.file, "r", encoding="utf-8", errors="replace") as fh:
+        content = fh.read()
+    report = run_plan_mutation_audit(content, threshold=args.threshold)
+    if args.json:
+        print(json.dumps(asdict(report), indent=2))
+        return 0 if report.passed else 1
+    status_str = "PASS" if report.passed else "FAIL"
+    print(f"[{status_str}] Plan Mutation Kill Score: {report.kill_score}% ({report.killed_mutants}/{report.total_mutants})")
+    for m, res in report.details.items():
+        k_str = "[KILL]" if res["killed"] else "[SURVIVE]"
+        print(f"  {k_str} {m}: {res['verdict']}")
+    return 0 if report.passed else 1
+
+
+def _cli_handle_calibrate(args: argparse.Namespace) -> int:
+    target_root = _effective_cli_repo_root(getattr(args, "repo_root", None))
+    try:
+        result = calibrate_and_refine_plan(args.file, repo_root=target_root)
+    except FileNotFoundError as exc:
+        if args.json:
+            print(json.dumps({"status": "ERROR", "error": str(exc)}, indent=2))
+        else:
+            print(f"Error: {exc}")
+        return 1
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(
+            f"[CALIBRATE:{result['status']}] {result['plan_path']} "
+            f"(DAG nodes: {result['dag_node_count']}, "
+            f"TextGrad loss: {result['textgrad_loss']}, "
+            f"Accuracy: {result['calibration'].get('accuracy_score', 1.0)})"
+        )
+    return 0
+
+
+def _cli_handle_run_pipeline(args: argparse.Namespace) -> int:
+    chosen_tier = _parse_tier_override(getattr(args, "tier", "auto"))
+    target_root = _effective_cli_repo_root(getattr(args, "repo_root", None))
+    try:
+        parsed_decisions = _parse_decisions_arg(getattr(args, "decisions", None))
+        pipe_res = run_super_plan_pipeline(
+            task=args.task,
+            target_files=args.files,
+            tier=chosen_tier,
+            execution_mode=getattr(args, "execution_mode", "solo"),
+            output_dir=args.output,
+            mutation_threshold=getattr(args, "threshold", 90.0),
+            non_interactive=True,
+            repo_root=target_root,
+            decisions=parsed_decisions or None,
+        )
+    except ValueError as exc:
+        if args.json:
+            print(json.dumps({"status": "ERROR", "passed": False, "error": str(exc)}, indent=2))
+        else:
+            print(f"Error: {exc}")
+        return 1
+    if args.json:
+        print(json.dumps(pipe_res, indent=2))
+    else:
+        print(
+            f"[PIPELINE:{pipe_res['lifecycle_state']}] passed={pipe_res['passed']} "
+            f"stages={len(pipe_res['stages'])} manifest={pipe_res['manifest_path']}"
+        )
+    return 0 if pipe_res.get("passed", False) else 1
 
 
 if __name__ == "__main__":

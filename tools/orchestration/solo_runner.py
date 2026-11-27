@@ -89,6 +89,7 @@ from tools.orchestration.solo_contracts import (
     is_tautological_assertion,  # noqa: F401
     normalize_test_command,
     recertify_red_receipt_payload,
+    resolve_active_plan_path,
     resolve_red_receipt_path,
     resolve_red_receipt_ttl,
     select_tournament_winner,  # noqa: F401
@@ -241,9 +242,9 @@ def prepare_stateless_oracle_context(repo_root: str, target: str = "") -> str:
     except Exception:
         diff_text = ""
 
-    plan_path = os.path.join(repo_root, "implementation_plan.md")
+    plan_path = resolve_active_plan_path(repo_root)
     plan_summary = ""
-    if os.path.isfile(plan_path):
+    if plan_path and os.path.isfile(plan_path):
         try:
             with open(plan_path, "r", encoding="utf-8", errors="replace") as pf:
                 plan_lines = pf.readlines()
@@ -1299,6 +1300,7 @@ def certify_red_phase(
     milestone_id: Optional[str] = None,
     ttl_seconds: Optional[int] = None,
     recertify_red: bool = False,
+    plan_slug: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Weapon 1: Physically execute test_cmd and certify that tests FAIL (Red Phase).
@@ -1316,7 +1318,7 @@ def certify_red_phase(
     if receipt_path and receipt_path != DEFAULT_RECEIPT_PATH:
         target_receipt = receipt_path
     elif milestone_id:
-        target_receipt = resolve_red_receipt_path(working_dir, milestone_id=milestone_id)
+        target_receipt = resolve_red_receipt_path(working_dir, milestone_id=milestone_id, plan_slug=plan_slug)
     else:
         target_receipt = receipt_path or DEFAULT_RECEIPT_PATH
     os.makedirs(os.path.dirname(os.path.abspath(target_receipt)), exist_ok=True)
@@ -1565,6 +1567,7 @@ def certify_green_phase(
     sandbox: Optional[SandboxBackend] = None,
     milestone_id: Optional[str] = None,
     allow_commit_progression: Optional[bool] = None,
+    plan_slug: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Weapon 2: Execute test_cmd and verify that tests now PASS (Green Phase).
@@ -1584,7 +1587,9 @@ def certify_green_phase(
     if receipt_path and receipt_path != DEFAULT_RECEIPT_PATH:
         target_receipt = receipt_path
     elif milestone_id:
-        target_receipt = resolve_red_receipt_path(working_dir, milestone_id=milestone_id)
+        slugged_cand = resolve_red_receipt_path(working_dir, milestone_id=milestone_id, plan_slug=plan_slug)
+        legacy_cand = resolve_red_receipt_path(working_dir, milestone_id=milestone_id)
+        target_receipt = slugged_cand if (plan_slug and os.path.exists(slugged_cand)) else legacy_cand
     else:
         target_receipt = receipt_path or DEFAULT_RECEIPT_PATH
 
@@ -3122,9 +3127,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--test-cmd", type=str, default="", help="Dynamic test command (e.g. 'pytest tests/test_target.py')")
     parser.add_argument("--target", "--target-file", dest="target", type=str, default="", help="Target source file for mutation testing or static audit (auto-resolved from git diff if omitted)")
     parser.add_argument("--milestone", type=str, default="", help="Milestone Node ID (e.g. M1) for milestone-scoped receipts and --from-plan filtering")
+    parser.add_argument("--plan-slug", type=str, default="", help="Optional plan slug to namespace milestone Red receipts (<slug>__<milestone>_red.json)")
     parser.add_argument("--require-four-scenarios", action="store_true", help="Enforce 4-scenario coverage (positive, negative, boundary, cli/resilience) during --red certification")
     parser.add_argument("--recertify-red", action="store_true", help="Audited Red recertification chaining recertified_from_hmac to the prior Red receipt")
-    parser.add_argument("--strict-red", action="store_true", help="Require prior milestone Red receipt in --from-plan instead of allowing verified_replay")
+    parser.add_argument("--strict-red", action="store_true", help="Require prior milestone Red receipt in --from-plan instead of allowing verified_replay (default on CLI)")
+    parser.add_argument("--allow-replay", action="store_true", help="Allow verified_replay in --from-plan without prior milestone Red receipt")
     parser.add_argument("--no-review", action="store_true", help="Skip automatic closed-loop /review verification in --from-plan or standalone --purple")
     parser.add_argument("--ttl", type=int, default=None, help="Red receipt TTL in seconds (default: 900 or SYNAPSE_RED_RECEIPT_TTL_SEC)")
     parser.add_argument("--decision-log", type=str, default="decisions.tsv", help="Path to append-only decisions.tsv log for --from-plan execution")
@@ -3235,6 +3242,7 @@ def main() -> int:
             milestone_id=getattr(args, "milestone", "") or None,
             ttl_seconds=getattr(args, "ttl", None),
             recertify_red=bool(getattr(args, "recertify_red", False)),
+            plan_slug=getattr(args, "plan_slug", "") or None,
         )
         results["red_phase"] = red_res
         if not red_res.get("passed", False):
@@ -3263,6 +3271,7 @@ def main() -> int:
             shard_count=args.shard,
             sandbox_mode=effective_sandbox,
             milestone_id=getattr(args, "milestone", "") or None,
+            plan_slug=getattr(args, "plan_slug", "") or None,
         )
         results["green_phase"] = green_res
         if not green_res.get("passed", False):
@@ -3337,11 +3346,16 @@ def main() -> int:
 
             ms_raw = getattr(args, "milestone", "")
             ms_arg = ms_raw.strip() if isinstance(ms_raw, str) and ms_raw.strip() else None
-            plan_cand = os.path.join(_REPO_ROOT, "implementation_plan.md")
-            auto_plan = plan_cand if os.path.isfile(plan_cand) else None
+            cwd_abs = os.path.abspath(os.getcwd())
+            review_root = (
+                cwd_abs
+                if cwd_abs != os.path.abspath(_REPO_ROOT) and os.path.isfile(os.path.join(cwd_abs, ".git"))
+                else _REPO_ROOT
+            )
+            auto_plan = resolve_active_plan_path(review_root)
             try:
                 rev_exit, rev_payload, _, _ = evaluate_review(
-                    repo_dir=_REPO_ROOT,
+                    repo_dir=review_root,
                     target="uncommitted",
                     plan_path=auto_plan,
                     milestone_id=ms_arg,
@@ -3538,6 +3552,7 @@ def main() -> int:
         from tools.orchestration.plan_dag_bridge import SoloPhaseCallbacks, execute_plan_via_solo
 
         effective_sandbox = "host" if getattr(args, "no_sandbox", False) else getattr(args, "sandbox", "worktree")
+        effective_strict_red = True if getattr(args, "strict_red", False) else (not bool(getattr(args, "allow_replay", False)))
         try:
             plan_summary = execute_plan_via_solo(
                 plan_path=args.from_plan,
@@ -3546,7 +3561,7 @@ def main() -> int:
                 decision_log_path=getattr(args, "decision_log", "decisions.tsv") or "decisions.tsv",
                 sandbox_mode=effective_sandbox,
                 recertify_red=bool(getattr(args, "recertify_red", False)),
-                strict_red=bool(getattr(args, "strict_red", False)),
+                strict_red=effective_strict_red,
                 diff_only_mutation=not bool(getattr(args, "full_file", False)),
                 auto_review=not bool(getattr(args, "no_review", False)),
                 phase_callbacks=SoloPhaseCallbacks(
