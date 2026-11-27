@@ -4215,6 +4215,155 @@
       "examples": [
         "python3 tools/report/release_pilot.py --manifest reports/pilot/manifest.json --json"
       ]
+    },
+    "model_registry": {
+      "path": "tools/core/model_registry.py",
+      "command": "python3 tools/core/model_registry.py",
+      "summary": "Synapse Hub Multi-Provider Model Registry",
+      "args": {
+        "--manifest": {
+          "type": "string",
+          "default": null,
+          "required": false,
+          "help": "Optional path to models_manifest.json"
+        },
+        "--config": {
+          "type": "string",
+          "default": null,
+          "required": false,
+          "help": "Optional path to synapse.config.json"
+        },
+        "--provider": {
+          "type": "string",
+          "default": null,
+          "required": false,
+          "help": "Filter models by provider family"
+        },
+        "--tier": {
+          "type": "string",
+          "default": null,
+          "required": false,
+          "help": "Filter models by capability tier or legacy alias"
+        },
+        "--min-context": {
+          "type": "integer",
+          "default": 0,
+          "required": false,
+          "help": "Minimum context window tokens"
+        },
+        "--sync-manifest": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Opt-in live discovery syncing model catalog"
+        },
+        "--dry-run": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Preview manifest sync without writing disk"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Emit deterministic JSON summary"
+        }
+      },
+      "examples": [
+        "python3 tools/core/model_registry.py --json"
+      ]
+    },
+    "ide_cli_bridge": {
+      "path": "tools/orchestration/ide_cli_bridge.py",
+      "command": "python3 tools/orchestration/ide_cli_bridge.py",
+      "summary": "Synapse Hub Read-Only Headless IDE CLI Bridge",
+      "args": {
+        "--discover": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Discover installed local IDE/agent CLIs"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output structured JSON"
+        }
+      },
+      "examples": [
+        "python3 tools/orchestration/ide_cli_bridge.py --discover --json"
+      ]
+    },
+    "multi_model_gateway": {
+      "path": "tools/orchestration/multi_model_gateway.py",
+      "command": "python3 tools/orchestration/multi_model_gateway.py",
+      "summary": "Synapse Hub Opt-In Stdlib Multi-Model HTTP Gateway",
+      "args": {
+        "--model": {
+          "type": "string",
+          "default": "gemini-4-neon",
+          "required": false,
+          "help": "Target model ID from models_manifest.json"
+        },
+        "--system": {
+          "type": "string",
+          "default": "You are Synapse Hub QA Orchestrator.",
+          "required": false,
+          "help": "Static system prefix"
+        },
+        "--prompt": {
+          "type": "string",
+          "required": true,
+          "help": "User prompt payload"
+        },
+        "--fsm-stage": {
+          "type": "string",
+          "default": "CODE_SYNTHESIS",
+          "required": false,
+          "help": "FSM stage label"
+        },
+        "--max-tokens": {
+          "type": "integer",
+          "default": 1024,
+          "required": false,
+          "help": "Max completion tokens"
+        },
+        "--thinking-budget": {
+          "type": "integer",
+          "default": 0,
+          "required": false,
+          "help": "Thinking token budget"
+        },
+        "--timeout": {
+          "type": "number",
+          "default": 30.0,
+          "required": false,
+          "help": "Socket timeout in seconds (clamped <= 30s)"
+        },
+        "--enable-network": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Explicitly opt into live HTTP network call"
+        },
+        "--dry-run": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Build wire request preview without opening sockets"
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Output structured JSON"
+        }
+      },
+      "examples": [
+        "python3 tools/orchestration/multi_model_gateway.py --prompt \"ping\" --dry-run --json"
+      ]
     }
   },
   "excluded_internal_tools": {
