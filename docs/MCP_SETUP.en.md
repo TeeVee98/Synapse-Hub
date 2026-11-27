@@ -111,6 +111,47 @@ In plugin manifest or IDE settings (`antigravity.config.json`):
 
 ---
 
+### 2.5 OpenAI Codex (`.codex/config.toml` / `~/.codex/config.toml`)
+
+**Option 1 — 1-click project bootstrap (recommended):**
+Run inside any target project to automatically generate `AGENTS.md`, `.codex/config.toml` (MCP), and export Synapse skills into `.agents/skills/`:
+
+```bash
+npx @teevee98/synapse-hub setup --target . --ide codex
+```
+
+**Option 2 — Manual configuration in `~/.codex/config.toml` (Client Mode via `npx`):**
+
+```toml
+[mcp_servers.synapse-hub]
+command = "npx"
+args = ["-y", "@teevee98/synapse-hub", "mcp"]
+# Windows note: if Codex cannot resolve `npx` on PATH, set command = "npx.cmd"
+
+[mcp_servers.synapse-hub.env]
+PYTHONIOENCODING = "utf-8"
+SYNAPSE_MODE = "client"
+```
+
+*Or register via Codex CLI / run directly from a local Hub checkout:*
+
+```bash
+codex mcp add synapse-hub -- npx -y @teevee98/synapse-hub mcp
+```
+
+```toml
+# Local Synapse Hub repository (.codex/config.toml):
+[mcp_servers.synapse-hub]
+command = "python"
+args = ["tools/mcp/mcp_server.py"]
+
+[mcp_servers.synapse-hub.env]
+PYTHONIOENCODING = "utf-8"
+SYNAPSE_MODE = "hub"
+```
+
+---
+
 ## 3. Verifying Connection
 
 Run the following commands to confirm MCP server availability:

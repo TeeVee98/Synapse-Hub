@@ -2,7 +2,7 @@
   "schema_version": "1.1.0",
   "harness_architecture": "Anthropic-Compliant Dual-State Anchor",
   "project": "Synapse Hub",
-  "last_sync": "2026-11-27 09:27:48",
+  "last_sync": "2026-11-27 10:10:18 UTC",
   "overall_status": "READY",
   "active_goal": "Continue autonomous QA workflow",
   "tasks": [
@@ -26,7 +26,7 @@
     },
     {
       "id": "task-4",
-      "title": "Codebase regression test suite verified (192 passed tests)",
+      "title": "Codebase regression test suite verified (151 passed tests)",
       "completed": true,
       "status": "COMPLETED"
     },
@@ -41,7 +41,14 @@
   "decisions": [],
   "quality_verification": {
     "ten_quality_gates": "10 PASS / 1 HEURISTIC / 0 SKIPPED",
-    "clean_pom_integrity": "VERIFIED"
+    "clean_pom_integrity": "VERIFIED",
+    "universal_invariants_count": 17,
+    "rule_prefix_tokens": 2785,
+    "rule_total_tokens": 3424,
+    "rule_prefix_hash": "26a2ffbdc04f67613c87483c3f9dca75a29a269c6d4bc98a6a38159c48fcbff0",
+    "kv_cache_min_pct": 85.0,
+    "kv_cache_baseline_pct": 81.34,
+    "kv_cache_baseline_passed": false
   },
   "shift_change_metadata": {
     "state_anchor_version": "1.1.0",

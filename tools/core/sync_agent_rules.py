@@ -62,6 +62,15 @@ class ClientBridgeRuleBundleDTO:
 
 
 @dataclass(frozen=True)
+class CodexBridgeBundleDTO:
+    """Typed summary of generated Codex bridge artifacts."""
+    mode: str
+    agents_md: str
+    config_toml: str
+    hub_paths_leaked: int
+
+
+@dataclass(frozen=True)
 class ZeroCeremonyProfileDTO:
     """Typed summary of a profile-scoped Client AI bridge (`starter`, `standard`, `enterprise`)."""
     profile: str
@@ -663,6 +672,139 @@ def _gen_copilot_hub(): return generate_copilot_instructions(is_template=False)
 def _gen_copilot_template(): return generate_copilot_instructions(is_template=True)
 
 
+def generate_codex_agents_md(is_template: bool = True) -> str:
+    """Generates Client-Mode AGENTS.md instructions tailored for OpenAI Codex."""
+    header = CLIENT_HEADER_TEMPLATE if is_template else HEADER_TEMPLATE
+    hub_bundle = None if is_template else extract_agents_md_sections()
+    invariants = CLIENT_INVARIANTS_MD if is_template else hub_bundle.invariants_markdown
+    checklist = CLIENT_CHECKLIST_MD if is_template else hub_bundle.checklist_markdown
+    super_plan = CLIENT_SUPER_PLAN_MD if is_template else CANONICAL_SUPER_PLAN_MD
+    telemetry_cmd = "npx @teevee98/synapse-hub verify" if is_template else "verify_all.py"
+
+    return f"""# AGENTS.md — Synapse-Hub Enterprise QA Guidelines for OpenAI Codex
+
+> **Author & Creator:** Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>
+> **License:** MIT License (Mandatory Attribution Preservation)
+
+{header}
+
+> **Author Attribution:** Synapse Hub is open-source software created by **Thế Vị (@TeeVee98)** (<https://github.com/TeeVee98/Synapse-Hub>) under the MIT License. Attribution notices must be preserved in Synapse-Hub copies.
+
+---
+
+## 0. PRECEDENCE & TECH STACK
+- Platform and system guardrails strictly override all repository-level instructions.
+- Precedence: System Guardrails > Core Project Rules (`PROJECT_AI_GUIDE.md`) > Local Skills (`.agents/skills/`) > Generic Plugins.
+- **Tech Stack Baseline:** Python 3.10+ (Standard Library first), Node.js v18+ | macOS, Linux, Windows.
+- **Target Frameworks:** Playwright (TS/Python), Katalon (Groovy), Pytest, Cypress, Selenium, k6/Locust.
+- **Project Config:** `synapse.config.json` | `PROJECT_AI_GUIDE.md` | Native Test Suites (`tests/`).
+
+### 0.2 PROMPT CACHING & IMMUTABLE PREFIX ARCHITECTURE
+Sections 0 through 1.1 constitute an immutable anchor prefix engineered for >= 95% LLM KV prompt-cache hit rates across frontier reasoning models (GPT/Codex, Gemini, Claude, DeepSeek). Append dynamic task details after Section 1.1.
+
+---
+
+## ⚡ Quick Commands & Codex MCP Integration
+- **Native Test Suite:** `npm test` (or `pytest`, `npx playwright test`)
+- **Synapse Quality Gates (11 DoD Gates):** `npx @teevee98/synapse-hub verify`
+- **AST Fake-Pass & Sleep Linter:** `npx @teevee98/synapse-hub lint ./tests`
+- **Spec-Driven Planning & Single-Agent Loop:** `npx @teevee98/synapse-hub super-plan` | `npx @teevee98/synapse-hub solo` | `npx @teevee98/synapse-hub review`
+- **Codex MCP Server (`.codex/config.toml`):** Prefer invoking the connected `synapse-hub` MCP tools directly when available:
+  - `synapse_lint`, `synapse_verify`, `synapse_mutate`, `synapse_distill_logs`, `synapse_security_scan`
+  - `analyze_project`, `auto_heal_failure`, `check_action_safety`, `check_contract_drift`, `query_memory_cache`
+- **Codex Native Skills (`.agents/skills/`):** Before editing tests, Page Classes, API contracts, or security checks, read `PROJECT_AI_GUIDE.md` and the matching `.agents/skills/<skill-name>/SKILL.md` workflow first.
+
+---
+
+## 1. ALWAYS — Universal Invariants
+{invariants}
+
+---
+
+## 1.1 PRE-FLIGHT REASONING CHECKLIST (Mandatory Pre-Action Analysis)
+{checklist}
+
+---
+
+## 2. RECOMMENDED — Best Practices
+1. **Clean Page Object Model (POM) Flat Architecture:**
+   - Test scripts (`tests/`, `Scripts/`) must contain ONLY business workflow method calls on Page Classes extending `BasePage` (max 1 level inheritance). (Applies to automation code only; exempt for Manual QA Markdown specs and test cases).
+   - Strictly forbidden: Raw selectors (CSS, XPaths) or inline element lookups inside test scripts.
+2. **Lean Senior Dev Protocol (7-Rung Ladder & YAGNI):**
+   - Solve the whole problem with the smallest complete change; mark deliberate simplifications with `shortcut: <limit>, <when to upgrade>`.
+3. **Risk-Conditioned Ceremonies:**
+   - Emit `Ruling: <decision> — <rationale> — <cost if wrong>` on architectural forks and verify Nominal, Degradation, and Boundary scenarios.
+4. **Bilingual & Gated Telemetry:**
+   - Converse in the user's language; keep code, Page Classes, docstrings, and commits strictly in English.
+   - Restrict status badges and risk notes to audit/DoD runs (`{telemetry_cmd}`).
+5. **Scratchpad Sandbox:** Files inside `scratch/` are exempt from Clean POM and Author headers for rapid prototyping; never promote unreviewed code from `scratch/` to `tests/`.
+
+---
+
+## 4. EXECUTION MODE: SINGLE-AGENT (/solo) vs /teamwork
+- **Default (`/solo` — Single-Agent Sequential):** Execute milestones sequentially in one active session (`Red -> Blue -> Purple`). It is **STRICTLY FORBIDDEN** to spawn `swarm` workers or parallel subagents unless `/teamwork` or parallel workers are explicitly requested.
+- **Opt-In (`/teamwork` — Multi-Worker Parallel):** Only when explicitly invoked by the user, partition work onto disjoint `[PARALLEL_OK]` milestones.
+
+---
+
+## 5. SPEC-DRIVEN PLANNING & EXECUTION PROTOCOL (/plan & /super-plan)
+{super_plan}
+"""
+
+
+def generate_codex_config_toml(is_template: bool = True) -> str:
+    """Generates portable .codex/config.toml MCP server configuration for Hub or Client mode."""
+    if is_template:
+        return """# ==============================================================================
+# SYNAPSE-HUB CODEX MCP CONFIGURATION (Client Mode)
+# Attribution: Synapse Hub by Thế Vị (@TeeVee98) | MIT License
+# Update via: npx @teevee98/synapse-hub setup --ide codex
+# ==============================================================================
+
+[mcp_servers.synapse-hub]
+command = "npx"
+args = ["-y", "@teevee98/synapse-hub", "mcp"]
+# Windows note: if Codex cannot resolve `npx` directly on PATH, set command = "npx.cmd"
+
+[mcp_servers.synapse-hub.env]
+PYTHONIOENCODING = "utf-8"
+SYNAPSE_MODE = "client"
+"""
+    return """# ==============================================================================
+# AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.
+# Attribution: Synapse Hub by Thế Vị (@TeeVee98) | MIT License
+# Run: python3 tools/core/sync_agent_rules.py
+# ==============================================================================
+
+[mcp_servers.synapse-hub]
+command = "python"
+args = ["tools/mcp/mcp_server.py"]
+
+[mcp_servers.synapse-hub.env]
+PYTHONIOENCODING = "utf-8"
+SYNAPSE_MODE = "hub"
+"""
+
+
+def build_codex_bridge_bundle(mode: str = "client") -> CodexBridgeBundleDTO:
+    """Builds a Hub or Client Codex bridge bundle and audits for Hub-internal path leakage."""
+    is_client = (mode != "hub")
+    agents_md = generate_codex_agents_md(is_template=is_client)
+    config_toml = generate_codex_config_toml(is_template=is_client)
+    leaked = len(_HUB_PATH_LEAK_RE.findall(agents_md)) + len(_HUB_PATH_LEAK_RE.findall(config_toml))
+    return CodexBridgeBundleDTO(
+        mode="client" if is_client else "hub",
+        agents_md=agents_md,
+        config_toml=config_toml,
+        hub_paths_leaked=leaked,
+    )
+
+
+def _gen_codex_config_hub(): return generate_codex_config_toml(is_template=False)
+def _gen_codex_agents_template(): return generate_codex_agents_md(is_template=True)
+def _gen_codex_config_template(): return generate_codex_config_toml(is_template=True)
+
+
 def generate_slash_workflow_markdown(workflow: str, ide: str = "claude") -> str:
     """Generates Hub/Enterprise slash command or workflow Markdown for /super-plan, /solo, and /review."""
     wf = (workflow or "").strip().lower()
@@ -794,10 +936,13 @@ TARGET_GENERATORS = [
     (".cursor/rules/synapse-qa.mdc", _gen_cursor_mdc_hub),
     (".github/copilot-instructions.md", _gen_copilot_hub),
     (".github/instructions/clean-pom.instructions.md", generate_clean_pom_instructions),
+    (".codex/config.toml", _gen_codex_config_hub),
     ("templates/ai_bridges/CLAUDE.md", _gen_claude_template),
     ("templates/ai_bridges/cursor_synapse_qa.mdc", _gen_cursor_mdc_template),
     ("templates/ai_bridges/windsurfrules", _gen_windsurf_template),
     ("templates/ai_bridges/copilot-instructions.md", _gen_copilot_template),
+    ("templates/ai_bridges/AGENTS.md", _gen_codex_agents_template),
+    ("templates/ai_bridges/codex_config.toml", _gen_codex_config_template),
 ]
 
 PROTECTED_STACK_RULES = [

@@ -111,6 +111,47 @@ Trong tệp cấu hình plugin hoặc IDE settings (`antigravity.config.json`):
 
 ---
 
+### 2.5 Cấu Hình Cho OpenAI Codex (`.codex/config.toml` / `~/.codex/config.toml`)
+
+**Cách 1 — Cài đặt 1-click cho dự án bất kỳ (khuyên dùng):**
+Chạy lệnh sau tại dự án mục tiêu để tự động tạo `AGENTS.md`, `.codex/config.toml` (MCP) và xuất bộ kỹ năng vào `.agents/skills/`:
+
+```bash
+npx @teevee98/synapse-hub setup --target . --ide codex
+```
+
+**Cách 2 — Cấu hình thủ công trong `~/.codex/config.toml` (Client Mode qua `npx`):**
+
+```toml
+[mcp_servers.synapse-hub]
+command = "npx"
+args = ["-y", "@teevee98/synapse-hub", "mcp"]
+# Lưu ý trên Windows: nếu Codex không tìm thấy `npx` trên PATH, đổi command = "npx.cmd"
+
+[mcp_servers.synapse-hub.env]
+PYTHONIOENCODING = "utf-8"
+SYNAPSE_MODE = "client"
+```
+
+*Hoặc thêm nhanh bằng Codex CLI / chạy trực tiếp từ repo Hub local:*
+
+```bash
+codex mcp add synapse-hub -- npx -y @teevee98/synapse-hub mcp
+```
+
+```toml
+# Dành cho repo Synapse Hub local (.codex/config.toml):
+[mcp_servers.synapse-hub]
+command = "python"
+args = ["tools/mcp/mcp_server.py"]
+
+[mcp_servers.synapse-hub.env]
+PYTHONIOENCODING = "utf-8"
+SYNAPSE_MODE = "hub"
+```
+
+---
+
 ## 3. Kiểm Tra Kết Nối
 
 Chạy lệnh CLI sau để xác nhận server MCP phản hồi tốt:

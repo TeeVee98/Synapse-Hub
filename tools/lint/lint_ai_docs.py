@@ -328,6 +328,10 @@ def lint_docs(repo_root):
             continue
 
         doc_normalized = doc.replace("\\", "/")
+        is_managed_skill_doc = (
+            doc_normalized.startswith(".agents/skills/")
+            and os.path.isfile(os.path.join(repo_root, ".agents", "skills", ".synapse-managed.json"))
+        )
         is_historical = (
             "FINAL_REPORT.md" in doc_normalized
             or "POM_REFACTORING_PLAN.md" in doc_normalized
@@ -343,7 +347,7 @@ def lint_docs(repo_root):
                 for m in page_pattern.finditer(line):
                     pname = m.group(1)
                     if pname not in actual_pages and pname not in GENERIC_PAGES:
-                        if is_historical:
+                        if is_historical or is_managed_skill_doc:
                             continue
                         errors.append(f"[{doc}:{line_no}] Non-existent Page Class referenced: '{pname}' (Must be one of {sorted(actual_pages)})")
 
@@ -353,7 +357,7 @@ def lint_docs(repo_root):
                     sname = m.group(1)
                     if "xxx" in sname.lower() or "example" in sname.lower():
                         continue
-                    if is_historical:
+                    if is_historical or is_managed_skill_doc:
                         continue
                     if sname not in actual_suites:
                         errors.append(f"[{doc}:{line_no}] Non-existent Test Suite referenced: '{sname}'")
@@ -373,7 +377,7 @@ def lint_docs(repo_root):
                         errors.append(f"[{doc}:{line_no}] Non-existent tool script referenced: '{tool_path}'")
 
             # 4. Test Case Validation (Only strictly enforced if repository defines Test Cases)
-            if actual_cases and not is_historical:
+            if actual_cases and not (is_historical or is_managed_skill_doc):
                 # 4a. Validate TC-xxx numeric range
                 for m in tc_id_pattern.finditer(line):
                     tcid = m.group(1)

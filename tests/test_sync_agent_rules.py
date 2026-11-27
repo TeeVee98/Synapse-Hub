@@ -43,8 +43,8 @@ from tools.lint.lint_cache_prefix import run_prefix_lint
 class TestSyncAgentRules(unittest.TestCase):
 
     def test_target_generators_registry(self):
-        """Verifies TARGET_GENERATORS contains all 10 canonical bridge paths."""
-        self.assertEqual(len(sar.TARGET_GENERATORS), 10)
+        """Verifies TARGET_GENERATORS contains all 13 canonical bridge paths."""
+        self.assertEqual(len(sar.TARGET_GENERATORS), 13)
         paths = [rel_path for rel_path, _ in sar.TARGET_GENERATORS]
         self.assertIn("CLAUDE.md", paths)
         self.assertIn(".cursorrules", paths)
@@ -52,10 +52,13 @@ class TestSyncAgentRules(unittest.TestCase):
         self.assertIn(".cursor/rules/synapse-qa.mdc", paths)
         self.assertIn(".github/copilot-instructions.md", paths)
         self.assertIn(".github/instructions/clean-pom.instructions.md", paths)
+        self.assertIn(".codex/config.toml", paths)
         self.assertIn("templates/ai_bridges/CLAUDE.md", paths)
         self.assertIn("templates/ai_bridges/cursor_synapse_qa.mdc", paths)
         self.assertIn("templates/ai_bridges/windsurfrules", paths)
         self.assertIn("templates/ai_bridges/copilot-instructions.md", paths)
+        self.assertIn("templates/ai_bridges/AGENTS.md", paths)
+        self.assertIn("templates/ai_bridges/codex_config.toml", paths)
 
     def test_generate_claude_md(self):
         content = sar.generate_claude_md(is_template=False)
@@ -111,6 +114,8 @@ class TestSyncAgentRules(unittest.TestCase):
             os.path.join(REPO_ROOT, "templates", "ai_bridges", "cursor_synapse_qa.mdc"),
             os.path.join(REPO_ROOT, "templates", "ai_bridges", "windsurfrules"),
             os.path.join(REPO_ROOT, "templates", "ai_bridges", "copilot-instructions.md"),
+            os.path.join(REPO_ROOT, "templates", "ai_bridges", "AGENTS.md"),
+            os.path.join(REPO_ROOT, "templates", "ai_bridges", "codex_config.toml"),
         ]
         forbidden_hub_leaks = [
             "tools/core/",
@@ -447,11 +452,38 @@ class TestSyncAgentRules(unittest.TestCase):
             sar.generate_windsurfrules(is_template=False),
             sar.generate_cursor_mdc(is_template=False),
             sar.generate_copilot_instructions(is_template=False),
+            sar.generate_codex_agents_md(is_template=True),
         ):
             self.assertIn("/solo", gen_text)
             self.assertNotIn("/solo-swarm", gen_text)
             self.assertIn("/teamwork", gen_text)
             self.assertRegex(gen_text.lower(), r"forbid.*swarm|no `swarm` workers|without spawning `swarm`")
+
+    def test_generate_codex_agents_md_and_config_toml(self):
+        """Verifies Codex Client AGENTS.md and Hub/Client .codex/config.toml generators."""
+        agents_client = sar.generate_codex_agents_md(is_template=True)
+        self.assertIn("Thế Vị (@TeeVee98)", agents_client)
+        self.assertIn("MIT License", agents_client)
+        self.assertIn("Clean Page Object Model (POM)", agents_client)
+        self.assertIn("Truth Anchor", agents_client)
+        self.assertIn(".agents/skills/", agents_client)
+        self.assertIn("synapse_verify", agents_client)
+        self.assertIn("synapse_lint", agents_client)
+        self.assertIn("npx @teevee98/synapse-hub verify", agents_client)
+        self.assertNotIn("tools/core/", agents_client)
+
+        toml_client = sar.generate_codex_config_toml(is_template=True)
+        self.assertIn("[mcp_servers.synapse-hub]", toml_client)
+        self.assertIn('command = "npx"', toml_client)
+        self.assertIn("@teevee98/synapse-hub", toml_client)
+        self.assertIn("PYTHONIOENCODING", toml_client)
+        self.assertIn("MIT License", toml_client)
+
+        toml_hub = sar.generate_codex_config_toml(is_template=False)
+        self.assertIn("[mcp_servers.synapse-hub]", toml_hub)
+        self.assertIn("tools/mcp/mcp_server.py", toml_hub)
+        self.assertNotIn("D:/", toml_hub)
+        self.assertIn("MIT License", toml_hub)
 
     def test_solo_skill_and_slash_workflows_enforce_strict_solo_auto_review(self):
         """Solo SKILL.md and synced slash commands require --strict-solo (with --milestone and --no-review notes)."""

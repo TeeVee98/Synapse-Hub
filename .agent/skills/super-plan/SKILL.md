@@ -29,10 +29,10 @@ policies:
 > **Governing Invariant:** *"Read First – Plan Later"* (AGENTS.md §5). Strictly forbid guessing code structure or inventing interfaces without physical inspection.
 
 0. **Pre-Plan Model & Thinking Fit Gate (`assess_pre_plan_model_fit`):**
-   - Evaluate the prompt's scope/risk against the active model and thinking level (`UNDER_PROVISIONED` / `RIGHT_SIZED` / `OVER_PROVISIONED`):
-     - **Under-provisioned** (e.g., Tier 1/2 architectural `/super-plan` on `Flash` or `Hydrogen Low/Medium`): Advise upgrading to `Gemini 4 Neon (High)` (or `Hydrogen High` for Tier 1) before drafting.
+   - Auto-detects the active AI host (`Antigravity`, `Codex`, or `Claude Code` via runtime env/workspace, or explicit `--host`) and evaluates the prompt's scope/risk against the active model and thinking/reasoning level (`UNDER_PROVISIONED` / `RIGHT_SIZED` / `OVER_PROVISIONED`):
+     - **Under-provisioned** (e.g., Tier 1/2 architectural `/super-plan` on `Flash`/`Hydrogen Low/Medium`, Codex `GPT-6-Luna`/`Sol medium`, or Claude `Haiku 5.5`/`Sonnet 5.5 medium`): Advise upgrading before drafting — `Gemini 4 Neon (High)` (`Hydrogen High` for Tier 1) on Antigravity; `GPT-6.2-Astra (Reasoning: high / xhigh)` (`GPT-6.2-Sol (Reasoning: high)` for Tier 1) on Codex; `Claude Opus 5.5 / Fable 5.2 (Effort: high / xhigh)` (`Claude Sonnet 5.5 (Effort: high)` for Tier 1) on Claude Code.
      - **Right-sized**: Proceed directly to Risk-Routing & AST Recon.
-     - **Over-provisioned** (e.g., Tier 0 `<= 2`-file micro-plan on `Neon High` / `Carbon`): Propose stepping down to `Gemini 4 Hydrogen (Medium)` to conserve tokens.
+     - **Over-provisioned** (e.g., Tier 0 `<= 2`-file micro-plan on `Neon High`/`Carbon`/`Argon`, Codex `GPT-6.2-Astra`, or Claude `Opus 5.5`/`Fable 5.2`): Propose stepping down (`Gemini 4 Hydrogen (Medium)` / `GPT-6-Luna / GPT-6.2-Sol (Reasoning: medium)` / `Claude Sonnet 5.5 (Effort: medium)`) to conserve tokens.
 1. **Deterministic Risk-Based Routing (`RiskScore` + 2-Hop Transitive Fan-In + `coupling_memory`):**
    - Execute `agent-qa super-plan route --task "<task>" --files <files...> --json` (0 LLM tokens):
      - Reads `project_state.json::coupling_memory`, computes 2-hop transitive dependents via `call_graph_indexer.py`, returns a collision-free `suggested_plan_path` (`.synapse/plans/<slug>.md`), and inspects `concurrency_status` (`CLEAN` vs `CONCURRENT_SESSION_DETECTED`).

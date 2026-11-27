@@ -91,7 +91,16 @@ def gate_9_skill_collision(repo_root: str, mode: str = "AUTO") -> bool:
         except (OSError, subprocess.SubprocessError) as m_err:
             safe_print(f"[WARN] Mechanical UI Finish Gate execution error: {m_err}")
 
-    # 3. Canonical Skills Lockfile & Content Hash Integrity Verification
+    # 3. Canonical Skills Lockfile & Content Hash Integrity Verification (Hub Mode only)
+    is_hub_repo = (
+        (mode or "AUTO").upper() == "HUB"
+        or os.path.exists(manifest_file)
+        or os.path.isdir(os.path.join(repo_root, "tools", "core"))
+    )
+    if not is_hub_repo:
+        print("[PASS] Target project mode: Hub canonical skills-lock.json not required (SKIPPED).")
+        return True
+
     try:
         from skill_canonical_digest import validate_lockfile_integrity
         lock_ok, lock_msg = validate_lockfile_integrity(repo_root, enforce_content_hash=True)

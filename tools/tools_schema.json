@@ -2685,6 +2685,28 @@
           "required": false,
           "help": "List of candidate files"
         },
+        "--profile": {
+          "type": "string",
+          "choices": [
+            "code",
+            "manual"
+          ],
+          "default": "code",
+          "required": false,
+          "help": "Planning profile: code (default) or manual"
+        },
+        "--host": {
+          "type": "string",
+          "choices": [
+            "auto",
+            "antigravity",
+            "codex",
+            "claude"
+          ],
+          "default": "auto",
+          "required": false,
+          "help": "AI host override for model recommendations (default auto)"
+        },
         "--repo-root": {
           "type": "string",
           "required": false,
@@ -2723,16 +2745,6 @@
           "default": "solo",
           "required": false,
           "help": "Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork"
-        },
-        "--profile": {
-          "type": "string",
-          "choices": [
-            "code",
-            "manual"
-          ],
-          "default": "code",
-          "required": false,
-          "help": "Planning/validation profile: code (default), manual, or auto"
         },
         "--tournament": {
           "type": "boolean",

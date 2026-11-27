@@ -377,6 +377,17 @@ def perform_update(silent=False):
         if not silent:
             print(f"  ⚠️ Cache sync notice: {e}")
 
+    # 3b. Auto-sync managed Codex skills in current workspace if stale
+    try:
+        from tools.core import setup_project
+        sync_res = setup_project.auto_sync_codex_skills_if_stale(os.getcwd())
+        if sync_res.get("synced") and not silent:
+            print(
+                f"  {GREEN}[OK] Auto-synced {sync_res.get('installed_count', 0)} Codex skills in .agents/skills/.{RESET}"
+            )
+    except Exception as err:
+        sys.stderr.write(f"[update_sentinel] Codex skills auto-sync notice: {err}\n")
+
     # Clear update cache so banner dismisses
     new_local_ver = get_local_version()
     cache = {

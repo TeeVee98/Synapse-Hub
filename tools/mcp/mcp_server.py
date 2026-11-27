@@ -902,6 +902,10 @@ def process_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 def run_stdio_server():
     """Runs the MCP server over standard input/output."""
+    try:
+        setup_project.auto_sync_codex_skills_if_stale()
+    except Exception as exc:
+        logger.debug("Auto-sync Codex skills skipped on MCP startup: %s", exc)
     while True:
         try:
             line = sys.stdin.readline()

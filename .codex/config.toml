@@ -1,0 +1,13 @@
+# ==============================================================================
+# AUTO-GENERATED FROM AGENTS.md — DO NOT EDIT DIRECTLY.
+# Attribution: Synapse Hub by Thế Vị (@TeeVee98) | MIT License
+# Run: python3 tools/core/sync_agent_rules.py
+# ==============================================================================
+
+[mcp_servers.synapse-hub]
+command = "python"
+args = ["tools/mcp/mcp_server.py"]
+
+[mcp_servers.synapse-hub.env]
+PYTHONIOENCODING = "utf-8"
+SYNAPSE_MODE = "hub"

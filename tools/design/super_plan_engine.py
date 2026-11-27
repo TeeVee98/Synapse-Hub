@@ -133,6 +133,7 @@ class RiskMetricDTO:
     transitive_fan_in: int = 0
     coupling_memory_penalty: float = 0.0
     recommended_model: str = ""
+    detected_host: str = ""
 
     @property
     def risk_score(self) -> float:
@@ -202,6 +203,7 @@ def calculate_risk_routing(
     target_files: Optional[List[str]] = None,
     repo_root: str = _REPO_ROOT,
     profile: str = "code",
+    host: Optional[str] = None,
 ) -> Tuple[PlanningTier, RiskMetricDTO]:
     """Calculates deterministic RiskScore (0 LLM token) and routes to optimal planning tier."""
     if profile not in ("code", "manual"):
@@ -322,7 +324,8 @@ def calculate_risk_routing(
     else:
         tier = PlanningTier.TIER_2_DEEP
 
-    rec_model, _ = _recommend_execution_profile(tier)
+    resolved_host = detect_active_host(repo_root=repo_root, host=host)
+    rec_model, _ = _recommend_execution_profile(tier, host=resolved_host)
     metric = RiskMetricDTO(
         fan_in=fan_in,
         cross_boundary=cross_boundary,
@@ -336,6 +339,7 @@ def calculate_risk_routing(
         transitive_fan_in=transitive_fan_in,
         coupling_memory_penalty=coupling_memory_penalty,
         recommended_model=rec_model,
+        detected_host=resolved_host,
     )
 
     return tier, metric
@@ -792,46 +796,244 @@ def _format_cognitive_grounding_block(brief: Dict[str, Any]) -> str:
     )
 
 
-def _recommend_execution_profile(tier: PlanningTier) -> Tuple[str, str]:
-    """Selects a single recommended model and thinking level for the plan tier."""
-    if tier == PlanningTier.TIER_0_FAST:
-        return (
-            "Gemini 4 Hydrogen (Medium)",
-            "Low-risk <= 2-file change; Medium thinking balances turnaround speed and accuracy.",
-        )
-    if tier == PlanningTier.TIER_2_DEEP:
-        return (
-            "Gemini 4 Neon (High)",
-            "High-risk / multi-module DAG; High thinking prevents architectural and concurrency drift.",
-        )
-    return (
+_HOST_ALIASES: Dict[str, str] = {
+    "antigravity": "antigravity",
+    "agy": "antigravity",
+    "gemini": "antigravity",
+    "codex": "codex",
+    "openai-codex": "codex",
+    "openai": "codex",
+    "claude": "claude",
+    "claude-code": "claude",
+    "claudecode": "claude",
+    "anthropic": "claude",
+}
+
+_CODEX_ENV_VARS = (
+    "CODEX_THREAD_ID",
+    "CODEX_CI",
+    "CODEX_SANDBOX",
+    "CODEX_SANDBOX_NETWORK_DISABLED",
+    "CODEX_MANAGED_BY_NPM",
+    "CODEX_MANAGED_BY_BUN",
+    "CODEX_HOME",
+    "CODEX_MODEL",
+    "OPENAI_CODEX",
+)
+
+_CLAUDE_ENV_VARS = (
+    "CLAUDECODE",
+    "CLAUDE_CODE_ENTRYPOINT",
+    "CLAUDE_CODE_SESSION_ID",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS",
+    "CLAUDE_MODEL",
+)
+
+_ANTIGRAVITY_ENV_VARS = (
+    "ANTIGRAVITY_AGENT",
+    "ANTIGRAVITY_CLI_ALIAS",
+    "AGY_ACCOUNT",
+)
+
+_HOST_EXECUTION_PROFILES: Dict[Tuple[str, PlanningTier], Tuple[str, str]] = {
+    ("antigravity", PlanningTier.TIER_0_FAST): (
+        "Gemini 4 Hydrogen (Medium)",
+        "Low-risk <= 2-file change; Medium thinking balances turnaround speed and accuracy.",
+    ),
+    ("antigravity", PlanningTier.TIER_1_STANDARD): (
         "Gemini 4 Hydrogen (High)",
         "Standard multi-step Single-Agent /solo plan; High thinking ensures Red->Blue->Purple rigor.",
+    ),
+    ("antigravity", PlanningTier.TIER_2_DEEP): (
+        "Gemini 4 Neon (High)",
+        "High-risk / multi-module DAG; High thinking prevents architectural and concurrency drift.",
+    ),
+    ("codex", PlanningTier.TIER_0_FAST): (
+        "GPT-6-Luna / GPT-6.2-Sol (Reasoning: medium)",
+        "Low-risk <= 2-file change; medium reasoning effort balances turnaround speed and accuracy.",
+    ),
+    ("codex", PlanningTier.TIER_1_STANDARD): (
+        "GPT-6.2-Sol (Reasoning: high)",
+        "Standard multi-step Single-Agent /solo plan; high reasoning ensures Red->Blue->Purple rigor.",
+    ),
+    ("codex", PlanningTier.TIER_2_DEEP): (
+        "GPT-6.2-Astra (Reasoning: high / xhigh)",
+        "High-risk / multi-module DAG; Astra with high/xhigh reasoning prevents architectural and concurrency drift.",
+    ),
+    ("claude", PlanningTier.TIER_0_FAST): (
+        "Claude Sonnet 5.5 (Effort: medium)",
+        "Low-risk <= 2-file change; medium effort balances turnaround speed and accuracy.",
+    ),
+    ("claude", PlanningTier.TIER_1_STANDARD): (
+        "Claude Sonnet 5.5 (Effort: high)",
+        "Standard multi-step Single-Agent /solo plan; high effort ensures Red->Blue->Purple rigor.",
+    ),
+    ("claude", PlanningTier.TIER_2_DEEP): (
+        "Claude Opus 5.5 / Fable 5.2 (Effort: high / xhigh)",
+        "High-risk / multi-module DAG; Opus 5.5 / Fable 5.2 with high/xhigh effort prevents architectural and concurrency drift.",
+    ),
+}
+
+
+def _env_flag_active(name: str) -> bool:
+    val = os.environ.get(name, "").strip()
+    return bool(val) and val.lower() not in ("0", "false", "no")
+
+
+def _normalize_host_name(host: Optional[str]) -> Optional[str]:
+    if host is None:
+        return None
+    cleaned = str(host).strip().lower()
+    if not cleaned or cleaned == "auto":
+        return None
+    canonical = _HOST_ALIASES.get(cleaned)
+    if canonical is None:
+        raise ValueError(
+            f"Unsupported host '{host}'; expected 'auto', 'antigravity', 'codex', or 'claude'."
+        )
+    return canonical
+
+
+def _infer_host_from_model(active_model: Optional[str]) -> Optional[str]:
+    if not active_model or not str(active_model).strip():
+        return None
+    norm = str(active_model).strip().lower()
+    if re.search(
+        r"(?<![a-z0-9])(?:codex|gpt-[a-z0-9.-]+|astra|sol|luna|o1|o3(?:-pro|-mini)?|o4(?:-mini)?)(?![a-z0-9])",
+        norm,
+    ):
+        return "codex"
+    if re.search(r"(?<![a-z0-9])(?:claude|fable|mythos|opus|opusplan|sonnet|haiku)(?![a-z0-9])", norm):
+        return "claude"
+    if re.search(r"(?<![a-z0-9])(?:gemini|hydrogen|neon|carbon|argon|flash)(?![a-z0-9])", norm):
+        return "antigravity"
+    return None
+
+
+def detect_active_host(
+    repo_root: Optional[str] = None,
+    host: Optional[str] = None,
+    active_model: Optional[str] = None,
+) -> str:
+    """Auto-detects active AI host ('antigravity', 'codex', or 'claude') from CLI, env, model, or workspace."""
+    explicit = _normalize_host_name(host)
+    if explicit:
+        return explicit
+
+    env_host = _normalize_host_name(os.environ.get("SYNAPSE_HOST"))
+    if env_host:
+        return env_host
+
+    # Runtime session env vars take precedence (even inside an outer IDE terminal or multi-bridge repo)
+    if any(_env_flag_active(k) for k in _CODEX_ENV_VARS) or any(
+        k.startswith("CODEX_") and _env_flag_active(k) for k in os.environ
+    ):
+        return "codex"
+    if any(_env_flag_active(k) for k in _CLAUDE_ENV_VARS) or any(
+        k.startswith("CLAUDE_CODE_") and _env_flag_active(k) for k in os.environ
+    ):
+        return "claude"
+    if any(_env_flag_active(k) for k in _ANTIGRAVITY_ENV_VARS) or any(
+        k.startswith("ANTIGRAVITY_") and _env_flag_active(k) for k in os.environ
+    ):
+        return "antigravity"
+
+    model_host = _infer_host_from_model(active_model)
+    if model_host:
+        return model_host
+
+    # Client-workspace fallback (skip when .agent/skills marks a multi-bridge Hub/Antigravity checkout)
+    effective_root = repo_root or _REPO_ROOT
+    if effective_root and os.path.isdir(effective_root):
+        has_antigravity_skills = os.path.isdir(os.path.join(effective_root, ".agent", "skills"))
+        if not has_antigravity_skills:
+            if os.path.isfile(os.path.join(effective_root, ".codex", "config.toml")):
+                return "codex"
+            if os.path.isdir(os.path.join(effective_root, ".claude")) or os.path.isfile(
+                os.path.join(effective_root, "CLAUDE.md")
+            ):
+                return "claude"
+            if os.path.isdir(os.path.join(effective_root, ".agents", "skills")):
+                return "codex"
+
+    return "antigravity"
+
+
+def _classify_active_model_rank(active_model: str) -> int:
+    """Maps Antigravity, Codex/OpenAI, and Claude Code model strings to tier ranks 1..3."""
+    norm = active_model.strip().lower()
+
+    # Whole-word check prevents 'gemini' from matching 'mini'
+    if re.search(r"(?<![a-z0-9])(?:mini|nano|haiku|flash|luna)(?![a-z0-9])", norm):
+        return 1
+    if re.search(
+        r"(?:\((?:low|off|minimal|medium)\)|(?:reasoning|thinking|effort)\s*:\s*(?:low|off|minimal|medium)\b)",
+        norm,
+    ):
+        return 1
+
+    # Rank 3: Deep architectural & flagship / xhigh / max reasoning models
+    if re.search(
+        r"(?<![a-z0-9])(?:carbon|argon|opus|opusplan|fable|mythos|astra|xhigh|extra-high|ultra|o3-pro)(?![a-z0-9])|neon\s*\(?\s*high\b",
+        norm,
+    ):
+        return 3
+    if re.search(r"(?<![a-z0-9])(?:sonnet|sol)(?![a-z0-9])", norm) and re.search(
+        r"(?<![a-z0-9])(?:max|xhigh|extra-high)(?![a-z0-9])", norm
+    ):
+        return 3
+
+    # Rank 2: Standard high-capability workhorse models
+    if re.search(
+        r"(?<![a-z0-9])(?:sonnet|pro|sol|codex|gpt-6(?:\.\d+)?|gpt-5(?:\.\d+)?|o3|o1|o4)(?![a-z0-9])|(?:hydrogen\s*\(?\s*high|neon\s*\(?\s*medium)\b",
+        norm,
+    ):
+        return 2
+
+    return 1
+
+
+def _recommend_execution_profile(
+    tier: PlanningTier,
+    host: Optional[str] = None,
+    repo_root: Optional[str] = None,
+) -> Tuple[str, str]:
+    """Selects a host-aware recommended model and thinking/reasoning level for the plan tier."""
+    resolved_host = detect_active_host(repo_root=repo_root, host=host)
+    return _HOST_EXECUTION_PROFILES.get(
+        (resolved_host, tier),
+        _HOST_EXECUTION_PROFILES[("antigravity", PlanningTier.TIER_1_STANDARD)],
     )
 
 
 def assess_pre_plan_model_fit(
     tier: PlanningTier,
     active_model: Optional[str] = None,
+    host: Optional[str] = None,
+    repo_root: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Evaluates whether the active session model matches the required planning tier."""
-    rec_model, rationale = _recommend_execution_profile(tier)
-    if not active_model or not active_model.strip():
+    resolved_active = active_model
+    if resolved_active is None:
+        for env_key in ("SYNAPSE_ACTIVE_MODEL", "CODEX_MODEL", "ANTHROPIC_MODEL", "CLAUDE_MODEL"):
+            candidate = os.environ.get(env_key, "").strip()
+            if candidate:
+                resolved_active = candidate
+                break
+
+    resolved_host = detect_active_host(repo_root=repo_root, host=host, active_model=resolved_active)
+    rec_model, rationale = _recommend_execution_profile(tier, host=resolved_host, repo_root=repo_root)
+    if not resolved_active or not resolved_active.strip():
         return {
             "tier": tier.value,
+            "detected_host": resolved_host,
             "active_model": None,
             "recommended_model": rec_model,
             "fit_status": "UNSPECIFIED",
-            "advice": f"Recommended {rec_model} ({rationale}).",
+            "advice": f"[{resolved_host}] Recommended {rec_model} ({rationale}).",
         }
 
-    norm = active_model.strip().lower()
-    if any(tok in norm for tok in ("carbon", "neon (high)", "neon high", "opus")):
-        active_rank = 3
-    elif any(tok in norm for tok in ("hydrogen (high)", "hydrogen high", "neon (medium)", "neon medium", "sonnet", "pro")):
-        active_rank = 2
-    else:
-        active_rank = 1
+    active_rank = _classify_active_model_rank(resolved_active)
 
     required_rank = {
         PlanningTier.TIER_0_FAST: 1,
@@ -841,17 +1043,18 @@ def assess_pre_plan_model_fit(
 
     if active_rank < required_rank:
         fit_status = "UNDER_PROVISIONED"
-        advice = f"Upgrade from '{active_model}' to '{rec_model}' before drafting {tier.value} plan."
+        advice = f"[{resolved_host}] Upgrade from '{resolved_active}' to '{rec_model}' before drafting {tier.value} plan."
     elif tier == PlanningTier.TIER_0_FAST and active_rank >= 3:
         fit_status = "OVER_PROVISIONED"
-        advice = f"Consider stepping down from '{active_model}' to '{rec_model}' to conserve tokens."
+        advice = f"[{resolved_host}] Consider stepping down from '{resolved_active}' to '{rec_model}' to conserve tokens."
     else:
         fit_status = "RIGHT_SIZED"
-        advice = f"Active model '{active_model}' is right-sized for {tier.value}."
+        advice = f"[{resolved_host}] Active model '{resolved_active}' is right-sized for {tier.value}."
 
     return {
         "tier": tier.value,
-        "active_model": active_model,
+        "detected_host": resolved_host,
+        "active_model": resolved_active,
         "recommended_model": rec_model,
         "fit_status": fit_status,
         "advice": advice,
@@ -1125,6 +1328,7 @@ def _scaffold_manual_super_plan(
     handoff_target: str,
     decisions: Optional[Dict[str, str]],
     effective_root: str,
+    host: Optional[str] = None,
 ) -> str:
     """Generates a Manual QA Spec-Driven Super-Plan grounded in BRD requirements and 25-field rules."""
     from tools.manual.manual_pipeline_adapter import extract_manual_spec_inventory
@@ -1143,7 +1347,7 @@ def _scaffold_manual_super_plan(
     fields = inv.detected_fields if inv.detected_fields else ("text",)
     req_csv = ", ".join(f"`{r}`" for r in req_ids)
     fields_csv = ", ".join(f"`{fld}`" for fld in fields)
-    rec_model, rec_rationale = _recommend_execution_profile(tier)
+    rec_model, rec_rationale = _recommend_execution_profile(tier, host=host, repo_root=effective_root)
     amb_questions = check_ambiguities(task, decisions=decisions, profile="manual")
     unresolved = [q for q in amb_questions if not q.get("resolved_by_invariant", False)]
     amb_status = (
@@ -1254,6 +1458,7 @@ def scaffold_super_plan(
     decisions: Optional[Dict[str, str]] = None,
     repo_root: Optional[str] = None,
     profile: str = "code",
+    host: Optional[str] = None,
 ) -> str:
     """Generates a task-grounded, TDD-aligned Spec-Driven Super-Plan markdown draft."""
     if execution_mode not in ("solo", "teamwork"):
@@ -1276,9 +1481,9 @@ def scaffold_super_plan(
         )
 
     if tier is None:
-        tier, metric = calculate_risk_routing(task, target_files, repo_root=effective_root, profile=profile)
+        tier, metric = calculate_risk_routing(task, target_files, repo_root=effective_root, profile=profile, host=host)
     else:
-        _, metric = calculate_risk_routing(task, target_files, repo_root=effective_root, profile=profile)
+        _, metric = calculate_risk_routing(task, target_files, repo_root=effective_root, profile=profile, host=host)
 
     handoff_target = (plan_output_path or "implementation_plan.md").replace("\\", "/")
     mode_banner = (
@@ -1296,9 +1501,10 @@ def scaffold_super_plan(
             handoff_target=handoff_target,
             decisions=decisions,
             effective_root=effective_root,
+            host=host,
         )
 
-    rec_model, rec_rationale = _recommend_execution_profile(tier)
+    rec_model, rec_rationale = _recommend_execution_profile(tier, host=host, repo_root=effective_root)
     handoff_cmd = (
         f'"Read {handoff_target} and execute via /teamwork"'
         if is_teamwork
@@ -1791,6 +1997,7 @@ def run_super_plan_pipeline(
     repo_root: Optional[str] = None,
     decisions: Optional[Dict[str, str]] = None,
     profile: str = "code",
+    host: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Unified Super-Plan stage orchestrator chaining:
@@ -1840,11 +2047,14 @@ def run_super_plan_pipeline(
         return art
 
     # Stage 1: Route
-    computed_tier, metric = calculate_risk_routing(task, target_files, repo_root=effective_root, profile=profile)
+    computed_tier, metric = calculate_risk_routing(
+        task, target_files, repo_root=effective_root, profile=profile, host=host
+    )
     chosen_tier = tier or computed_tier
     route_payload = {
         "task": task,
         "profile": profile,
+        "detected_host": metric.detected_host,
         "tier": chosen_tier.value,
         "computed_tier": computed_tier.value,
         "risk_score": metric.risk_score,
@@ -1910,6 +2120,7 @@ def run_super_plan_pipeline(
         decisions=decisions,
         repo_root=effective_root,
         profile=profile,
+        host=host,
     )
     os.makedirs(os.path.dirname(resolved_plan_path), exist_ok=True)
     with open(resolved_plan_path, "w", encoding="utf-8") as fh:
@@ -2072,6 +2283,7 @@ def main() -> int:
     route_parser.add_argument("--task", required=True, help="Task description")
     route_parser.add_argument("--files", nargs="*", help="Candidate target files")
     route_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
+    route_parser.add_argument("--host", choices=["auto", "antigravity", "codex", "claude"], default="auto", help="AI host override for model recommendations (default auto)")
     route_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     route_parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
@@ -2089,6 +2301,7 @@ def main() -> int:
     scaff_parser.add_argument("--tier", choices=["fast", "standard", "deep", "auto"], default="auto", help="Planning tier override (default auto)")
     scaff_parser.add_argument("--execution-mode", choices=["solo", "teamwork"], default="solo", help="Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork")
     scaff_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
+    scaff_parser.add_argument("--host", choices=["auto", "antigravity", "codex", "claude"], default="auto", help="AI host override for model recommendations (default auto)")
     scaff_parser.add_argument("--tournament", action="store_true", help="Generate 3-way orthogonal tournament Trade-off Matrix")
     scaff_parser.add_argument("--decisions", help="Optional JSON or k=v,k2=v2 architectural decisions resolving Ambiguity Gate forks")
     scaff_parser.add_argument("--output", help="Optional output filepath to save plan (pass 'auto' for .synapse/plans/<slug>.md)")
@@ -2127,6 +2340,7 @@ def main() -> int:
     pipe_parser.add_argument("--tier", choices=["fast", "standard", "deep", "auto"], default="auto", help="Planning tier override (default auto)")
     pipe_parser.add_argument("--execution-mode", choices=["solo", "teamwork"], default="solo", help="Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork")
     pipe_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
+    pipe_parser.add_argument("--host", choices=["auto", "antigravity", "codex", "claude"], default="auto", help="AI host override for model recommendations (default auto)")
     pipe_parser.add_argument("--output", help="Optional output directory to persist pipeline stage artifacts")
     pipe_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     pipe_parser.add_argument("--threshold", type=float, default=90.0, help="Pass gate threshold (default 90.0)")
@@ -2163,13 +2377,15 @@ def _parse_tier_override(tier_arg: str) -> Optional[PlanningTier]:
 def _cli_handle_route(args: argparse.Namespace) -> int:
     target_root = _effective_cli_repo_root(getattr(args, "repo_root", None))
     profile = getattr(args, "profile", "code")
-    tier, metric = calculate_risk_routing(args.task, args.files, repo_root=target_root, profile=profile)
-    model_fit = assess_pre_plan_model_fit(tier)
+    host_arg = getattr(args, "host", "auto")
+    tier, metric = calculate_risk_routing(args.task, args.files, repo_root=target_root, profile=profile, host=host_arg)
+    model_fit = assess_pre_plan_model_fit(tier, host=host_arg, repo_root=target_root)
     concurrency = inspect_workspace_concurrency(target_root, task=args.task)
     if args.json:
         print(json.dumps({
             "task": args.task,
             "profile": profile,
+            "detected_host": metric.detected_host,
             "tier": tier.value,
             "risk_score": metric.risk_score,
             "recommended_model": metric.recommended_model,
@@ -2191,6 +2407,7 @@ def _cli_handle_route(args: argparse.Namespace) -> int:
         }, indent=2))
         return 0
     print(f"[RISK ROUTING] Task: '{args.task}'")
+    print(f"  -> Detected Host: {metric.detected_host}")
     print(f"  -> Planning Tier: {tier.value} (RiskScore: {metric.risk_score})")
     print(
         f"  -> Breakdown: FanIn={metric.fan_in}, TransitiveFanIn={metric.transitive_fan_in}, "
@@ -2290,6 +2507,7 @@ def _cli_handle_scaffold(args: argparse.Namespace) -> int:
         decisions=parsed_decisions or None,
         repo_root=target_root,
         profile=profile,
+        host=getattr(args, "host", "auto"),
     )
     if resolved_out:
         os.makedirs(os.path.dirname(resolved_out), exist_ok=True)
@@ -2385,6 +2603,7 @@ def _cli_handle_run_pipeline(args: argparse.Namespace) -> int:
             repo_root=target_root,
             decisions=parsed_decisions or None,
             profile=getattr(args, "profile", "code"),
+            host=getattr(args, "host", "auto"),
         )
     except ValueError as exc:
         if args.json:

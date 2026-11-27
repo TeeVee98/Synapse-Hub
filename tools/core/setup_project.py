@@ -36,9 +36,11 @@ except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
 
 import os
 import sys
+import hashlib
 import json
 import shutil
 import argparse
+from dataclasses import dataclass
 from pathlib import Path
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
@@ -518,12 +520,238 @@ def inject_antigravity_global_plugin():
         return False
 
 
+@dataclass(frozen=True)
+class CodexSkillDeployResultDTO:
+    """Typed result of deploying Synapse skills into target .agents/skills/."""
+    installed_skills: list
+    skipped_existing: list
+    target_dir: str
+
+
+def _normalize_skill_frontmatter(raw_text: str) -> str:
+    """Ensures YAML frontmatter delimiter '---' starts on line 1 for Codex skill discovery."""
+    stripped = raw_text.lstrip("\ufeff \t\r\n")
+    if stripped.startswith("---"):
+        return stripped
+    if stripped.startswith("<!--"):
+        end_comment = stripped.find("-->")
+        if end_comment != -1:
+            comment_block = stripped[: end_comment + 3]
+            remainder = stripped[end_comment + 3 :].lstrip("\r\n")
+            if remainder.startswith("---"):
+                end_fm = remainder.find("\n---", 3)
+                if end_fm != -1:
+                    fm_block = remainder[: end_fm + 4]
+                    body = remainder[end_fm + 4 :].lstrip("\r\n")
+                    return f"{fm_block}\n{comment_block}\n\n{body}"
+    return raw_text
+
+
+def _copy_skill_package(src_dir: str, dst_dir: str) -> None:
+    """Copies a single skill directory while normalizing SKILL.md frontmatter."""
+    os.makedirs(dst_dir, exist_ok=True)
+    for entry in os.listdir(src_dir):
+        if entry in ("__pycache__", ".DS_Store") or entry.endswith((".pyc", ".tmp")):
+            continue
+        src_entry = os.path.join(src_dir, entry)
+        dst_entry = os.path.join(dst_dir, entry)
+        if os.path.isdir(src_entry):
+            shutil.copytree(
+                src_entry,
+                dst_entry,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.tmp"),
+            )
+        elif entry == "SKILL.md":
+            with open(src_entry, "r", encoding="utf-8", errors="replace") as rf:
+                normalized = _normalize_skill_frontmatter(rf.read())
+            with open(dst_entry, "w", encoding="utf-8", newline="\n") as wf:
+                wf.write(normalized)
+        else:
+            shutil.copy2(src_entry, dst_entry)
+
+
+def _iter_codex_skill_sources() -> list:
+    """Returns sorted (skill_id, src_dir) tuples for all Hub domain and workflow skills."""
+    candidate_dirs = []
+    domain_skills_root = os.path.join(HUB_ROOT, "skills")
+    if os.path.isdir(domain_skills_root):
+        for domain in sorted(os.listdir(domain_skills_root)):
+            domain_path = os.path.join(domain_skills_root, domain)
+            if not os.path.isdir(domain_path):
+                continue
+            for skill_id in sorted(os.listdir(domain_path)):
+                skill_path = os.path.join(domain_path, skill_id)
+                if os.path.isfile(os.path.join(skill_path, "SKILL.md")):
+                    candidate_dirs.append((skill_id, skill_path))
+
+    workflow_skills_root = os.path.join(HUB_ROOT, ".agent", "skills")
+    if os.path.isdir(workflow_skills_root):
+        for wf_id in sorted(os.listdir(workflow_skills_root)):
+            wf_path = os.path.join(workflow_skills_root, wf_id)
+            if os.path.isfile(os.path.join(wf_path, "SKILL.md")):
+                candidate_dirs.append((wf_id, wf_path))
+
+    return candidate_dirs
+
+
+def compute_codex_skills_digest() -> str:
+    """Computes a deterministic SHA-256 digest over all Hub SKILL.md packages for fast stale detection."""
+    hasher = hashlib.sha256()
+    for skill_id, src_path in _iter_codex_skill_sources():
+        skill_md = os.path.join(src_path, "SKILL.md")
+        hasher.update(skill_id.encode("utf-8"))
+        hasher.update(b"\0")
+        try:
+            with open(skill_md, "rb") as sf:
+                hasher.update(sf.read())
+        except OSError:
+            continue
+        hasher.update(b"\n")
+    return hasher.hexdigest()
+
+
+def install_codex_skills(target_dir: str, profile: str = "auto") -> CodexSkillDeployResultDTO:
+    """Deploys Synapse Hub SKILL.md packages into target_dir/.agents/skills/ without overwriting user skills."""
+    resolved_target = os.path.abspath(target_dir)
+    if resolved_target.lower() == HUB_ROOT.lower():
+        raise ValueError("Refusing to deploy Codex skills into Synapse-Hub root itself.")
+
+    dest_skills_root = os.path.join(resolved_target, ".agents", "skills")
+    os.makedirs(dest_skills_root, exist_ok=True)
+    manifest_file = os.path.join(dest_skills_root, ".synapse-managed.json")
+
+    previously_managed = set()
+    if os.path.isfile(manifest_file):
+        try:
+            with open(manifest_file, "r", encoding="utf-8") as mf:
+                previously_managed = set(json.load(mf).get("skills", []))
+        except (OSError, json.JSONDecodeError, TypeError):
+            previously_managed = set()
+
+    candidate_dirs = _iter_codex_skill_sources()
+
+    installed_skills = []
+    skipped_existing = []
+
+    if os.path.isdir(dest_skills_root):
+        for existing_name in sorted(os.listdir(dest_skills_root)):
+            if existing_name.startswith("."):
+                continue
+            existing_path = os.path.join(dest_skills_root, existing_name)
+            if os.path.isdir(existing_path) and existing_name not in previously_managed:
+                if existing_name not in {sid for sid, _ in candidate_dirs}:
+                    skipped_existing.append(existing_name)
+
+    for skill_id, src_path in candidate_dirs:
+        dst_path = os.path.join(dest_skills_root, skill_id)
+        if os.path.exists(dst_path) and skill_id not in previously_managed:
+            skipped_existing.append(skill_id)
+            continue
+        _copy_skill_package(src_path, dst_path)
+        installed_skills.append(skill_id)
+
+    managed_all = sorted(previously_managed | set(installed_skills))
+    skills_digest = compute_codex_skills_digest()
+    with open(manifest_file, "w", encoding="utf-8", newline="\n") as mf:
+        json.dump(
+            {
+                "managed_by": "synapse-hub",
+                "profile": profile,
+                "skills_digest": skills_digest,
+                "skills": managed_all,
+            },
+            mf,
+            indent=2,
+        )
+        mf.write("\n")
+
+    return CodexSkillDeployResultDTO(
+        installed_skills=installed_skills,
+        skipped_existing=sorted(set(skipped_existing)),
+        target_dir=dest_skills_root,
+    )
+
+
+def auto_sync_codex_skills_if_stale(target_dir: str = None) -> dict:
+    """Silently refreshes managed .agents/skills/ when Hub SKILL.md digest changes (zero stdout)."""
+    if os.environ.get("SYNAPSE_AUTO_SYNC_SKILLS", "1").strip().lower() in ("0", "false", "no", "off"):
+        return {"synced": False, "reason": "disabled_by_env"}
+
+    resolved_target = os.path.abspath(target_dir or os.getcwd())
+    if resolved_target.lower() == HUB_ROOT.lower():
+        return {"synced": False, "reason": "hub_root_skipped"}
+
+    dest_skills_root = os.path.join(resolved_target, ".agents", "skills")
+    manifest_file = os.path.join(dest_skills_root, ".synapse-managed.json")
+    if not os.path.isfile(manifest_file):
+        return {"synced": False, "reason": "not_managed"}
+
+    current_digest = compute_codex_skills_digest()
+    manifest_profile = "auto"
+    manifest_digest = None
+    try:
+        with open(manifest_file, "r", encoding="utf-8") as mf:
+            manifest_data = json.load(mf)
+        if isinstance(manifest_data, dict):
+            manifest_profile = str(manifest_data.get("profile") or "auto")
+            manifest_digest = manifest_data.get("skills_digest")
+    except (OSError, json.JSONDecodeError, TypeError):
+        manifest_digest = None
+
+    if manifest_digest == current_digest:
+        return {"synced": False, "reason": "up_to_date", "digest": current_digest}
+
+    try:
+        res = install_codex_skills(resolved_target, profile=manifest_profile)
+        return {
+            "synced": True,
+            "reason": "digest_updated",
+            "installed_count": len(res.installed_skills),
+            "digest": current_digest,
+        }
+    except (OSError, ValueError) as err:
+        sys.stderr.write(f"[synapse] Auto-sync Codex skills skipped: {err}\n")
+        return {"synced": False, "reason": "error", "error": str(err)}
+
+
+def _deploy_or_append_bridge(
+    src_path: str,
+    dst_path: str,
+    marker: str,
+    label_created: str,
+    label_appended: str,
+    deployed: list,
+    separator: str = "\n\n",
+) -> None:
+    """Copies a bridge file if missing, or appends it once when marker is absent."""
+    if not os.path.exists(src_path):
+        return
+    dst_parent = os.path.dirname(dst_path)
+    if dst_parent:
+        os.makedirs(dst_parent, exist_ok=True)
+    if not os.path.exists(dst_path):
+        shutil.copy2(src_path, dst_path)
+        deployed.append(label_created)
+        return
+    with open(dst_path, "r", encoding="utf-8", errors="ignore") as fh:
+        existing_content = fh.read()
+    if marker in existing_content:
+        return
+    with open(src_path, "r", encoding="utf-8") as fh:
+        append_data = fh.read()
+    with open(dst_path, "a", encoding="utf-8") as fh:
+        fh.write(separator + append_data)
+    deployed.append(label_appended)
+
+
 def install_universal_ai_bridges(target_dir, ide="all"):
     """
     Deploys Universal AI Bridge configuration files into the target project workspace
-    for seamless integration with Cursor, Claude Code, GitHub Copilot, and Windsurf.
+    for seamless integration with Codex, Cursor, Claude Code, GitHub Copilot, and Windsurf.
     Supports IDE-selective deployment to save 1,500-2,500 prompt tokens per turn:
-      - 'all' / 'auto': deploys standard bridges (Cursor modern, Claude, Copilot, Windsurf)
+      - 'all' / 'auto': deploys standard bridges (Codex, Cursor modern, Claude, Copilot, Windsurf)
+      - 'codex': deploys AGENTS.md and .codex/config.toml
       - 'cursor': deploys only .cursor/rules/synapse-qa.mdc (avoids legacy .cursorrules redundancy)
       - 'cursor-legacy': deploys only .cursorrules
       - 'windsurf': deploys only .windsurfrules
@@ -541,76 +769,71 @@ def install_universal_ai_bridges(target_dir, ide="all"):
     # 1. Cursor Modern (.cursor/rules/synapse-qa.mdc)
     if install_all or ide_choice == "cursor":
         cursor_dir = os.path.join(target_dir, ".cursor", "rules")
-        os.makedirs(cursor_dir, exist_ok=True)
         src_cursor = os.path.join(bridges_dir, "cursor_synapse_qa.mdc")
-        dst_cursor = os.path.join(cursor_dir, "synapse-qa.mdc")
         if os.path.exists(src_cursor):
-            shutil.copy2(src_cursor, dst_cursor)
+            os.makedirs(cursor_dir, exist_ok=True)
+            shutil.copy2(src_cursor, os.path.join(cursor_dir, "synapse-qa.mdc"))
             deployed.append("Cursor (.cursor/rules/synapse-qa.mdc)")
 
     # 1b. Cursor Legacy (.cursorrules)
     if ide_choice == "cursor-legacy":
         src_cr = os.path.join(HUB_ROOT, ".cursorrules")
-        dst_cr = os.path.join(target_dir, ".cursorrules")
         if os.path.exists(src_cr):
-            shutil.copy2(src_cr, dst_cr)
+            shutil.copy2(src_cr, os.path.join(target_dir, ".cursorrules"))
             deployed.append("Cursor Legacy (.cursorrules)")
 
     # 2. Claude Code (CLAUDE.md)
     if install_all or ide_choice == "claude":
-        dst_claude = os.path.join(target_dir, "CLAUDE.md")
-        src_claude = os.path.join(bridges_dir, "CLAUDE.md")
-        if os.path.exists(src_claude):
-            if not os.path.exists(dst_claude):
-                shutil.copy2(src_claude, dst_claude)
-                deployed.append("Claude Code (CLAUDE.md)")
-            else:
-                with open(dst_claude, "r", encoding="utf-8", errors="ignore") as f:
-                    c_content = f.read()
-                if "Synapse-Hub" not in c_content:
-                    with open(src_claude, "r", encoding="utf-8") as f:
-                        append_data = f.read()
-                    with open(dst_claude, "a", encoding="utf-8") as f:
-                        f.write("\n\n" + append_data)
-                    deployed.append("Claude Code (appended to CLAUDE.md)")
+        _deploy_or_append_bridge(
+            src_path=os.path.join(bridges_dir, "CLAUDE.md"),
+            dst_path=os.path.join(target_dir, "CLAUDE.md"),
+            marker="Synapse-Hub",
+            label_created="Claude Code (CLAUDE.md)",
+            label_appended="Claude Code (appended to CLAUDE.md)",
+            deployed=deployed,
+        )
 
     # 3. GitHub Copilot (.github/copilot-instructions.md)
     if install_all or ide_choice == "copilot":
-        github_dir = os.path.join(target_dir, ".github")
-        os.makedirs(github_dir, exist_ok=True)
-        dst_copilot = os.path.join(github_dir, "copilot-instructions.md")
-        src_copilot = os.path.join(bridges_dir, "copilot-instructions.md")
-        if os.path.exists(src_copilot):
-            if not os.path.exists(dst_copilot):
-                shutil.copy2(src_copilot, dst_copilot)
-                deployed.append("GitHub Copilot (.github/copilot-instructions.md)")
-            else:
-                with open(dst_copilot, "r", encoding="utf-8", errors="ignore") as f:
-                    cp_content = f.read()
-                if "Synapse-Hub" not in cp_content:
-                    with open(src_copilot, "r", encoding="utf-8") as f:
-                        append_data = f.read()
-                    with open(dst_copilot, "a", encoding="utf-8") as f:
-                        f.write("\n\n" + append_data)
-                    deployed.append("GitHub Copilot (appended to copilot-instructions.md)")
+        _deploy_or_append_bridge(
+            src_path=os.path.join(bridges_dir, "copilot-instructions.md"),
+            dst_path=os.path.join(target_dir, ".github", "copilot-instructions.md"),
+            marker="Synapse-Hub",
+            label_created="GitHub Copilot (.github/copilot-instructions.md)",
+            label_appended="GitHub Copilot (appended to copilot-instructions.md)",
+            deployed=deployed,
+        )
 
     # 4. Windsurf (.windsurfrules)
     if install_all or ide_choice == "windsurf":
-        dst_windsurf = os.path.join(target_dir, ".windsurfrules")
-        src_windsurf = os.path.join(bridges_dir, "windsurfrules")
-        if os.path.exists(src_windsurf):
-            if not os.path.exists(dst_windsurf):
-                shutil.copy2(src_windsurf, dst_windsurf)
-                deployed.append("Windsurf (.windsurfrules)")
-            else:
-                with open(dst_windsurf, "r", encoding="utf-8", errors="ignore") as f:
-                    w_content = f.read()
-                if "Synapse-Hub" not in w_content:
-                    with open(src_windsurf, "r", encoding="utf-8") as f:
-                        append_data = f.read()
-                    with open(dst_windsurf, "a", encoding="utf-8") as f:
-                        f.write("\n\n" + append_data)
-                    deployed.append("Windsurf (appended to .windsurfrules)")
+        _deploy_or_append_bridge(
+            src_path=os.path.join(bridges_dir, "windsurfrules"),
+            dst_path=os.path.join(target_dir, ".windsurfrules"),
+            marker="Synapse-Hub",
+            label_created="Windsurf (.windsurfrules)",
+            label_appended="Windsurf (appended to .windsurfrules)",
+            deployed=deployed,
+        )
+
+    # 5. OpenAI Codex (AGENTS.md + .codex/config.toml)
+    if install_all or ide_choice == "codex":
+        _deploy_or_append_bridge(
+            src_path=os.path.join(bridges_dir, "AGENTS.md"),
+            dst_path=os.path.join(target_dir, "AGENTS.md"),
+            marker="Synapse-Hub",
+            label_created="Codex (AGENTS.md)",
+            label_appended="Codex (appended to AGENTS.md)",
+            deployed=deployed,
+        )
+        _deploy_or_append_bridge(
+            src_path=os.path.join(bridges_dir, "codex_config.toml"),
+            dst_path=os.path.join(target_dir, ".codex", "config.toml"),
+            marker="[mcp_servers.synapse-hub]",
+            label_created="Codex (.codex/config.toml)",
+            label_appended="Codex (appended MCP to .codex/config.toml)",
+            deployed=deployed,
+            separator="\n",
+        )
 
     if deployed:
         print(f"  {GREEN}[OK] Deployed Universal AI Bridges ({ide_choice}):{RESET} {', '.join(deployed)}")
@@ -697,6 +920,49 @@ def uninstall_setup(target_repo: str) -> int:
             print(f"  {GREEN}[REMOVED]{RESET} {claude_file}")
             reverted_items += 1
 
+    # 6b. Remove Synapse-templated Codex assets (preserve user-authored files)
+    agents_file = os.path.join(target_repo, "AGENTS.md")
+    if os.path.exists(agents_file):
+        with open(agents_file, "r", encoding="utf-8", errors="ignore") as f:
+            agents_txt = f.read()
+        if agents_txt.lstrip().startswith("# AGENTS.md — Synapse-Hub") and "SYNAPSE-HUB CLIENT AI BRIDGE TEMPLATE" in agents_txt:
+            os.remove(agents_file)
+            print(f"  {GREEN}[REMOVED]{RESET} {agents_file}")
+            reverted_items += 1
+
+    codex_toml = os.path.join(target_repo, ".codex", "config.toml")
+    if os.path.exists(codex_toml):
+        with open(codex_toml, "r", encoding="utf-8", errors="ignore") as f:
+            toml_txt = f.read()
+        if "SYNAPSE-HUB CODEX MCP CONFIGURATION" in toml_txt and toml_txt.lstrip().startswith("# =="):
+            os.remove(codex_toml)
+            print(f"  {GREEN}[REMOVED]{RESET} {codex_toml}")
+            reverted_items += 1
+            codex_dir = os.path.join(target_repo, ".codex")
+            if os.path.isdir(codex_dir) and not os.listdir(codex_dir):
+                os.rmdir(codex_dir)
+
+    codex_skills_dir = os.path.join(target_repo, ".agents", "skills")
+    managed_manifest = os.path.join(codex_skills_dir, ".synapse-managed.json")
+    if os.path.isfile(managed_manifest):
+        try:
+            with open(managed_manifest, "r", encoding="utf-8") as mf:
+                managed_ids = json.load(mf).get("skills", [])
+            for sid in managed_ids:
+                skill_dir = os.path.join(codex_skills_dir, sid)
+                if os.path.isdir(skill_dir):
+                    shutil.rmtree(skill_dir)
+                    reverted_items += 1
+            os.remove(managed_manifest)
+            if os.path.isdir(codex_skills_dir) and not os.listdir(codex_skills_dir):
+                os.rmdir(codex_skills_dir)
+            agents_dir = os.path.join(target_repo, ".agents")
+            if os.path.isdir(agents_dir) and not os.listdir(agents_dir):
+                os.rmdir(agents_dir)
+            print(f"  {GREEN}[REMOVED]{RESET} Cleaned Synapse-managed Codex skills in {codex_skills_dir}")
+        except (OSError, json.JSONDecodeError, TypeError) as err:
+            sys.stderr.write(f"Notice: Could not clean Synapse-managed Codex skills: {err}\n")
+
     for state_rel in ("PROJECT_STATE.md", "project_state.json"):
         state_path = os.path.join(target_repo, state_rel)
         if os.path.exists(state_path):
@@ -720,6 +986,20 @@ def uninstall_setup(target_repo: str) -> int:
     return 0
 
 
+def _resolve_active_profile(profile: str, stack_info: dict) -> str:
+    """Resolves 'auto' setup profile into a concrete stack profile."""
+    if profile != "auto":
+        return profile
+    fw = stack_info.get("framework", "").lower()
+    lang = stack_info.get("language", "").lower()
+    for token in ("playwright", "selenium", "cypress", "katalon", "pytest"):
+        if token in fw:
+            return token
+    if "python" in lang:
+        return "pytest"
+    return "full"
+
+
 def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git_hook=False, no_browser=True, open_browser=False, ide="all"):
     """Main execution entrypoint for automated project setup."""
     print(f"\n{BOLD}{CYAN}======================================================================{RESET}")
@@ -732,22 +1012,7 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
     print(f"🔍 Detected Stack  : {BOLD}{stack_info['framework']}{RESET} ({stack_info['language']})")
     print(f"📂 Structure Scope : Pages: `{stack_info['page_dir']}` | Tests: `{stack_info['test_dir']}`\n")
 
-    # Resolve active profile
-    if profile == "auto":
-        fw = stack_info.get("framework", "").lower()
-        lang = stack_info.get("language", "").lower()
-        if "playwright" in fw:
-            profile = "playwright"
-        elif "selenium" in fw:
-            profile = "selenium"
-        elif "cypress" in fw:
-            profile = "cypress"
-        elif "katalon" in fw:
-            profile = "katalon"
-        elif "pytest" in fw or "python" in lang:
-            profile = "pytest"
-        else:
-            profile = "full"
+    profile = _resolve_active_profile(profile, stack_info)
 
     print(f"🎯 Selected Profile: {BOLD}{profile.upper()}{RESET}")
     if dry_run:
@@ -759,7 +1024,9 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
         print(f"{YELLOW}[DRY-RUN PREVIEW]{RESET}")
         print(f"  • Profile: {profile.upper()}")
         print(f"  • Would generate: {os.path.join(target_repo, 'PROJECT_AI_GUIDE.md')}")
-        print("  • Would deploy AI bridges: .cursor/rules/synapse-qa.mdc, .github/copilot-instructions.md, .windsurfrules")
+        print("  • Would deploy AI bridges: AGENTS.md, .codex/config.toml, .cursor/rules/synapse-qa.mdc, .github/copilot-instructions.md, .windsurfrules")
+        if (ide or "all").lower().strip() in ("all", "auto", "codex"):
+            print(f"  • Would export Codex skills: {os.path.join(target_repo, '.agents', 'skills')}")
         print(f"  • Would install pre-push hook: {os.path.join(target_repo, '.git', 'hooks', 'pre-push')}")
         print(f"  • Would auto-generate: {os.path.join(target_repo, 'synapse.config.json')} (if missing)")
         print("  • Would initialize: Central Agent Memory (~/.agent_memory/global_cache.db)")
@@ -772,9 +1039,12 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
     project_state.init_state(target_repo)
     ensure_synapse_config(target_repo, profile=profile)
 
-    # 3. Deploy Universal AI Bridges (Cursor, Claude Code, GitHub Copilot, Windsurf)
+    # 3. Deploy Universal AI Bridges (Codex, Cursor, Claude Code, GitHub Copilot, Windsurf)
     print(f"\n{BOLD}[2/5] Deploying Universal AI Bridges (ide={ide})...{RESET}")
     install_universal_ai_bridges(target_repo, ide=ide)
+    if (ide or "all").lower().strip() in ("all", "auto", "codex"):
+        codex_res = install_codex_skills(target_repo, profile=profile)
+        print(f"  {GREEN}[OK] Exported {len(codex_res.installed_skills)} Codex skills to:{RESET} {codex_res.target_dir}")
 
     # 4. Inject Antigravity Global Plugin
     plugin_injected = False
@@ -830,7 +1100,7 @@ def run_setup(target_repo, dry_run=False, profile="auto", no_global=True, no_git
     print(f"  Target Framework    : {stack_info['framework']}")
     print(f"  Active Profile      : {profile.upper()}")
     print(f"  AI Project Guide    : {os.path.join(target_repo, 'PROJECT_AI_GUIDE.md')}")
-    print("  Universal Bridges   : Cursor (.cursor/rules), Claude Code, Copilot, Windsurf")
+    print("  Universal Bridges   : Codex (AGENTS.md + .codex/config.toml + .agents/skills), Cursor, Claude Code, Copilot, Windsurf")
     print(f"  Antigravity Plugin  : {'ACTIVE (~/.gemini/config/plugins/synapse-hub)' if plugin_injected else 'STANDALONE'}")
     print(f"  AST Method Map      : {os.path.join(target_repo, 'repo_map.txt')}")
     print(f"  Health Report       : {os.path.join(target_repo, 'PROJECT_HEALTH_REPORT.md')}")
@@ -855,8 +1125,8 @@ def main():
     parser.add_argument(
         "--ide",
         default="all",
-        choices=["auto", "all", "cursor", "cursor-legacy", "windsurf", "claude", "copilot"],
-        help="Target IDE AI bridge to install (auto, all, cursor, cursor-legacy, windsurf, claude, copilot)"
+        choices=["auto", "all", "codex", "cursor", "cursor-legacy", "windsurf", "claude", "copilot"],
+        help="Target IDE AI bridge to install (auto, all, codex, cursor, cursor-legacy, windsurf, claude, copilot)"
     )
     parser.add_argument("--dry-run", action="store_true", help="Simulate setup actions without modifying disk")
     parser.add_argument("--uninstall", action="store_true", help="Revert and remove files installed by setup_project")

@@ -1,0 +1,14 @@
+# ==============================================================================
+# SYNAPSE-HUB CODEX MCP CONFIGURATION (Client Mode)
+# Attribution: Synapse Hub by Thế Vị (@TeeVee98) | MIT License
+# Update via: npx @teevee98/synapse-hub setup --ide codex
+# ==============================================================================
+
+[mcp_servers.synapse-hub]
+command = "npx"
+args = ["-y", "@teevee98/synapse-hub", "mcp"]
+# Windows note: if Codex cannot resolve `npx` directly on PATH, set command = "npx.cmd"
+
+[mcp_servers.synapse-hub.env]
+PYTHONIOENCODING = "utf-8"
+SYNAPSE_MODE = "client"

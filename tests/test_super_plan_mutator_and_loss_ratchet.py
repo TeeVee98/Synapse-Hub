@@ -471,6 +471,193 @@ class TestSuperPlanMutatorAndLossRatchet(unittest.TestCase):
         self.assertIn("M1", calib["milestone_drift"])
         self.assertIn("M2", calib["milestone_drift"])
 
+    def test_m3_host_auto_detection_codex_and_claude_code(self) -> None:
+        """M3 Positive/Negative/Boundary/CLI: auto-detect Codex & Claude Code for model recommendations."""
+        from unittest import mock
+        from tools.design.super_plan_engine import (
+            PlanningTier,
+            assess_pre_plan_model_fit,
+            calculate_risk_routing,
+            detect_active_host,
+            scaffold_super_plan,
+        )
+
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        clean_env = {"PATH": os.environ.get("PATH", ""), "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")}
+
+        # 1. Env var auto-detection (Codex vs Claude Code vs Antigravity)
+        with mock.patch.dict(os.environ, {**clean_env, "CODEX_THREAD_ID": "thr-123"}, clear=True):
+            self.assertEqual(detect_active_host(repo_root=self.temp_dir), "codex")
+            fit_codex = assess_pre_plan_model_fit(PlanningTier.TIER_2_DEEP, repo_root=self.temp_dir)
+            self.assertEqual(fit_codex["detected_host"], "codex")
+            self.assertIn("GPT-6.2-Astra", fit_codex["recommended_model"])
+            self.assertIn("xhigh", fit_codex["recommended_model"].lower())
+
+        with mock.patch.dict(os.environ, {**clean_env, "CLAUDECODE": "1", "CLAUDE_CODE_ENTRYPOINT": "cli"}, clear=True):
+            self.assertEqual(detect_active_host(repo_root=self.temp_dir), "claude")
+            fit_claude = assess_pre_plan_model_fit(PlanningTier.TIER_2_DEEP, repo_root=self.temp_dir)
+            self.assertEqual(fit_claude["detected_host"], "claude")
+            self.assertIn("Opus 5.5", fit_claude["recommended_model"])
+            self.assertIn("Fable 5.2", fit_claude["recommended_model"])
+
+        with mock.patch.dict(os.environ, {**clean_env, "ANTIGRAVITY_AGENT": "1"}, clear=True):
+            self.assertEqual(detect_active_host(repo_root=self.temp_dir), "antigravity")
+
+        # 2. Workspace marker fallback when env is clean (client mode vs Hub multi-bridge repo)
+        codex_repo = os.path.join(self.temp_dir, "codex_client")
+        os.makedirs(os.path.join(codex_repo, ".codex"), exist_ok=True)
+        with open(os.path.join(codex_repo, ".codex", "config.toml"), "w", encoding="utf-8") as fh:
+            fh.write("[mcp_servers.synapse-hub]\n")
+        with mock.patch.dict(os.environ, clean_env, clear=True):
+            self.assertEqual(detect_active_host(repo_root=codex_repo), "codex")
+
+        claude_repo = os.path.join(self.temp_dir, "claude_client")
+        os.makedirs(claude_repo, exist_ok=True)
+        with open(os.path.join(claude_repo, "CLAUDE.md"), "w", encoding="utf-8") as fh:
+            fh.write("# CLAUDE.md\n")
+        with mock.patch.dict(os.environ, clean_env, clear=True):
+            self.assertEqual(detect_active_host(repo_root=claude_repo), "claude")
+
+        # Hub repo has .agent/skills alongside CLAUDE.md/AGENTS.md -> defaults to antigravity without env vars
+        hub_like = os.path.join(self.temp_dir, "hub_like")
+        os.makedirs(os.path.join(hub_like, ".agent", "skills"), exist_ok=True)
+        with open(os.path.join(hub_like, "CLAUDE.md"), "w", encoding="utf-8") as fh:
+            fh.write("# CLAUDE.md\n")
+        with mock.patch.dict(os.environ, clean_env, clear=True):
+            self.assertEqual(detect_active_host(repo_root=hub_like), "antigravity")
+
+        # 3. Model-fit ranking & self-consistency across Codex and Claude Code
+        with mock.patch.dict(os.environ, clean_env, clear=True):
+            for host_id in ("antigravity", "codex", "claude"):
+                for tier in (PlanningTier.TIER_0_FAST, PlanningTier.TIER_1_STANDARD, PlanningTier.TIER_2_DEEP):
+                    baseline = assess_pre_plan_model_fit(tier, host=host_id)
+                    self.assertEqual(baseline["detected_host"], host_id)
+                    self.assertEqual(baseline["fit_status"], "UNSPECIFIED")
+                    self_fit = assess_pre_plan_model_fit(
+                        tier,
+                        active_model=baseline["recommended_model"],
+                        host=host_id,
+                    )
+                    self.assertEqual(
+                        self_fit["fit_status"],
+                        "RIGHT_SIZED",
+                        f"Recommended model '{baseline['recommended_model']}' not RIGHT_SIZED for {host_id}/{tier}",
+                    )
+
+            # Boundary: Luna/mini/medium Codex models must NOT be treated as Rank 3
+            self.assertEqual(
+                assess_pre_plan_model_fit(PlanningTier.TIER_2_DEEP, active_model="gpt-6-luna")["fit_status"],
+                "UNDER_PROVISIONED",
+            )
+            self.assertEqual(
+                assess_pre_plan_model_fit(PlanningTier.TIER_2_DEEP, active_model="GPT-6.2-Sol (Reasoning: medium)")["fit_status"],
+                "UNDER_PROVISIONED",
+            )
+            self.assertEqual(
+                assess_pre_plan_model_fit(PlanningTier.TIER_0_FAST, active_model="gpt-6.2-astra")["fit_status"],
+                "OVER_PROVISIONED",
+            )
+            # Claude Code 5.5 / Fable 5.2 ranking
+            self.assertEqual(
+                assess_pre_plan_model_fit(PlanningTier.TIER_2_DEEP, active_model="claude-haiku-5.5")["fit_status"],
+                "UNDER_PROVISIONED",
+            )
+            self.assertEqual(
+                assess_pre_plan_model_fit(PlanningTier.TIER_0_FAST, active_model="claude-fable-5.2")["fit_status"],
+                "OVER_PROVISIONED",
+            )
+            self.assertEqual(
+                assess_pre_plan_model_fit(PlanningTier.TIER_0_FAST, active_model="claude-opus-5.5")["fit_status"],
+                "OVER_PROVISIONED",
+            )
+
+            # Active model inference when env/workspace give no host signal
+            inferred_codex = assess_pre_plan_model_fit(PlanningTier.TIER_1_STANDARD, active_model="gpt-6.2-sol (medium)")
+            self.assertEqual(inferred_codex["detected_host"], "codex")
+            self.assertIn("GPT-6.2-Sol", inferred_codex["recommended_model"])
+
+            # Scaffold embeds host-specific model recommendation
+            codex_plan = scaffold_super_plan(
+                "Add retry guard",
+                target_files=["src/retry.py", "tests/test_retry.py"],
+                tier=PlanningTier.TIER_1_STANDARD,
+                host="codex",
+                repo_root=self.temp_dir,
+            )
+            self.assertIn("GPT-6.2-Sol", codex_plan)
+
+            claude_manual_plan = scaffold_super_plan(
+                "Write manual test suite",
+                target_files=["docs/spec_brd.md", "docs/manual_testcases.md"],
+                tier=PlanningTier.TIER_1_STANDARD,
+                host="claude",
+                profile="manual",
+                repo_root=self.temp_dir,
+            )
+            self.assertIn("Claude Sonnet 5.5", claude_manual_plan)
+
+            # Negative: unknown host raises ValueError
+            with self.assertRaises(ValueError):
+                detect_active_host(host="unknown_ide")
+
+            # Routing integrates detected_host
+            _, codex_metric = calculate_risk_routing(
+                "update helper",
+                ["src/helper.py"],
+                repo_root=codex_repo,
+                host="codex",
+            )
+            self.assertEqual(codex_metric.detected_host, "codex")
+            self.assertIn("GPT-6", codex_metric.recommended_model)
+
+        # 4. CLI --json flag verification with Codex & Claude Code env
+        base_cli_env = {
+            k: v
+            for k, v in os.environ.items()
+            if not k.startswith(("CODEX_", "CLAUDE", "ANTIGRAVITY_", "AGY_")) and k != "SYNAPSE_HOST"
+        }
+        codex_cli_env = {**base_cli_env, "CODEX_CI": "1"}
+        proc = subprocess.run(
+            [
+                sys.executable,
+                os.path.join(repo_root, "tools", "design", "super_plan_engine.py"),
+                "route",
+                "--task",
+                "add auth rate limiter",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            env=codex_cli_env,
+            cwd=repo_root,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        payload = json.loads(proc.stdout)
+        self.assertEqual(payload["detected_host"], "codex")
+        self.assertEqual(payload["model_fit"]["detected_host"], "codex")
+        self.assertIn("GPT-6.2-Astra", payload["recommended_model"])
+
+        claude_cli_env = {**base_cli_env, "CLAUDECODE": "1"}
+        proc_claude = subprocess.run(
+            [
+                sys.executable,
+                os.path.join(repo_root, "tools", "design", "super_plan_engine.py"),
+                "route",
+                "--task",
+                "add auth rate limiter",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            env=claude_cli_env,
+            cwd=repo_root,
+        )
+        self.assertEqual(proc_claude.returncode, 0, proc_claude.stderr)
+        payload_claude = json.loads(proc_claude.stdout)
+        self.assertEqual(payload_claude["detected_host"], "claude")
+        self.assertEqual(payload_claude["model_fit"]["detected_host"], "claude")
+        self.assertIn("Opus 5.5", payload_claude["recommended_model"])
+
 
 if __name__ == "__main__":
     unittest.main()

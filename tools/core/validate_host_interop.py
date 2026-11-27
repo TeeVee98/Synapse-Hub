@@ -317,6 +317,63 @@ def verify_windsurf(repo_root: str) -> Dict[str, Any]:
     }
 
 
+def verify_codex(repo_root: str) -> Dict[str, Any]:
+    """Verifies OpenAI Codex AGENTS.md, .codex/config.toml MCP server, and client bridge templates."""
+    agents_md = os.path.join(repo_root, "AGENTS.md")
+    codex_toml = os.path.join(repo_root, ".codex", "config.toml")
+    template_agents = os.path.join(repo_root, "templates", "ai_bridges", "AGENTS.md")
+    template_toml = os.path.join(repo_root, "templates", "ai_bridges", "codex_config.toml")
+
+    issues = []
+    for req_path, label in (
+        (agents_md, "AGENTS.md missing at repository root"),
+        (codex_toml, ".codex/config.toml missing"),
+        (template_agents, "templates/ai_bridges/AGENTS.md missing"),
+        (template_toml, "templates/ai_bridges/codex_config.toml missing"),
+    ):
+        if not os.path.isfile(req_path):
+            issues.append(label)
+
+    if os.path.isfile(agents_md):
+        with open(agents_md, "r", encoding="utf-8") as fp:
+            a_content = fp.read()
+        if "Thế Vị (@TeeVee98)" not in a_content:
+            issues.append("AGENTS.md missing mandatory MIT author attribution guard")
+
+    if os.path.isfile(codex_toml):
+        with open(codex_toml, "r", encoding="utf-8") as fp:
+            t_content = fp.read()
+        if "[mcp_servers.synapse-hub]" not in t_content:
+            issues.append(".codex/config.toml missing [mcp_servers.synapse-hub] block")
+
+    mcp_script = os.path.join(repo_root, "tools", "mcp", "mcp_server.py")
+    cmd_res = _run_cmd([sys.executable, mcp_script, "--help"], cwd=repo_root)
+    if not cmd_res["success"]:
+        issues.append(f"MCP server help check failed: {cmd_res['stderr']}")
+
+    passed = len(issues) == 0 and cmd_res["success"]
+    return {
+        "host_name": "OpenAI Codex",
+        "spec_version": "OpenAI Codex AGENTS.md + MCP TOML + .agents/skills Spec v1.0",
+        "config_paths": [
+            "AGENTS.md",
+            ".codex/config.toml",
+            "templates/ai_bridges/AGENTS.md",
+            "templates/ai_bridges/codex_config.toml",
+        ],
+        "discovery_mechanism": "Workspace AGENTS.md ingestion, .codex/config.toml MCP stdio, and .agents/skills/*/SKILL.md export via setup",
+        "install_method": "Auto-deployed via 'agent-qa setup --ide codex' (or --ide all)",
+        "invocation_evidence": {
+            "test_command": cmd_res["command"],
+            "exit_code": cmd_res["exit_code"],
+            "latency_sec": cmd_res["latency_sec"],
+            "sample_output": cmd_res["stdout"][:200],
+        },
+        "verdict": "VERIFIED_PASS" if passed else "FAILED",
+        "issues": issues,
+    }
+
+
 def verify_nodejs_runtime(repo_root: str) -> Dict[str, Any]:
     """Verifies Node.js / NPX CLI entrypoint and runtime compatibility."""
     node_bin = shutil.which("node")
@@ -383,13 +440,14 @@ def verify_python_runtime(repo_root: str) -> Dict[str, Any]:
 
 
 def run_all_host_verifications(repo_root: str) -> Dict[str, Any]:
-    """Runs all 7 host verification suites and compiles comprehensive matrix."""
+    """Runs all 8 host verification suites and compiles comprehensive matrix."""
     hosts = [
         verify_antigravity(repo_root),
         verify_claude_code(repo_root),
         verify_cursor(repo_root),
         verify_github_copilot(repo_root),
         verify_windsurf(repo_root),
+        verify_codex(repo_root),
         verify_nodejs_runtime(repo_root),
         verify_python_runtime(repo_root),
     ]

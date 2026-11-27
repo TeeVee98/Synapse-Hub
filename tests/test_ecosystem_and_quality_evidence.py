@@ -51,13 +51,13 @@ class TestSkillsSchemaAndProgressiveDisclosure(unittest.TestCase):
 
 
 class TestMultiHostInteroperability(unittest.TestCase):
-    """Enforces multi-host discovery and execution compatibility across 7 declared hosts."""
+    """Enforces multi-host discovery and execution compatibility across 8 declared hosts."""
 
     def test_verify_all_declared_hosts(self):
         report = run_all_host_verifications(REPO_ROOT)
         self.assertTrue(report["all_passed"], f"Host verification failed: {report}")
-        self.assertEqual(report["total_hosts_evaluated"], 7, "Must verify all 7 declared hosts")
-        self.assertEqual(report["passed_hosts"], 7, "All 7 declared hosts must pass")
+        self.assertEqual(report["total_hosts_evaluated"], 8, "Must verify all 8 declared hosts")
+        self.assertEqual(report["passed_hosts"], 8, "All 8 declared hosts must pass")
 
         host_names = [h["host_name"] for h in report["hosts"]]
         expected_hosts = [
@@ -66,6 +66,7 @@ class TestMultiHostInteroperability(unittest.TestCase):
             "Cursor IDE",
             "GitHub Copilot",
             "Windsurf",
+            "OpenAI Codex",
             "Node.js / NPX CLI",
             "Python CLI",
         ]
@@ -84,7 +85,7 @@ class TestMultiHostInteroperability(unittest.TestCase):
         with open(json_report, "r", encoding="utf-8") as f:
             data = json.load(f)
         self.assertTrue(data.get("all_passed"))
-        self.assertEqual(len(data.get("hosts", [])), 7)
+        self.assertEqual(len(data.get("hosts", [])), 8)
 
 
 class TestQABenchmarkEmpiricalEvidence(unittest.TestCase):
