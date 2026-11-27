@@ -25,6 +25,7 @@
 | [ADR-0023-synapse-hub-v5-polyglot-ast-lsp-overhaul.md](./ADR-0023-synapse-hub-v5-polyglot-ast-lsp-overhaul.md) | Synapse Hub v5.0 Comprehensive Overhaul — Hybrid Polyglot AST, Universal QA LSP, CLI Stratification, Enterprise TMS/Cloud Grid & Real-World Benchmark Certification | Accepted & Certified | 2026-11-26 |
 | [ADR-0024-synapse-hub-apex-native-js-semantic-pom-strict-typing.md](./ADR-0024-synapse-hub-apex-native-js-semantic-pom-strict-typing.md) | Synapse Hub v5.1 Apex Architecture Overhaul — Zero-Python Native Node.js Linter, Semantic POM Inheritance/Fixture Graph, 145+ Module Strict Typing & Zero-Ceremony Client Mode | Accepted & Certified | 2026-11-26 |
 | [ADR-0025-closed-loop-super-plan-solo-control-plane.md](./ADR-0025-closed-loop-super-plan-solo-control-plane.md) | Unified Closed-Loop Control Plane for /super-plan and /solo (v2.0 Upgrade) | Accepted (DoD Certified) | 2026-11-26 |
+| [ADR-0031-release-readiness-evidence.md](./ADR-0031-release-readiness-evidence.md) | Release Readiness Verification Evidence | Proposed | 2026-11-27 |
 
 ---
 *Auto-indexed by `tools/design/plan_harvester.py`.*

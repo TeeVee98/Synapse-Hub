@@ -65,6 +65,8 @@ tools = [
     "../automation/**/*",
     "../ai-agents/**/*",
     "../integrations/**/*",
+    "../.agent/skills/**/*",
+    "../.claude/commands/*",
     "../.agents/rules/*",
     "../.agents/skills/**/*",
     "../.agents/agents/*",

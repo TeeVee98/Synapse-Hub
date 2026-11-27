@@ -317,14 +317,80 @@ def verify_windsurf(repo_root: str) -> Dict[str, Any]:
     }
 
 
-def verify_codex(repo_root: str) -> Dict[str, Any]:
-    """Verifies OpenAI Codex AGENTS.md, .codex/config.toml MCP server, and client bridge templates."""
+REQUIRED_CODEX_WORKFLOWS: Tuple[str, ...] = ("solo", "review", "super-plan")
+
+
+def _evaluate_codex_native_receipt(
+    repo_root: str,
+    native_receipt_path: Optional[str],
+    expected_package_digest: Optional[str],
+) -> Tuple[str, Optional[str], List[str]]:
+    """Validates a native Codex discovery receipt without manufacturing verification."""
+    candidate_path = native_receipt_path
+    explicit = native_receipt_path is not None
+    if candidate_path is None:
+        default_path = os.path.join(repo_root, "reports", "codex_native_receipt.json")
+        if not os.path.isfile(default_path):
+            return "unverified", None, []
+        candidate_path = default_path
+
+    if not os.path.isfile(candidate_path):
+        return "unverified", "Unverified" if explicit else None, ["Native Codex receipt not found"]
+
+    try:
+        with open(candidate_path, "r", encoding="utf-8") as fp:
+            data = json.load(fp)
+    except Exception as exc:
+        return "unverified", "Unverified", [f"Native Codex receipt unreadable: {exc}"]
+
+    if not isinstance(data, dict):
+        return "unverified", "Unverified", ["Native Codex receipt must be a JSON object"]
+
+    receipt_issues: List[str] = []
+    host_version = data.get("host_version")
+    if not isinstance(host_version, str) or not host_version.strip():
+        receipt_issues.append("Native Codex receipt missing host_version")
+
+    pkg_digest = data.get("package_digest")
+    if not isinstance(pkg_digest, str) or not pkg_digest.strip():
+        receipt_issues.append("Native Codex receipt missing package_digest")
+    elif expected_package_digest and pkg_digest != expected_package_digest:
+        receipt_issues.append("Native Codex receipt package_digest mismatch (refresh required)")
+
+    discovered = data.get("discovered_skills")
+    if not isinstance(discovered, dict):
+        receipt_issues.append("Native Codex receipt missing discovered_skills map")
+    else:
+        real_root = os.path.realpath(repo_root)
+        for wf in REQUIRED_CODEX_WORKFLOWS:
+            skill_path = discovered.get(wf)
+            if not isinstance(skill_path, str) or not skill_path.strip():
+                receipt_issues.append(f"Native Codex receipt missing workflow '{wf}'")
+                continue
+            resolved = os.path.realpath(
+                skill_path if os.path.isabs(skill_path) else os.path.join(real_root, skill_path)
+            )
+            if os.path.commonpath([real_root, resolved]) != real_root or not os.path.isfile(resolved):
+                receipt_issues.append(f"Workflow '{wf}' does not resolve to project skill: {skill_path}")
+
+    if receipt_issues:
+        return "unverified", "Unverified", receipt_issues
+    return "verified", "Verified", []
+
+
+def verify_codex_discovery_evidence(
+    repo_root: str,
+    native_receipt_path: Optional[str] = None,
+    expected_package_digest: Optional[str] = None,
+    mcp_script_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Tracks bridge presence, MCP startup, and native Codex host discovery as distinct outcomes."""
     agents_md = os.path.join(repo_root, "AGENTS.md")
     codex_toml = os.path.join(repo_root, ".codex", "config.toml")
     template_agents = os.path.join(repo_root, "templates", "ai_bridges", "AGENTS.md")
     template_toml = os.path.join(repo_root, "templates", "ai_bridges", "codex_config.toml")
 
-    issues = []
+    bridge_issues = []
     for req_path, label in (
         (agents_md, "AGENTS.md missing at repository root"),
         (codex_toml, ".codex/config.toml missing"),
@@ -332,26 +398,54 @@ def verify_codex(repo_root: str) -> Dict[str, Any]:
         (template_toml, "templates/ai_bridges/codex_config.toml missing"),
     ):
         if not os.path.isfile(req_path):
-            issues.append(label)
+            bridge_issues.append(label)
 
     if os.path.isfile(agents_md):
         with open(agents_md, "r", encoding="utf-8") as fp:
             a_content = fp.read()
         if "Thế Vị (@TeeVee98)" not in a_content:
-            issues.append("AGENTS.md missing mandatory MIT author attribution guard")
+            bridge_issues.append("AGENTS.md missing mandatory MIT author attribution guard")
 
     if os.path.isfile(codex_toml):
         with open(codex_toml, "r", encoding="utf-8") as fp:
             t_content = fp.read()
         if "[mcp_servers.synapse-hub]" not in t_content:
-            issues.append(".codex/config.toml missing [mcp_servers.synapse-hub] block")
+            bridge_issues.append(".codex/config.toml missing [mcp_servers.synapse-hub] block")
 
-    mcp_script = os.path.join(repo_root, "tools", "mcp", "mcp_server.py")
-    cmd_res = _run_cmd([sys.executable, mcp_script, "--help"], cwd=repo_root)
+    bridge_presence = "present" if not bridge_issues else "missing"
+
+    mcp_script = mcp_script_path or os.path.join(repo_root, "tools", "mcp", "mcp_server.py")
+    if os.path.isfile(mcp_script):
+        cmd_res = _run_cmd([sys.executable, mcp_script, "--help"], cwd=repo_root)
+    else:
+        cmd_res = {
+            "command": f"{sys.executable} {mcp_script} --help",
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": f"MCP server missing: {mcp_script}",
+            "latency_sec": 0.0,
+            "success": False,
+        }
+    mcp_startup = "started" if cmd_res["success"] else "failed"
+
+    issues = list(bridge_issues)
     if not cmd_res["success"]:
         issues.append(f"MCP server help check failed: {cmd_res['stderr']}")
 
-    passed = len(issues) == 0 and cmd_res["success"]
+    host_discovery, status_override, receipt_issues = _evaluate_codex_native_receipt(
+        repo_root, native_receipt_path, expected_package_digest
+    )
+
+    if host_discovery == "verified" and bridge_presence == "present" and mcp_startup == "started":
+        native_status = "Verified"
+    elif status_override == "Unverified":
+        native_status = "Unverified"
+    elif bridge_presence == "present":
+        native_status = "Configuration Present"
+    else:
+        native_status = "Unverified"
+
+    passed = bridge_presence == "present" and mcp_startup == "started"
     return {
         "host_name": "OpenAI Codex",
         "spec_version": "OpenAI Codex AGENTS.md + MCP TOML + .agents/skills Spec v1.0",
@@ -363,6 +457,13 @@ def verify_codex(repo_root: str) -> Dict[str, Any]:
         ],
         "discovery_mechanism": "Workspace AGENTS.md ingestion, .codex/config.toml MCP stdio, and .agents/skills/*/SKILL.md export via setup",
         "install_method": "Auto-deployed via 'agent-qa setup --ide codex' (or --ide all)",
+        "outcomes": {
+            "bridge_presence": bridge_presence,
+            "mcp_startup": mcp_startup,
+            "host_discovery": host_discovery,
+        },
+        "native_discovery_status": native_status,
+        "native_discovery_issues": receipt_issues,
         "invocation_evidence": {
             "test_command": cmd_res["command"],
             "exit_code": cmd_res["exit_code"],
@@ -372,6 +473,11 @@ def verify_codex(repo_root: str) -> Dict[str, Any]:
         "verdict": "VERIFIED_PASS" if passed else "FAILED",
         "issues": issues,
     }
+
+
+def verify_codex(repo_root: str) -> Dict[str, Any]:
+    """Verifies OpenAI Codex AGENTS.md, .codex/config.toml MCP server, and client bridge templates."""
+    return verify_codex_discovery_evidence(repo_root)
 
 
 def verify_nodejs_runtime(repo_root: str) -> Dict[str, Any]:

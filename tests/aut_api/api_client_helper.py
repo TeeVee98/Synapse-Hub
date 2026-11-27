@@ -11,10 +11,32 @@ import os
 import time
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 import requests
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_api_transport_config(
+    base_url: Optional[str] = None,
+    mode: Optional[str] = None,
+    target_alias: Optional[str] = None,
+) -> Tuple[str, str, str]:
+    """Resolves explicit API target URL, transport mode ('offline'|'staging'), and alias."""
+    env_mode = (mode or os.environ.get("SYNAPSE_API_MODE", "")).strip().lower()
+    if not env_mode:
+        env_mode = "offline" if os.environ.get("SYNAPSE_API_OFFLINE", "1") == "1" else "staging"
+    if env_mode not in ("offline", "staging"):
+        raise ValueError(f"Unsupported API transport mode: {env_mode}")
+
+    raw_url = base_url if base_url is not None else os.environ.get("BOOK_API_BASE_URL", "")
+    cleaned_url = (raw_url or "").strip().rstrip("/")
+    if env_mode == "staging" and not cleaned_url:
+        raise ValueError("Staging transport requires explicit BOOK_API_BASE_URL or base_url target")
+
+    resolved_url = cleaned_url or "http://localhost:8080"
+    alias = (target_alias or os.environ.get("SYNAPSE_TARGET_ALIAS") or env_mode).strip()
+    return resolved_url, env_mode, alias
 
 
 class MockResponse:
@@ -33,9 +55,25 @@ class MockResponse:
 class BaseApiClient:
     """Base REST API client handling sessions, token lifecycle, and transport routing."""
 
-    def __init__(self, base_url: Optional[str] = None, auth_token: Optional[str] = None):
-        self.base_url = (base_url or os.environ.get("BOOK_API_BASE_URL", "http://localhost:8080")).rstrip("/")
-        self.offline_mode = os.environ.get("SYNAPSE_API_OFFLINE", "1") == "1"
+    def __init__(
+        self,
+        base_url: Optional[str] = None,
+        auth_token: Optional[str] = None,
+        mode: Optional[str] = None,
+        target_alias: Optional[str] = None,
+        build_id: Optional[str] = None,
+    ):
+        resolved_url, resolved_mode, resolved_alias = resolve_api_transport_config(
+            base_url=base_url,
+            mode=mode,
+            target_alias=target_alias,
+        )
+        self.base_url = resolved_url
+        self.transport_mode = resolved_mode
+        self.target_alias = resolved_alias
+        self.build_id = build_id or os.environ.get("SYNAPSE_CANDIDATE_BUILD", "local")
+        self.offline_mode = resolved_mode == "offline"
+        self.executed_requests = 0
         self.session = requests.Session()
         self.session.headers.update({
             "Accept": "application/json",
@@ -44,6 +82,17 @@ class BaseApiClient:
         })
         if auth_token:
             self.set_bearer_token(auth_token)
+
+    def build_transport_receipt(self, cleanup_count: int = 0) -> Dict[str, Any]:
+        """Builds a structured API execution and teardown receipt."""
+        return {
+            "build_id": self.build_id,
+            "target_alias": self.target_alias,
+            "base_url": self.base_url,
+            "transport": self.transport_mode,
+            "executed": self.executed_requests,
+            "cleanup_count": cleanup_count,
+        }
 
     def set_bearer_token(self, token: str):
         self.session.headers["Authorization"] = f"Bearer {token}"
@@ -69,6 +118,7 @@ class BookApiClient(BaseApiClient):
         return f"{prefix}{int(time.time() * 1000)}_{cls._counter}"
 
     def get_books(self, params: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/book"
         req_headers = dict(self.session.headers)
         if headers:
@@ -132,6 +182,7 @@ class BookApiClient(BaseApiClient):
         })
 
     def create_book(self, payload: Any, headers: Optional[Dict[str, str]] = None, raw_data: Optional[bytes] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/book"
         req_headers = dict(self.session.headers)
         if headers:
@@ -239,6 +290,7 @@ class BookApiClient(BaseApiClient):
         return "mock_cuid_1"
 
     def get_book_by_id(self, book_id: Any, params: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/book/{book_id}"
         req_headers = dict(self.session.headers)
         if headers:
@@ -276,6 +328,7 @@ class BookApiClient(BaseApiClient):
         })
 
     def update_book(self, book_id: Any, payload: Any, headers: Optional[Dict[str, str]] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/book/{book_id}"
         req_headers = dict(self.session.headers)
         if headers:
@@ -312,6 +365,7 @@ class BookApiClient(BaseApiClient):
         })
 
     def delete_book(self, book_id: Any, headers: Optional[Dict[str, str]] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/book/{book_id}"
         req_headers = dict(self.session.headers)
         if headers:
@@ -346,6 +400,7 @@ class UserApiClient(BaseApiClient):
         return f"{prefix}{int(time.time() * 1000)}_{cls._counter}@example.com"
 
     def get_users(self, params: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/user"
         req_headers = dict(self.session.headers)
         if headers:
@@ -406,6 +461,7 @@ class UserApiClient(BaseApiClient):
         })
 
     def create_user(self, payload: Any, headers: Optional[Dict[str, str]] = None, raw_data: Optional[bytes] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/user"
         req_headers = dict(self.session.headers)
         if headers:
@@ -516,6 +572,7 @@ class UserApiClient(BaseApiClient):
         return "mock_user_id_1"
 
     def get_user_by_id(self, user_id: Any, params: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/user/{user_id}"
         req_headers = dict(self.session.headers)
         if headers:
@@ -547,6 +604,7 @@ class UserApiClient(BaseApiClient):
         })
 
     def update_user(self, user_id: Any, payload: Any, headers: Optional[Dict[str, str]] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/user/{user_id}"
         req_headers = dict(self.session.headers)
         if headers:
@@ -575,6 +633,7 @@ class UserApiClient(BaseApiClient):
         return MockResponse(200, {"msg": "Updated successfully."})
 
     def delete_user(self, user_id: Any, headers: Optional[Dict[str, str]] = None) -> Any:
+        self.executed_requests += 1
         url = f"{self.base_url}/api/user/{user_id}"
         req_headers = dict(self.session.headers)
         if headers:

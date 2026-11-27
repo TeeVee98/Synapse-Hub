@@ -4177,6 +4177,27 @@
           "help": "Review profile: auto (default), code, or manual"
         }
       }
+    },
+    "release_pilot": {
+      "path": "tools/report/release_pilot.py",
+      "command": "python3 tools/report/release_pilot.py",
+      "summary": "Assemble and verify 9-domain release pilot evidence manifest",
+      "args": {
+        "--manifest": {
+          "type": "string",
+          "required": true,
+          "help": "Path to pilot evidence manifest JSON."
+        },
+        "--json": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Emit JSON scorecard to stdout."
+        }
+      },
+      "examples": [
+        "python3 tools/report/release_pilot.py --manifest reports/pilot/manifest.json --json"
+      ]
     }
   },
   "excluded_internal_tools": {

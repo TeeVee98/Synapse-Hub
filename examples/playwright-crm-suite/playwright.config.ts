@@ -3,6 +3,12 @@
 
 import { defineConfig, devices } from '@playwright/test';
 
+const webMode = (process.env.SYNAPSE_WEB_MODE || 'offline').toLowerCase();
+const stagingBaseUrl = (process.env.BASE_URL || '').trim();
+if (webMode === 'staging' && !stagingBaseUrl) {
+  throw new Error('SYNAPSE_WEB_MODE=staging requires an explicit BASE_URL staging target');
+}
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false, // Run sequentially to prevent race conditions on shared demo CRM
@@ -31,6 +37,14 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] }
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] }
     }
   ]
 });

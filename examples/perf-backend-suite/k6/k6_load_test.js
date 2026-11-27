@@ -34,6 +34,16 @@ export const options = {
         { duration: '30s', target: 0 },   // Ramp-down
       ],
     },
+    recovery_probe: {
+      executor: 'constant-arrival-rate',
+      startTime: '3m05s',
+      duration: '30s',
+      rate: 5,
+      timeUnit: '1s',
+      preAllocatedVUs: 5,
+      maxVUs: 20,
+      exec: 'recoveryProbe',
+    },
   },
   thresholds: {
     // Steady state SLA budgets
@@ -41,12 +51,31 @@ export const options = {
     'http_req_duration{scenario:steady_load,expected_response:true}': ['p(95)<500', 'p(99)<1000'],
     'checks{scenario:steady_load}': ['rate>0.99'],
     'dropped_iterations{scenario:steady_load}': ['count==0'],
+    'http_req_duration{scenario:recovery_probe,expected_response:true}': ['p(95)<500'],
+    'http_req_failed{scenario:recovery_probe}': ['rate<0.01'],
     // Automatic Kill-Switch: Abort if catastrophic failures exceed 10%
     'http_req_failed': [{ threshold: 'rate<0.10', abortOnFail: true, delayAbortEval: '15s' }],
   },
 };
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
+
+export function setup() {
+  const seedId = Math.floor(Math.random() * 900000) + 100000;
+  const seedPayload = JSON.stringify({
+    id: seedId,
+    title: `PERF_SEED_BOOK_${Date.now()}_${seedId}`,
+    description: 'Isolated synthetic seed book for steady load and cleanup',
+    pageCount: 250,
+    excerpt: 'Synthetic workload seed',
+    publishDate: new Date().toISOString(),
+  });
+  http.post(`${BASE_URL}/api/v1/Books`, seedPayload, {
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    tags: { name: 'POST /api/v1/Books (setup)' },
+  });
+  return { syntheticIds: [seedId] };
+}
 
 export default function () {
   const user = userPool[__VU % userPool.length];
@@ -100,6 +129,22 @@ export default function () {
   sleep(Math.random() * 1.5 + 1.0);
 }
 
-export function teardown() {
-  // Teardown hook executes once after test concludes
+export function recoveryProbe() {
+  const res = http.get(`${BASE_URL}/api/v1/Books`, {
+    headers: { 'Accept': 'application/json' },
+    tags: { name: 'GET /api/v1/Books (recovery_probe)' },
+  });
+  check(res, {
+    'recovery probe status is 200': (r) => r.status === 200,
+  });
+}
+
+export function teardown(data) {
+  const ids = (data && data.syntheticIds) || [];
+  for (const id of ids) {
+    http.del(`${BASE_URL}/api/v1/Books/${id}`, null, {
+      headers: { 'Accept': 'application/json' },
+      tags: { name: 'DELETE /api/v1/Books/:id (teardown)' },
+    });
+  }
 }

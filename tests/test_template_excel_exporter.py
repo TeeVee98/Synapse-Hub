@@ -199,6 +199,76 @@ Tiền điều kiện: Đăng nhập thành công với admin.
         finally:
             sys.argv = saved_argv
 
+    def test_header_label_resolution_and_profile_preservation(self):
+        """Validates generic profile + header label lookup without overwriting formulas or sheet order."""
+        wb = openpyxl.Workbook()
+        s_sum = wb.active
+        s_sum.title = "SummaryTab"
+        s_sum["A1"] = "Banner"
+        s_sum.merge_cells("A1:C1")
+        s_sum["B2"] = "=COUNTA(CasesTab!A2:A3)"
+
+        s_cases = wb.create_sheet("CasesTab")
+        s_cases.append(["CaseKey", "Component", "ReqLinks", "TraceDisposition", "CandidateBuild", "Notes"])
+        s_cases.append(["CASE-1", "Auth", "", "", "", "Keep me"])
+        s_cases.append(["CASE-2", "Billing", "", "", "", "Keep me 2"])
+
+        s_extra = wb.create_sheet("ReferenceData")
+        s_extra["A1"] = "Preserved"
+
+        src_xlsx = os.path.join(self.temp_dir.name, "multi_sheet.xlsx")
+        out_xlsx = os.path.join(self.temp_dir.name, "multi_sheet_out.xlsx")
+        wb.save(src_xlsx)
+
+        profile = tee.resolve_template_profile(
+            profile_config={
+                "column_labels": {
+                    "case_id": ["CaseKey"],
+                    "requirement_id": ["ReqLinks"],
+                    "disposition": ["TraceDisposition"],
+                    "candidate_build": ["CandidateBuild"],
+                },
+            },
+            cfg={"trace_profile": {"detail_sheet": "CasesTab", "summary_sheet": "SummaryTab"}},
+        )
+        self.assertEqual(profile["detail_sheet"], "CasesTab")
+        single_wb = openpyxl.Workbook()
+        single_ws = single_wb.active
+        single_ws.append(["Ignored", "TraceDisposition", "CaseKey"])
+        hdr_row, col_map = tee.find_header_columns(single_ws, profile["column_labels"])
+        self.assertEqual(hdr_row, 1)
+        self.assertEqual(col_map["case_id"], 3)
+        self.assertEqual(col_map["disposition"], 2)
+        trace_matrix = {
+            "candidate_build": "rc-900",
+            "rows": [
+                {
+                    "document_id": "URD",
+                    "document_version": "v2.0",
+                    "requirement_id": "REQ-01",
+                    "source_anchor": "p:1",
+                    "linked_cases": ["CASE-1"],
+                    "executed_on_candidate": True,
+                    "passed_on_candidate": True,
+                    "changed_review_requested": False,
+                    "disposition": "passed",
+                }
+            ],
+        }
+        report = tee.export_versioned_trace_workbook(
+            template_path=src_xlsx,
+            output_path=out_xlsx,
+            trace_matrix=trace_matrix,
+            profile=profile,
+        )
+        self.assertTrue(report["comparison"]["passed"])
+        reopened = openpyxl.load_workbook(out_xlsx, data_only=False)
+        self.assertEqual(reopened.sheetnames, ["SummaryTab", "CasesTab", "ReferenceData"])
+        self.assertEqual(reopened["SummaryTab"]["B2"].value, "=COUNTA(CasesTab!A2:A3)")
+        self.assertEqual(reopened["CasesTab"]["F2"].value, "Keep me")
+        self.assertEqual(reopened["CasesTab"]["D2"].value, "passed")
+        self.assertEqual(reopened["CasesTab"]["D3"].value, "unmapped")
+
 
 if __name__ == "__main__":
     unittest.main()

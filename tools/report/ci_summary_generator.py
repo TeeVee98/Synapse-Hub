@@ -13,11 +13,14 @@ or GitLab Merge Request Markdown table.
 import os
 import sys
 import glob
+import hashlib
 import json
+import math
 import argparse
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Tuple
+from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
@@ -26,22 +29,116 @@ for _p in (_REPO_ROOT, _TOOLS_ROOT):
         sys.path.insert(0, _p)
 
 
-def parse_junit_file(xml_path: str) -> Tuple[int, int, int]:
-    """Returns (total_tests, failures_and_errors, skipped) from a JUnit XML file."""
+@dataclass(frozen=True)
+class RunEvidence:
+    """Versioned execution evidence for a required CI/release test suite."""
+
+    build_id: str
+    run_id: str
+    suite: str
+    mode: Literal["offline", "staging", "device", "supervised"]
+    executed: int
+    failed: int
+    skipped: int
+    artifact_sha256: str
+
+
+def evaluate_required_suite(
+    run: RunEvidence,
+    candidate_build: str,
+) -> Literal["passed", "failed", "incomplete"]:
+    """Evaluates a required suite run against the candidate build identifier."""
+    if (
+        not candidate_build
+        or not run.build_id
+        or run.build_id != candidate_build
+        or not run.artifact_sha256
+        or run.executed <= 0
+        or run.failed < 0
+        or run.skipped < 0
+    ):
+        return "incomplete"
+    if run.failed > 0:
+        return "failed"
+    return "passed"
+
+
+REQUIRED_RC_PRODUCERS: Tuple[str, ...] = (
+    "api-suite",
+    "e2e-crm-suite",
+    "mobile-som-suite",
+    "perf-sla-sentinel",
+)
+
+
+def validate_candidate_manifest(
+    manifest: Any,
+    expected_build_id: Optional[str] = None,
+    expected_run_id: Optional[str] = None,
+    expected_environment: Optional[str] = None,
+    required_producers: Sequence[str] = REQUIRED_RC_PRODUCERS,
+) -> Tuple[bool, List[str]]:
+    """Validates candidate manifest identity, producer completion, and live-mode fidelity."""
+    if not isinstance(manifest, dict):
+        return False, ["Candidate manifest must be a JSON object"]
+
+    issues: List[str] = []
+    manifest_build = manifest.get("build_id")
+    if expected_build_id and (not isinstance(manifest_build, str) or manifest_build != expected_build_id):
+        issues.append(f"Build mismatch: expected '{expected_build_id}', got '{manifest_build}'")
+
+    manifest_run = manifest.get("run_id")
+    if expected_run_id and (not isinstance(manifest_run, str) or manifest_run != expected_run_id):
+        issues.append(f"Run ID mismatch (possible replay): expected '{expected_run_id}', got '{manifest_run}'")
+
+    manifest_env = manifest.get("environment")
+    if expected_environment and (not isinstance(manifest_env, str) or manifest_env != expected_environment):
+        issues.append(f"Environment mismatch: expected '{expected_environment}', got '{manifest_env}'")
+
+    producers = manifest.get("producers")
+    if producers is not None:
+        if not isinstance(producers, dict):
+            return False, issues + ["Candidate manifest producers must be a mapping"]
+        is_rc_lane = manifest.get("lane") == "release-candidate"
+        for req_job in required_producers:
+            entry = producers.get(req_job)
+            if not isinstance(entry, dict):
+                issues.append(f"Missing required producer '{req_job}'")
+                continue
+            status = str(entry.get("status", "")).lower()
+            if status != "success":
+                issues.append(f"Producer '{req_job}' did not succeed (status='{status}')")
+            if is_rc_lane and str(entry.get("mode", "")).lower() == "offline":
+                issues.append(f"Offline result substituted for live release candidate in '{req_job}'")
+
+    return len(issues) == 0, issues
+
+
+def _is_finite_number(val: Any) -> bool:
+    return isinstance(val, (int, float)) and not isinstance(val, bool) and math.isfinite(float(val))
+
+
+def _parse_junit_detailed(xml_path: str) -> Tuple[int, int, int, bool, Set[str], str]:
+    """Parses JUnit XML with counter integrity validation, suite names, and content digest."""
     if not os.path.exists(xml_path):
-        return 0, 0, 0
+        return 0, 0, 0, False, set(), ""
     try:
-        tree = ET.parse(xml_path)
-        root = tree.getroot()
+        with open(xml_path, "rb") as fp:
+            raw_bytes = fp.read()
+        digest = hashlib.sha256(raw_bytes).hexdigest()
+        root = ET.fromstring(raw_bytes.decode("utf-8", errors="replace"))
+
+        suite_names: Set[str] = set()
+        if root.attrib.get("name"):
+            suite_names.add(root.attrib["name"])
+        for suite in root.findall(".//testsuite"):
+            if suite.attrib.get("name"):
+                suite_names.add(suite.attrib["name"])
 
         testcases = root.findall(".//testcase")
-        if testcases:
-            total = len(testcases)
-        else:
-            total = int(root.attrib.get("tests", 0))
-            if total == 0:
-                for suite in root.findall(".//testsuite"):
-                    total += int(suite.attrib.get("tests", 0))
+        attr_tests = int(root.attrib.get("tests", 0))
+        suite_tests = sum(int(suite.attrib.get("tests", 0)) for suite in root.findall(".//testsuite"))
+        total = max(len(testcases), attr_tests, suite_tests)
 
         failures = len(root.findall(".//failure"))
         errors = len(root.findall(".//error"))
@@ -56,12 +153,131 @@ def parse_junit_file(xml_path: str) -> Tuple[int, int, int]:
         total_failures = max(failures + errors, attr_failures)
         total_skipped = max(skipped, attr_skipped)
 
-        return total, total_failures, total_skipped
+        if total < 0 or total_failures < 0 or total_skipped < 0:
+            return 0, 0, 0, False, suite_names, digest
+        if total_failures + total_skipped > total:
+            return 0, 0, 0, False, suite_names, digest
+
+        return total, total_failures, total_skipped, True, suite_names, digest
     except Exception:
+        return 0, 0, 0, False, set(), ""
+
+
+def parse_junit_file(xml_path: str) -> Tuple[int, int, int]:
+    """Returns (total_tests, failures_and_errors, skipped) from a JUnit XML file."""
+    total, total_failures, total_skipped, is_valid, _, _ = _parse_junit_detailed(xml_path)
+    if not is_valid:
         return 0, 0, 0
+    return total, total_failures, total_skipped
 
 
-def generate_markdown_summary(artifacts_dir: str = "artifacts") -> Tuple[str, bool]:
+def _evaluate_junit_tier(
+    xml_paths: Sequence[str],
+    missing_msg: str,
+) -> Tuple[int, int, int, int, bool, str, str, Set[str]]:
+    """Aggregates deduplicated JUnit XMLs and enforces executed > 0 and zero failures."""
+    existing = sorted({os.path.abspath(p) for p in xml_paths if os.path.exists(p)})
+    if not existing:
+        return 0, 0, 0, 0, False, "❌ MISSING", missing_msg, set()
+
+    seen_digests: Set[str] = set()
+    observed_names: Set[str] = set()
+    total = 0
+    failed = 0
+    skipped = 0
+    malformed_count = 0
+
+    for path in existing:
+        t, f, s, is_valid, suite_names, digest = _parse_junit_detailed(path)
+        observed_names.add(os.path.basename(path))
+        observed_names.add(os.path.splitext(os.path.basename(path))[0])
+        observed_names.update(suite_names)
+        if not is_valid:
+            malformed_count += 1
+            continue
+        if digest and digest in seen_digests:
+            continue
+        if digest:
+            seen_digests.add(digest)
+        total += t
+        failed += f
+        skipped += s
+
+    executed = max(0, total - skipped)
+    passed_count = max(0, executed - failed)
+    if malformed_count > 0:
+        return (
+            total,
+            executed,
+            failed,
+            skipped,
+            False,
+            "❌ FAIL",
+            f"Malformed JUnit counters ({malformed_count} invalid file(s))",
+            observed_names,
+        )
+
+    passed = failed == 0 and executed > 0
+    status = "✅ PASS" if passed else "❌ FAIL"
+    details = f"{total} Tests ({passed_count} Passed, {failed} Failed, {skipped} Skipped, {executed} Executed)"
+    return total, executed, failed, skipped, passed, status, details, observed_names
+
+
+def _extract_k6_sample_count(k6_data: Dict[str, Any]) -> int:
+    metrics = k6_data.get("metrics", {})
+    for key in ("http_reqs", "iterations"):
+        vals = metrics.get(key, {}).get("values", {})
+        count_val = vals.get("count")
+        if _is_finite_number(count_val):
+            return int(count_val)
+    fail_vals = metrics.get("http_req_failed", {}).get("values", {})
+    passes = fail_vals.get("passes")
+    fails = fail_vals.get("fails")
+    if _is_finite_number(passes) and _is_finite_number(fails):
+        return int(passes) + int(fails)
+    return 0
+
+
+def _evaluate_k6_artifact(k6_path: str) -> Tuple[bool, str, str]:
+    """Validates finite k6 SLA metrics with nonzero executed sample count."""
+    try:
+        with open(k6_path, "r", encoding="utf-8") as fp:
+            k6_data = json.load(fp)
+    except Exception:
+        return False, "❌ ERROR", "Error parsing k6_summary.json"
+
+    if not isinstance(k6_data, dict):
+        return False, "❌ FAIL", "Malformed k6_summary.json payload"
+    metrics = k6_data.get("metrics")
+    if not isinstance(metrics, dict) or not metrics:
+        return False, "❌ FAIL", "Missing k6 metrics in k6_summary.json"
+
+    dur_vals = metrics.get("http_req_duration", {}).get("values", {})
+    fail_vals = metrics.get("http_req_failed", {}).get("values", {})
+    p95 = dur_vals.get("p(95)")
+    err_fraction = fail_vals.get("rate")
+    samples = _extract_k6_sample_count(k6_data)
+
+    if not (_is_finite_number(p95) and _is_finite_number(err_fraction)) or samples <= 0:
+        return False, "❌ FAIL", "Incomplete or non-finite k6 metrics (missing finite p95, rate, or samples)"
+
+    dropped = metrics.get("dropped_iterations", {}).get("values", {}).get("count", 0)
+    dropped_count = int(dropped) if _is_finite_number(dropped) else 0
+    err_rate = float(err_fraction) * 100.0
+    p95_val = float(p95)
+    perf_pass = p95_val <= 500.0 and err_rate <= 1.0 and dropped_count == 0
+    status_perf = "✅ PASS" if perf_pass else "❌ FAIL (SLA BREACH)"
+    details = f"P95: {p95_val:.1f}ms (SLA <= 500ms), Error Rate: {err_rate:.1f}% (SLA <= 1.0%), Samples: {samples}"
+    if dropped_count > 0:
+        details += f", Dropped: {dropped_count}"
+    return perf_pass, status_perf, details
+
+
+def generate_markdown_summary(
+    artifacts_dir: str = "artifacts",
+    candidate_build: Optional[str] = None,
+    expected_shards: Optional[Sequence[str]] = None,
+) -> Tuple[str, bool]:
     """Generates the full GFM executive quality gate summary and returns (markdown, all_passed)."""
     now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -81,7 +297,7 @@ def generate_markdown_summary(artifacts_dir: str = "artifacts") -> Tuple[str, bo
         try:
             with open(verify_reports[0], "r", encoding="utf-8") as f:
                 vdata = json.load(f)
-            static_pass = vdata.get("all_passed", False)
+            static_pass = bool(vdata.get("all_passed", False))
             static_details = f"Gates 1-10: {'10/10 PASS' if static_pass else 'FAILED'}"
         except Exception:
             static_pass = False
@@ -91,7 +307,7 @@ def generate_markdown_summary(artifacts_dir: str = "artifacts") -> Tuple[str, bo
             with open(linter_reports[0], "r", encoding="utf-8") as f:
                 ldata = json.load(f)
             crit = ldata.get("critical_defects_count", 0)
-            static_pass = (crit == 0)
+            static_pass = crit == 0
             static_details = f"Critical Defects: {crit}, Health Score: {ldata.get('codebase_health_score_pct', 100)}%"
         except Exception:
             static_pass = False
@@ -105,48 +321,27 @@ def generate_markdown_summary(artifacts_dir: str = "artifacts") -> Tuple[str, bo
     api_xmls = glob.glob(os.path.join(artifacts_dir, "**/*api*.xml"), recursive=True)
     if search_repo_local and not api_xmls:
         api_xmls = glob.glob("reports/*api*.xml")
-
-    if api_xmls:
-        api_total, api_fail, api_skip = parse_junit_file(api_xmls[0])
-        status_api = "✅ PASS" if (api_fail == 0 and api_total > 0) else "❌ FAIL"
-        api_details = f"{api_total} Tests ({api_total - api_fail} Passed, {api_fail} Failed, {api_skip} Skipped)"
-        api_pass = (api_fail == 0 and api_total > 0)
-    else:
-        api_total = 0
-        status_api = "❌ MISSING"
-        api_details = "Missing API test report artifact (api_junit.xml not found)"
-        api_pass = False
+    api_total, api_exec, _, _, api_pass, status_api, api_details, api_names = _evaluate_junit_tier(
+        api_xmls,
+        "Missing API test report artifact (api_junit.xml not found)",
+    )
 
     # Tier 3: Web E2E CRM & DAST Suite (Sprint 2 & 3)
     web_xml_candidates = (
-        glob.glob(os.path.join(artifacts_dir, "**/*playwright*.xml"), recursive=True) +
-        glob.glob(os.path.join(artifacts_dir, "**/junit.xml"), recursive=True) +
-        glob.glob(os.path.join(artifacts_dir, "**/*web*.xml"), recursive=True)
+        glob.glob(os.path.join(artifacts_dir, "**/*playwright*.xml"), recursive=True)
+        + glob.glob(os.path.join(artifacts_dir, "**/junit.xml"), recursive=True)
+        + glob.glob(os.path.join(artifacts_dir, "**/*web*.xml"), recursive=True)
     )
     if search_repo_local:
         web_xml_candidates += (
-            glob.glob("examples/playwright-crm-suite/reports/*.xml") +
-            glob.glob("reports/*playwright*.xml") +
-            glob.glob("reports/*web*.xml")
+            glob.glob("examples/playwright-crm-suite/reports/*.xml")
+            + glob.glob("reports/*playwright*.xml")
+            + glob.glob("reports/*web*.xml")
         )
-    web_xmls = [x for x in web_xml_candidates if os.path.exists(x)]
-    if web_xmls:
-        web_total = 0
-        web_fail = 0
-        web_skip = 0
-        for x in sorted(list(set(web_xmls))):
-            t, f, s = parse_junit_file(x)
-            web_total += t
-            web_fail += f
-            web_skip += s
-        status_web = "✅ PASS" if (web_fail == 0 and web_total > 0) else "❌ FAIL"
-        web_details = f"{web_total} Tests ({web_total - web_fail} Passed, {web_fail} Failed, {web_skip} Skipped)"
-        web_pass = (web_fail == 0 and web_total > 0)
-    else:
-        web_total = 0
-        web_pass = False
-        status_web = "❌ MISSING"
-        web_details = "Missing Web E2E report artifact (playwright junit.xml not found)"
+    web_total, web_exec, _, _, web_pass, status_web, web_details, web_names = _evaluate_junit_tier(
+        web_xml_candidates,
+        "Missing Web E2E report artifact (playwright junit.xml not found)",
+    )
 
     # Tier 4: Performance & SLA Sentinel (Sprint 4)
     perf_k6 = glob.glob(os.path.join(artifacts_dir, "**/k6_summary.json"), recursive=True)
@@ -158,22 +353,11 @@ def generate_markdown_summary(artifacts_dir: str = "artifacts") -> Tuple[str, bo
             perf_jtls = glob.glob("Reports/perf/*.jtl")
 
     if perf_k6 and os.path.exists(perf_k6[0]):
-        try:
-            with open(perf_k6[0], "r", encoding="utf-8") as f:
-                k6_data = json.load(f)
-            dur = k6_data.get("metrics", {}).get("http_req_duration", {}).get("values", {})
-            p95 = dur.get("p(95)", 0.0)
-            err_rate = k6_data.get("metrics", {}).get("http_req_failed", {}).get("values", {}).get("rate", 0.0) * 100.0
-            perf_pass = (p95 <= 500.0 and err_rate <= 1.0)
-            status_perf = "✅ PASS" if perf_pass else "❌ FAIL (SLA BREACH)"
-            perf_details = f"P95: {p95:.1f}ms (SLA <= 500ms), Error Rate: {err_rate:.1f}% (SLA <= 1.0%)"
-        except Exception:
-            perf_pass = False
-            status_perf = "❌ ERROR"
-            perf_details = "Error parsing k6_summary.json"
+        perf_pass, status_perf, perf_details = _evaluate_k6_artifact(perf_k6[0])
     elif perf_jtls:
         try:
             from tools.perf.jtl_analyzer import parse_jtl, evaluate_sla
+
             _, total_stats = parse_jtl(perf_jtls[0])
             agg = total_stats.compute()
             passed_sla, sla_failures = evaluate_sla(agg, sla_p95=500.0, max_error_rate=1.0)
@@ -197,19 +381,51 @@ def generate_markdown_summary(artifacts_dir: str = "artifacts") -> Tuple[str, bo
     mob_xmls = glob.glob(os.path.join(artifacts_dir, "**/*mobile*.xml"), recursive=True)
     if search_repo_local and not mob_xmls:
         mob_xmls = glob.glob("reports/*mobile*.xml")
-    if mob_xmls:
-        mob_total, mob_fail, mob_skip = parse_junit_file(mob_xmls[0])
-        status_mob = "✅ PASS" if (mob_fail == 0 and mob_total > 0) else "❌ FAIL"
-        mob_details = f"{mob_total} Tests ({mob_total - mob_fail} Passed, {mob_fail} Failed, 0 Warnings)"
-        mob_pass = (mob_fail == 0 and mob_total > 0)
-    else:
-        mob_total = 0
-        status_mob = "❌ MISSING"
-        mob_details = "Missing Mobile test report artifact (mobile_junit.xml not found)"
-        mob_pass = False
+    mob_total, mob_exec, _, _, mob_pass, status_mob, mob_details, mob_names = _evaluate_junit_tier(
+        mob_xmls,
+        "Missing Mobile test report artifact (mobile_junit.xml not found)",
+    )
 
-    all_passed = bool(static_pass and api_pass and web_pass and perf_pass and mob_pass)
+    # Expected shard & candidate build verification (when configured or manifest present)
+    env_shards = os.environ.get("SYNAPSE_EXPECTED_SHARDS", "").strip()
+    req_shards = list(expected_shards) if expected_shards is not None else ([s.strip() for s in env_shards.split(",") if s.strip()])
+    observed_all = api_names | web_names | mob_names
+    missing_shards = [s for s in req_shards if not any(s in obs for obs in observed_all)]
+    shard_ok = len(missing_shards) == 0
+
+    target_build = candidate_build or os.environ.get("SYNAPSE_CANDIDATE_BUILD")
+    target_run = os.environ.get("SYNAPSE_RUN_ID") or None
+    target_env = os.environ.get("SYNAPSE_RELEASE_ENV") or None
+    build_ok = True
+    build_note = "Not bound"
+    manifest_paths = glob.glob(os.path.join(artifacts_dir, "**/candidate_manifest.json"), recursive=True)
+    if target_build or target_run or target_env:
+        if manifest_paths and os.path.exists(manifest_paths[0]):
+            try:
+                with open(manifest_paths[0], "r", encoding="utf-8") as mf:
+                    mdata = json.load(mf)
+                build_ok, manifest_issues = validate_candidate_manifest(
+                    mdata,
+                    expected_build_id=target_build,
+                    expected_run_id=target_run,
+                    expected_environment=target_env,
+                )
+                build_note = (
+                    f"Build `{mdata.get('build_id')}` verified"
+                    if build_ok
+                    else "; ".join(manifest_issues)
+                )
+            except Exception:
+                build_ok = False
+                build_note = "Build manifest unreadable"
+        else:
+            build_ok = False
+            build_note = f"Missing candidate_manifest.json for build `{target_build}`"
+
+    all_passed = bool(static_pass and api_pass and web_pass and perf_pass and mob_pass and shard_ok and build_ok)
     verdict = "### 🏆 DEFINITION OF DONE (DoD) CERTIFIED — 100% PASS" if all_passed else "### ❌ QUALITY GATES FAILED"
+    total_executed = api_exec + web_exec + mob_exec
+    total_tests = api_total + web_total + mob_total
 
     md = f"""# Enterprise Test Automation CI/CD Summary
 
@@ -235,7 +451,9 @@ def generate_markdown_summary(artifacts_dir: str = "artifacts") -> Tuple[str, bo
 
 ### 🛡️ Core Invariant Audit
 
-- **Truth Anchor (Zero Fake Passes):** 100% real assertions across all 204 tests; zero swallowed exceptions (`pass`, dummy suppression).
+- **Truth Anchor (Zero Fake Passes):** {total_executed} executed tests ({total_tests} total) evaluated; zero swallowed exceptions (`pass`, dummy suppression).
+- **Shard Completeness:** {'All expected shards present' if shard_ok else f"Missing shard(s): {', '.join(missing_shards)}"}
+- **Candidate Build Binding:** {build_note}
 - **Clean POM / SOM Separation:** 100% locators encapsulated in Page and Screen Classes; zero raw CSS/XPath in test scripts.
 - **Credential Security:** 100% verified; zero raw plaintext passwords committed.
 - **Dynamic Smart Waits:** 100% dynamic event-driven waits; zero brittle static sleeps (`Thread.sleep`, `waitForTimeout`).

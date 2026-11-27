@@ -7,9 +7,18 @@ Unit tests verifying rigorous, unbypassable JUnit XML parsing and DoD summary ev
 in tools/report/ci_summary_generator.py.
 """
 
+import dataclasses
+import json
 import os
+import subprocess
+import sys
 import tempfile
-from tools.report.ci_summary_generator import parse_junit_file, generate_markdown_summary
+from pathlib import Path
+import pytest
+from tools.report.ci_summary_generator import (
+    parse_junit_file,
+    generate_markdown_summary,
+)
 
 
 def test_parse_junit_file_with_child_testsuite_failures():
@@ -92,3 +101,374 @@ def test_generate_markdown_summary_catches_child_testsuite_failure():
         assert not all_passed, "Generator must NOT pass when API test has failures!"
         assert "❌ FAIL" in md
         assert "❌ QUALITY GATES FAILED" in md
+
+
+def _write_junit(path: Path, name: str, cases: list[tuple[str, str]]) -> None:
+    """Writes a minimal JUnit XML file with status in {'pass', 'fail', 'skip'}."""
+    failures = sum(1 for _, st in cases if st == "fail")
+    skipped = sum(1 for _, st in cases if st == "skip")
+    lines = [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        f'<testsuite name="{name}" tests="{len(cases)}" failures="{failures}" errors="0" skipped="{skipped}">',
+    ]
+    for tc_name, st in cases:
+        if st == "fail":
+            lines.append(f'  <testcase name="{tc_name}"><failure>boom</failure></testcase>')
+        elif st == "skip":
+            lines.append(f'  <testcase name="{tc_name}"><skipped message="skipped"/></testcase>')
+        else:
+            lines.append(f'  <testcase name="{tc_name}"/>')
+    lines.append("</testsuite>")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_valid_static_and_k6(root: Path, p95: float = 120.0, rate: float = 0.0, samples: int = 50) -> None:
+    (root / "verify_all_report.json").write_text(
+        json.dumps({"all_passed": True}),
+        encoding="utf-8",
+    )
+    (root / "k6_summary.json").write_text(
+        json.dumps(
+            {
+                "metrics": {
+                    "http_req_duration": {"values": {"p(95)": p95}},
+                    "http_req_failed": {"values": {"rate": rate}},
+                    "http_reqs": {"values": {"count": samples}},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_evaluate_required_suite_passed_failed_and_incomplete():
+    """Positive & Negative: RunEvidence evaluates passed, failed, and incomplete dispositions."""
+    from tools.report.ci_summary_generator import RunEvidence, evaluate_required_suite
+
+    good = RunEvidence(
+        build_id="build-abc",
+        run_id="run-1",
+        suite="api",
+        mode="staging",
+        executed=10,
+        failed=0,
+        skipped=0,
+        artifact_sha256="a" * 64,
+    )
+    assert evaluate_required_suite(good, "build-abc") == "passed"
+    assert evaluate_required_suite(good, "build-other") == "incomplete"
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        good.build_id = "mutated"  # type: ignore[misc]
+
+    zero_exec = RunEvidence(
+        build_id="build-abc",
+        run_id="run-1",
+        suite="api",
+        mode="staging",
+        executed=0,
+        failed=0,
+        skipped=3,
+        artifact_sha256="a" * 64,
+    )
+    assert evaluate_required_suite(zero_exec, "build-abc") == "incomplete"
+
+    failed_run = RunEvidence(
+        build_id="build-abc",
+        run_id="run-1",
+        suite="api",
+        mode="staging",
+        executed=5,
+        failed=1,
+        skipped=0,
+        artifact_sha256="a" * 64,
+    )
+    assert evaluate_required_suite(failed_run, "build-abc") == "failed"
+
+
+def test_generate_markdown_summary_fully_executed_green_run():
+    """Positive: Fully executed suites and finite k6 metrics with samples certify green."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        _write_junit(root / "api_junit.xml", "api", [("t1", "pass"), ("t2", "pass")])
+        _write_junit(root / "web_junit.xml", "web", [("w1", "pass")])
+        _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "pass"), ("m2", "skip")])
+
+        md, all_passed = generate_markdown_summary(artifacts_dir=str(root))
+        assert all_passed is True
+        assert "DEFINITION OF DONE" in md
+        assert "0 Warnings" not in md
+        assert "all 204 tests" not in md
+        assert "1 Skipped" in md
+
+
+def test_generate_markdown_summary_rejects_all_skipped_junit_suites():
+    """Negative: Three 1-case JUnit suites where every case is skipped must NOT certify."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        _write_junit(root / "api_junit.xml", "api", [("a1", "skip")])
+        _write_junit(root / "web_junit.xml", "web", [("w1", "skip")])
+        _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "skip")])
+
+        md, all_passed = generate_markdown_summary(artifacts_dir=str(root))
+        assert all_passed is False
+        assert "DEFINITION OF DONE" not in md
+        assert "0 Executed" in md or "0 Passed" in md
+
+
+def test_generate_markdown_summary_rejects_empty_and_nan_k6_summary():
+    """Negative: Empty k6 {}, zero-sample k6, bool/non-numeric, and NaN latency/rate block certification."""
+    for payload in [
+        "{}",
+        json.dumps({"metrics": {"http_req_duration": {"values": {"p(95)": 10.0}}, "http_req_failed": {"values": {"rate": 0.0}}, "http_reqs": {"values": {"count": 0}}}}),
+        json.dumps({"metrics": {"http_req_duration": {"values": {"p(95)": True}}, "http_req_failed": {"values": {"rate": 0.0}}, "http_reqs": {"values": {"count": 10}}}}),
+        json.dumps({"metrics": {"http_req_duration": {"values": {"p(95)": float("nan")}}, "http_req_failed": {"values": {"rate": 0.0}}, "http_reqs": {"values": {"count": 10}}}}, allow_nan=True),
+    ]:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "verify_all_report.json").write_text(json.dumps({"all_passed": True}), encoding="utf-8")
+            _write_junit(root / "api_junit.xml", "api", [("a1", "pass")])
+            _write_junit(root / "web_junit.xml", "web", [("w1", "pass")])
+            _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "pass")])
+            (root / "k6_summary.json").write_text(payload, encoding="utf-8")
+
+            md, all_passed = generate_markdown_summary(artifacts_dir=str(root))
+            assert all_passed is False
+            assert "QUALITY GATES FAILED" in md
+
+
+def test_generate_markdown_summary_missing_shard_and_mismatched_build():
+    """Negative: Missing expected shard or stale/mismatched candidate build exits blocked."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        _write_junit(root / "api_junit.xml", "api", [("a1", "pass")])
+        _write_junit(root / "playwright-shard-1.xml", "web-1", [("w1", "pass")])
+        _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "pass")])
+
+        md_missing_shard, passed_shard = generate_markdown_summary(
+            artifacts_dir=str(root),
+            expected_shards=["playwright-shard-1", "playwright-shard-2"],
+        )
+        assert passed_shard is False
+        assert "shard" in md_missing_shard.lower()
+
+        (root / "playwright-shard-2.xml").write_text(
+            (root / "playwright-shard-1.xml").read_text(encoding="utf-8").replace("w1", "w2"),
+            encoding="utf-8",
+        )
+        (root / "candidate_manifest.json").write_text(
+            json.dumps({"build_id": "old-sha-111"}),
+            encoding="utf-8",
+        )
+        md_stale, passed_stale = generate_markdown_summary(
+            artifacts_dir=str(root),
+            candidate_build="new-sha-222",
+            expected_shards=["playwright-shard-1", "playwright-shard-2"],
+        )
+        assert passed_stale is False
+        assert "build" in md_stale.lower()
+
+
+def test_generate_markdown_summary_mixed_skips_and_malformed_counters():
+    """Boundary: Mixed skips show exact executed/skipped; malformed counters fail closed."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        _write_junit(root / "api_junit.xml", "api", [("a1", "pass"), ("a2", "pass"), ("a3", "skip")])
+        _write_junit(root / "web_junit.xml", "web", [("w1", "pass")])
+        _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "pass")])
+
+        md, all_passed = generate_markdown_summary(artifacts_dir=str(root))
+        assert all_passed is True
+        assert "2 Passed, 0 Failed, 1 Skipped" in md
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        (root / "api_junit.xml").write_text(
+            '<?xml version="1.0" encoding="utf-8"?><testsuite name="api" tests="1" failures="2" skipped="3"><testcase name="a1"/></testsuite>',
+            encoding="utf-8",
+        )
+        _write_junit(root / "web_junit.xml", "web", [("w1", "pass")])
+        _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "pass")])
+
+        _, bad_passed = generate_markdown_summary(artifacts_dir=str(root))
+        assert bad_passed is False
+
+
+def test_ci_summary_cli_dedup_shards_and_exit_codes():
+    """CLI & Resilience: Deduplicates identical shards and returns 0/1 CLI exit codes."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        _write_junit(root / "api_junit.xml", "api", [("a1", "pass")])
+        _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "pass")])
+
+        sub1 = root / "shard1"
+        sub2 = root / "shard1_copy"
+        sub1.mkdir()
+        sub2.mkdir()
+        _write_junit(sub1 / "junit.xml", "web-shard-1", [("w1", "pass"), ("w2", "pass")])
+        _write_junit(sub2 / "junit.xml", "web-shard-1", [("w1", "pass"), ("w2", "pass")])
+
+        md, ok = generate_markdown_summary(artifacts_dir=str(root))
+        assert ok is True
+        assert "2 TCs" in md
+
+        proc_ok = subprocess.run(
+            [sys.executable, "tools/report/ci_summary_generator.py", "--artifacts-dir", str(root)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert proc_ok.returncode == 0
+
+        (root / "k6_summary.json").write_text("{}", encoding="utf-8")
+        proc_fail = subprocess.run(
+            [sys.executable, "tools/report/ci_summary_generator.py", "--artifacts-dir", str(root)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert proc_fail.returncode == 1
+
+
+def test_junit_detailed_missing_empty_and_suite_name_shards():
+    """Boundary & Resilience: Missing/empty JUnit XML fails closed; root and child suite names satisfy shards."""
+    from tools.report.ci_summary_generator import _parse_junit_detailed
+
+    t, f, s, ok, names, digest = _parse_junit_detailed("definitely_missing_file_xyz.xml")
+    assert (t, f, s, ok, digest) == (0, 0, 0, False, "")
+    assert names == set()
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        (root / "api_junit.xml").write_text(
+            '<?xml version="1.0" encoding="utf-8"?><testsuites></testsuites>',
+            encoding="utf-8",
+        )
+        _write_junit(root / "web_junit.xml", "web", [("w1", "pass")])
+        _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "pass")])
+        _, passed_empty = generate_markdown_summary(artifacts_dir=str(root))
+        assert passed_empty is False
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        _write_junit(root / "api_junit.xml", "root-api-shard", [("a1", "pass")])
+        (root / "web_junit.xml").write_text(
+            '<?xml version="1.0" encoding="utf-8"?><testsuites name="root-web-container"><testsuite name="child-web-shard" tests="1"><testcase name="w1"/></testsuite></testsuites>',
+            encoding="utf-8",
+        )
+        _write_junit(root / "mobile_junit.xml", "mobile-shard", [("m1", "pass")])
+        _, passed_named = generate_markdown_summary(
+            artifacts_dir=str(root),
+            expected_shards=["root-web-container", "child-web-shard"],
+        )
+        assert passed_named is True
+
+
+def _write_rc_manifest(root: Path, overrides: dict | None = None) -> dict:
+    manifest = {
+        "build_id": "sha-rc-999",
+        "run_id": "run-777",
+        "environment": "staging",
+        "lane": "release-candidate",
+        "producers": {
+            "api-suite": {"status": "success", "mode": "staging", "job": "rc-api-suite"},
+            "e2e-crm-suite": {"status": "success", "mode": "staging", "job": "rc-e2e-suite"},
+            "mobile-som-suite": {"status": "success", "mode": "device", "job": "rc-mobile-suite"},
+            "perf-sla-sentinel": {"status": "success", "mode": "staging", "job": "rc-perf-suite"},
+        },
+    }
+    if overrides:
+        manifest.update(overrides)
+    (root / "candidate_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return manifest
+
+
+def test_rc_candidate_manifest_valid_producers_certifies_green():
+    """Positive: Valid candidate_manifest.json with matching SHA, run_id, environment, and live modes passes."""
+    from tools.report.ci_summary_generator import validate_candidate_manifest
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        _write_junit(root / "api_junit.xml", "api", [("a1", "pass")])
+        _write_junit(root / "web_junit.xml", "web", [("w1", "pass")])
+        _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "pass")])
+        manifest = _write_rc_manifest(root)
+
+        ok, issues = validate_candidate_manifest(
+            manifest,
+            expected_build_id="sha-rc-999",
+            expected_run_id="run-777",
+            expected_environment="staging",
+        )
+        assert ok is True and issues == []
+
+        md, all_passed = generate_markdown_summary(
+            artifacts_dir=str(root),
+            candidate_build="sha-rc-999",
+        )
+        assert all_passed is True
+        assert "sha-rc-999" in md
+
+
+def test_rc_rejects_cancelled_skipped_offline_substituted_and_replayed_artifacts(monkeypatch):
+    """Negative: Cancelled producer, skipped job, offline-for-live substitution, or replayed run_id fails."""
+    from tools.report.ci_summary_generator import validate_candidate_manifest
+
+    base = {
+        "build_id": "sha-rc-999",
+        "run_id": "run-777",
+        "environment": "staging",
+        "lane": "release-candidate",
+        "producers": {
+            "api-suite": {"status": "success", "mode": "staging", "job": "rc-api"},
+            "e2e-crm-suite": {"status": "success", "mode": "staging", "job": "rc-e2e"},
+            "mobile-som-suite": {"status": "success", "mode": "device", "job": "rc-mob"},
+            "perf-sla-sentinel": {"status": "success", "mode": "staging", "job": "rc-perf"},
+        },
+    }
+    bad_cases = [
+        {**base, "run_id": "run-old-replayed"},
+        {**base, "producers": {**base["producers"], "api-suite": {"status": "cancelled", "mode": "staging"}}},
+        {**base, "producers": {**base["producers"], "e2e-crm-suite": {"status": "skipped", "mode": "staging"}}},
+        {**base, "producers": {**base["producers"], "api-suite": {"status": "success", "mode": "offline"}}},
+        {**base, "producers": {k: v for k, v in base["producers"].items() if k != "mobile-som-suite"}},
+    ]
+    for bad in bad_cases:
+        ok, issues = validate_candidate_manifest(
+            bad,
+            expected_build_id="sha-rc-999",
+            expected_run_id="run-777",
+            expected_environment="staging",
+        )
+        assert ok is False
+        assert len(issues) >= 1
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        _write_junit(root / "api_junit.xml", "api", [("a1", "pass")])
+        _write_junit(root / "web_junit.xml", "web", [("w1", "pass")])
+        _write_junit(root / "mobile_junit.xml", "mobile", [("m1", "pass")])
+        _write_rc_manifest(root, {"run_id": "run-replayed-1"})
+        monkeypatch.setenv("SYNAPSE_CANDIDATE_BUILD", "sha-rc-999")
+        monkeypatch.setenv("SYNAPSE_RUN_ID", "run-777")
+        _, passed = generate_markdown_summary(artifacts_dir=str(root))
+        assert passed is False
+
+
+def test_ci_workflow_defines_release_candidate_lane_and_browser_matrix():
+    """Boundary & CLI: ci_quality_gates.yml keeps offline PR lane and adds explicit release-candidate lane."""
+    wf_path = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci_quality_gates.yml"
+    wf_text = wf_path.read_text(encoding="utf-8")
+    assert "release_candidate" in wf_text
+    assert "chromium firefox webkit" in wf_text
+    assert "candidate_manifest.json" in wf_text
+    assert "SYNAPSE_API_OFFLINE: \"1\"" in wf_text

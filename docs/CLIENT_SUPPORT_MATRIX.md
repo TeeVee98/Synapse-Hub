@@ -3,43 +3,38 @@
 > **Synapse Hub Enterprise QA Automation Platform**  
 > **Author:** Thế Vị (@TeeVee98) <https://github.com/TeeVee98/Synapse-Hub>  
 > **License:** MIT License  
-> **Last Updated:** 2026-11-24  
+> **Last Updated:** 2026-11-27  
 
-This document formalizes AI client and IDE host compatibility, distinguishing fully verified integration targets from experimental or unverified environments.
-
----
-
-## 1. Comprehensive Host Support Matrix
-
-| Client Host | Classification | Discovery / Hook Path | Scope / Capabilities | Limitations / Caveats |
-| :--- | :---: | :--- | :--- | :--- |
-| **Google Antigravity** | **Verified** | `skills/*/SKILL.md`<br/>`.agents/skills/*/SKILL.md`<br/>`plugin.json`<br/>`agentskills.json` | Subagents, custom tools, rules router, MCP servers, episodic memory | Requires Antigravity environment |
-| **Claude Code** | **Verified** | `CLAUDE.md`<br/>`templates/ai_bridges/CLAUDE.md` | Workspace instructions, CLI command execution, tool calls | In-context prompt adherence only; single agent loop |
-| **Cursor IDE** | **Verified** | `.cursorrules`<br/>`.cursor/rules/synapse-qa.mdc` | Glob-matched file rules (`globs: **/*`), inline assistant, Composer | No background multi-agent swarm; single workspace |
-| **GitHub Copilot** | **Verified** | `.github/copilot-instructions.md`<br/>`.github/instructions/*.instructions.md` | Path-specific instructions (`applyTo:`), Copilot Chat, CLI assistance | Chat and inline code suggestions only; no tool orchestration |
-| **Windsurf** | **Verified** | `.windsurfrules`<br/>`templates/ai_bridges/windsurfrules` | Cascade engine directives, scratchpad, agent pair-programming | Single-agent chat flow |
-| **OpenAI Codex** | **Verified** | `AGENTS.md`<br/>`.codex/config.toml`<br/>`.agents/skills/*/SKILL.md`<br/>`templates/ai_bridges/AGENTS.md`<br/>`templates/ai_bridges/codex_config.toml` | Workspace `AGENTS.md` directives, MCP stdio server (`synapse-hub`), native `.agents/skills/` discovery, CLI/shell verification | Client repos require `npx @teevee98/synapse-hub setup --ide codex` (or `--ide all`) and trusted `.codex/config.toml` |
-| **Node.js / NPX CLI** | **Verified** | `bin/agent-qa.js`<br/>`package.json` | Global CLI execution (`agent-qa`, `npx @teevee98/synapse-hub`) | Requires Node.js >= 18.0.0 |
-| **Python CLI** | **Verified** | `tools/core/cli.py`<br/>`pyproject.toml` | Full toolsuite execution (`agent-qa`, `synapse-hub`) | Requires Python >= 3.10 |
-| **OpenCode** | **Unverified / Experimental** | In-context prompt injection | Code generation & execution traces | Experimental; no standardized repository hook specification |
-| **Goose** | **Unverified / Experimental** | Generic agent instructions | Task automation via MCP | Unverified CLI profile |
-| **Devin / Cline** | **Unverified / Experimental** | Workspace instructions fallback | Autonomous web/CLI workflows | Unverified host configuration |
+This document derives all client and runtime support claims strictly from versioned, reproducible verification evidence. Any combination without live execution evidence is explicitly marked `Configuration Only` or `Pending` rather than `Verified`.
 
 ---
 
-## 2. Integration Tiers & Host Requirements
+## 1. Evidence-Backed Host & Runtime Support Matrix
 
-### Tier A: Native Multi-Agent & Rule Routing (Verified)
-- **Google Antigravity:** Full support for 57 QA skills, subagent swarm orchestrator, rules routing, and MCP servers.
-- **Node.js & Python CLIs:** Production package distributions supporting hermetic standalone execution.
+| Client Host / Runtime | Support State | Version | Evidence Date | Run Reference | Verified Scope & Caveats |
+| :--- | :---: | :--- | :---: | :--- | :--- |
+| **Node.js / NPX CLI (`@teevee98/synapse-hub`)** | **Verified** | `4.10.0` (Node >= 18) | `2026-11-27` | `tests/test_packaging_parity.py`, `tests/test_support_claims.py` | Clean npm tarball packing, setup CLI execution, and upgrade skill-byte preservation |
+| **Python CLI (`synapse-hub`)** | **Verified** | `4.10.0` (Python >= 3.10) | `2026-11-27` | `tests/test_packaging_parity.py`, `tests/test_support_claims.py` | Clean wheel parity for 57 domain skills plus `solo`, `review`, and `super-plan` |
+| **Google Antigravity** | **Configuration Only** | `4.10.0` | `2026-11-27` | `tools/core/sync_agent_rules.py`, `docs/CLIENT_SUPPORT_MATRIX.md` | Static bridge (`skills/`, `.agent/skills/`, `plugin.json`, `agentskills.json`); full IDE session pending supervised receipt |
+| **OpenAI Codex** | **Configuration Only** | `4.10.0` | `2026-11-27` | `tests/test_codex_discovery_evidence.py`, `tests/test_support_claims.py` | File deployment (`AGENTS.md`, `.codex/config.toml`, `.agents/skills/`) verified; live Codex transcript required to promote to `Verified` |
+| **Claude Code** | **Configuration Only** | `4.10.0` | `2026-11-27` | `tools/core/sync_agent_rules.py` | Generated `CLAUDE.md` and `.claude/commands/*`; unsupervised live IDE transcript pending |
+| **Cursor IDE** | **Configuration Only** | `4.10.0` | `2026-11-27` | `tools/core/sync_agent_rules.py` | Generated `.cursorrules` and `.cursor/rules/synapse-qa.mdc`; live Composer session pending |
+| **GitHub Copilot** | **Configuration Only** | `4.10.0` | `2026-11-27` | `tools/core/sync_agent_rules.py` | Generated `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md`; live IDE check pending |
+| **Windsurf** | **Configuration Only** | `4.10.0` | `2026-11-27` | `tools/core/sync_agent_rules.py` | Generated `.windsurfrules`; live Cascade session pending |
+| **Accessibility Screen-Reader Support** | **Pending** | `4.10.0` | `2026-11-27` | `docs/accessibility-pilot.md`, `examples/playwright-crm-suite/tests/accessibility.spec.ts` | Automated Chromium keyboard journey passes; support claim remains pending supervised VoiceOver/NVDA reviewer receipt |
+| **OpenCode / Goose / Devin / Cline** | **Unverified / Experimental** | `N/A` | `2026-11-27` | `N/A` | Experimental fallback via generic `AGENTS.md` workspace ingestion; untested |
 
-### Tier B: Synchronized IDE & CLI Agent Bridges (Verified)
-- **OpenAI Codex, Claude Code, Cursor IDE, Windsurf, GitHub Copilot:**
-  - Synchronized via `python tools/core/sync_agent_rules.py`.
-  - Single source of truth is `AGENTS.md`.
-  - Scope isolation: Template bridges deployed to client projects (`templates/ai_bridges/*`) omit Synapse-Hub-only CLI tools and reference project-native runners (`npm test`, `pytest`) and `npx @teevee98/synapse-hub`.
-  - For **OpenAI Codex**, `npx @teevee98/synapse-hub setup --ide codex` (or `--ide all`) also deploys `.codex/config.toml` (MCP server) and exports Synapse skills into `.agents/skills/` for native progressive-disclosure skill routing.
+---
 
-### Tier C: Unverified / Experimental Hosts
-- Host platforms that lack dedicated configuration hook formats (such as OpenCode, Goose, Devin, Cline) rely on prompt fallback or generic workspace ingestion.
-- These hosts must be tested on a case-by-case basis before relying on autonomous execution.
+## 2. Reproducible Documented Smoke Commands
+
+Run the following documented commands from a clean client workspace before claiming support on a target platform:
+
+```bash
+node bin/agent-qa.js --help
+node bin/agent-qa.js setup --ide codex
+python3 tools/core/cli.py --help
+```
+
+- Single source of truth for agent rules is `AGENTS.md` (synchronized via `python tools/core/sync_agent_rules.py`).
+- Template bridges (`templates/ai_bridges/*`) deployed to client repositories omit Synapse-Hub-only CLI commands and target native test runners (`npm test`, `pytest`).

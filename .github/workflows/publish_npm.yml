@@ -119,8 +119,26 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Pack, Smoke-Test, and Record Tested Tarball Digest
+        id: pack-tarball
+        run: |
+          mkdir -p /tmp/npm_dist /tmp/npm_smoke_client
+          TARBALL_NAME=$(npm pack --pack-destination /tmp/npm_dist | tail -n 1)
+          TARBALL_PATH="/tmp/npm_dist/${TARBALL_NAME}"
+          TARBALL_SHA256=$(sha256sum "$TARBALL_PATH" | awk '{print $1}')
+          echo "tarball_path=$TARBALL_PATH" >> "$GITHUB_OUTPUT"
+          echo "tarball_sha256=$TARBALL_SHA256" >> "$GITHUB_OUTPUT"
+          echo "Packed tarball: $TARBALL_PATH (sha256: $TARBALL_SHA256)"
+
+          npm install --prefix /tmp/npm_smoke_client --offline --no-audit --no-fund "$TARBALL_PATH"
+          /tmp/npm_smoke_client/node_modules/.bin/agent-qa setup /tmp/npm_smoke_client --ide codex --no-git-hook
+          for wf in solo review super-plan; do
+            test -f "/tmp/npm_smoke_client/.agents/skills/${wf}/SKILL.md"
+          done
+
       - name: Publish to NPM via Trusted Publishing (OIDC Provenance) or NPM_TOKEN Fallback
         run: |
+          TARBALL_PATH="${{ steps.pack-tarball.outputs.tarball_path }}"
           OTP_ARG=""
           if [ -n "$OTP_INPUT" ]; then
             if ! [[ "$OTP_INPUT" =~ ^[0-9]{6}$ ]]; then
@@ -131,12 +149,14 @@ jobs:
           fi
 
           echo "🚀 Initializing NPM Publish environment..."
-          echo "  Node version : $(node -v)"
-          echo "  NPM version  : $(npx --yes npm@latest -v)"
+          echo "  Node version   : $(node -v)"
+          echo "  NPM version    : $(npx --yes npm@latest -v)"
+          echo "  Tarball path   : $TARBALL_PATH"
+          echo "  Tarball SHA256 : ${{ steps.pack-tarball.outputs.tarball_sha256 }}"
 
           echo "🚀 Attempting publish via npm Trusted Publishing (OIDC / Provenance)..."
           rm -f ~/.npmrc
-          if npx --yes npm@latest publish --provenance --access public $OTP_ARG; then
+          if npx --yes npm@latest publish "$TARBALL_PATH" --provenance --access public $OTP_ARG; then
             echo "✅ Successfully published to NPM via OIDC Trusted Publishing!"
             exit 0
           fi
@@ -144,7 +164,7 @@ jobs:
           if [ -n "$NODE_AUTH_TOKEN" ]; then
             echo "⚠️ OIDC Trusted Publishing unconfigured or rejected. Falling back to NPM_TOKEN authentication..."
             echo "//registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN" > ~/.npmrc
-            OUTPUT=$(npx --yes npm@latest publish --access public $OTP_ARG 2>&1) || {
+            OUTPUT=$(npx --yes npm@latest publish "$TARBALL_PATH" --access public $OTP_ARG 2>&1) || {
               EXIT_CODE=$?
               if echo "$OUTPUT" | grep -qiE "EPUBLISHCONFLICT|previously published|already exists|409 Conflict"; then
                 echo "::notice::Version already published on NPM Registry, skipping duplicate release."

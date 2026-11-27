@@ -230,6 +230,14 @@ def _norm_rel(path_str: str, repo_root: str = "") -> str:
 def _read_bounded_text(abs_path: str) -> Optional[str]:
     if not abs_path or not os.path.isfile(abs_path):
         return None
+    if abs_path.lower().endswith(".docx") and os.path.getsize(abs_path) > 0:
+        try:
+            from tools.manual.requirement_trace import read_docx_text_blocks
+
+            blocks = read_docx_text_blocks(abs_path)
+            return "\n".join(text for _, text in blocks)[:MAX_SPEC_BYTES]
+        except Exception:
+            return None
     try:
         with open(abs_path, "rb") as fh:
             raw = fh.read(MAX_SPEC_BYTES)
