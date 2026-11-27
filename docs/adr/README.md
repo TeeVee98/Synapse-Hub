@@ -24,7 +24,13 @@
 | [ADR-0022-tri-state-gates-and-hub-10-overhaul.md](./ADR-0022-tri-state-gates-and-hub-10-overhaul.md) | Tri-State Quality Gates, Defense-in-Depth Shell Guard, and Single-Source Governance | Accepted | 2026-11-25 |
 | [ADR-0023-synapse-hub-v5-polyglot-ast-lsp-overhaul.md](./ADR-0023-synapse-hub-v5-polyglot-ast-lsp-overhaul.md) | Synapse Hub v5.0 Comprehensive Overhaul — Hybrid Polyglot AST, Universal QA LSP, CLI Stratification, Enterprise TMS/Cloud Grid & Real-World Benchmark Certification | Accepted & Certified | 2026-11-26 |
 | [ADR-0024-synapse-hub-apex-native-js-semantic-pom-strict-typing.md](./ADR-0024-synapse-hub-apex-native-js-semantic-pom-strict-typing.md) | Synapse Hub v5.1 Apex Architecture Overhaul — Zero-Python Native Node.js Linter, Semantic POM Inheritance/Fixture Graph, 145+ Module Strict Typing & Zero-Ceremony Client Mode | Accepted & Certified | 2026-11-26 |
+| [ADR-0025-ai-cognitive-skill-tool-routing-precision.md](./ADR-0025-ai-cognitive-skill-tool-routing-precision.md) | AI Cognitive Reasoning, Skill Routing & Tool-Calling Precision Upgrade | Accepted & Implemented | 2026-11-26 |
 | [ADR-0025-closed-loop-super-plan-solo-control-plane.md](./ADR-0025-closed-loop-super-plan-solo-control-plane.md) | Unified Closed-Loop Control Plane for /super-plan and /solo (v2.0 Upgrade) | Accepted (DoD Certified) | 2026-11-26 |
+| [ADR-0026-closed-loop-post-code-review-trinity.md](./ADR-0026-closed-loop-post-code-review-trinity.md) | Closed-Loop Post-Code `/review` Adversarial Auditor (`/super-plan -> /solo -> /review` Control Plane) | Accepted (DoD Certified) | 2026-11-26 |
+| [ADR-0027-review-v21-closed-loop-hardening.md](./ADR-0027-review-v21-closed-loop-hardening.md) | Closed-Loop `/review` v2.1 Hardening (Untracked Diff, True-Tautology Guard, Strict Solo & Multi-Line AST) | Accepted (DoD Certified) | 2026-11-26 |
+| [ADR-0028-stdlib-vietnamese-nlp-and-calibrated-utterance-routing.md](./ADR-0028-stdlib-vietnamese-nlp-and-calibrated-utterance-routing.md) | Pure-Stdlib Vietnamese NLP Core & Calibrated Utterance Routing (v2.2) | Accepted (DoD Certified) | 2026-11-26 |
+| [ADR-0029-manual-qa-pipeline-profile.md](./ADR-0029-manual-qa-pipeline-profile.md) | Manual QA Pipeline Profile (`--profile manual`) for `/super-plan`, `/solo`, and `/review` | Accepted | 2026-11-27 |
+| [ADR-0030-multi-model-orchestration-architecture.md](./ADR-0030-multi-model-orchestration-architecture.md) | Hybrid Multi-Model Orchestration & Cross-Family Adversarial Pairing | Accepted | 2026-11-27 |
 
 ---
 *Auto-indexed by `tools/design/plan_harvester.py`.*

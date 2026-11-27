@@ -212,6 +212,27 @@ PRICING_TABLE: Dict[str, Dict[str, Any]] = {
     },
 }
 
+
+def _hydrate_pricing_from_model_registry() -> int:
+    """Hydrates PRICING_TABLE from canonical ModelRegistry while preserving legacy hardcoded entries."""
+    try:
+        from tools.core.model_registry import load_model_registry
+    except ImportError:
+        return len(PRICING_TABLE)
+
+    for model_id, spec in load_model_registry().items():
+        if model_id not in PRICING_TABLE:
+            PRICING_TABLE[model_id] = {
+                "name": spec.display_name,
+                "input_per_m": spec.input_per_m,
+                "cache_per_m": spec.cache_per_m,
+                "output_per_m": spec.output_per_m,
+            }
+    return len(PRICING_TABLE)
+
+
+_HYDRATED_COUNT = _hydrate_pricing_from_model_registry()
+
 DEFAULT_MODEL = "gemini-flash"
 BUDGET_CONFIG_FILE = os.path.expanduser("~/.agent_memory/token_budget.json")
 

@@ -807,6 +807,16 @@ _HOST_ALIASES: Dict[str, str] = {
     "claude-code": "claude",
     "claudecode": "claude",
     "anthropic": "claude",
+    "cursor": "cursor",
+    "copilot": "copilot",
+    "github-copilot": "copilot",
+    "windsurf": "windsurf",
+    "codeium": "windsurf",
+    "deepseek": "deepseek",
+    "local": "local",
+    "local_openai": "local",
+    "ollama": "local",
+    "vllm": "local",
 }
 
 _CODEX_ENV_VARS = (
@@ -872,6 +882,66 @@ _HOST_EXECUTION_PROFILES: Dict[Tuple[str, PlanningTier], Tuple[str, str]] = {
         "Claude Opus 5.5 / Fable 5.2 (Effort: high / xhigh)",
         "High-risk / multi-module DAG; Opus 5.5 / Fable 5.2 with high/xhigh effort prevents architectural and concurrency drift.",
     ),
+    ("cursor", PlanningTier.TIER_0_FAST): (
+        "Claude Haiku 5.5 / GPT-6-Luna (Fast)",
+        "Low-risk <= 2-file change in Cursor IDE.",
+    ),
+    ("cursor", PlanningTier.TIER_1_STANDARD): (
+        "Claude Sonnet 5.5 / GPT-6.2-Sol (High)",
+        "Standard multi-step /solo plan in Cursor IDE.",
+    ),
+    ("cursor", PlanningTier.TIER_2_DEEP): (
+        "Claude Opus 5.5 / GPT-6.2-Astra (High)",
+        "High-risk multi-module DAG in Cursor IDE.",
+    ),
+    ("copilot", PlanningTier.TIER_0_FAST): (
+        "GPT-6-Luna / Claude Haiku 5.5 (Fast)",
+        "Low-risk <= 2-file change in GitHub Copilot.",
+    ),
+    ("copilot", PlanningTier.TIER_1_STANDARD): (
+        "GPT-6.2-Sol / Claude Sonnet 5.5 (High)",
+        "Standard multi-step /solo plan in GitHub Copilot.",
+    ),
+    ("copilot", PlanningTier.TIER_2_DEEP): (
+        "GPT-6.2-Astra / Claude Opus 5.5 (High)",
+        "High-risk multi-module DAG in GitHub Copilot.",
+    ),
+    ("windsurf", PlanningTier.TIER_0_FAST): (
+        "Claude Haiku 5.5 / Gemini 3.8 Flash (Fast)",
+        "Low-risk <= 2-file change in Windsurf Cascade.",
+    ),
+    ("windsurf", PlanningTier.TIER_1_STANDARD): (
+        "Claude Sonnet 5.5 / Gemini 4 Hydrogen (High)",
+        "Standard multi-step /solo plan in Windsurf Cascade.",
+    ),
+    ("windsurf", PlanningTier.TIER_2_DEEP): (
+        "Claude Opus 5.5 / Gemini 4 Neon (High)",
+        "High-risk multi-module DAG in Windsurf Cascade.",
+    ),
+    ("deepseek", PlanningTier.TIER_0_FAST): (
+        "DeepSeek-V4.1-Flash (Fast)",
+        "Low-risk <= 2-file change on DeepSeek fast explorer.",
+    ),
+    ("deepseek", PlanningTier.TIER_1_STANDARD): (
+        "DeepSeek V3 / R1 (Thinking: Medium)",
+        "Standard multi-step /solo plan on DeepSeek workhorse.",
+    ),
+    ("deepseek", PlanningTier.TIER_2_DEEP): (
+        "DeepSeek R1 (Thinking: High)",
+        "High-risk multi-module DAG on DeepSeek R1 reasoning engine.",
+    ),
+    ("local", PlanningTier.TIER_0_FAST): (
+        "Local Ollama Qwen3-Coder (Fast)",
+        "Air-gapped <= 2-file change on local OpenAI-compatible runtime.",
+    ),
+    ("local", PlanningTier.TIER_1_STANDARD): (
+        "Local Ollama Qwen3-Coder (Thinking: Medium)",
+        "Air-gapped multi-step /solo plan on local Qwen3-Coder workhorse.",
+    ),
+    ("local", PlanningTier.TIER_2_DEEP): (
+        "Local vLLM DeepSeek-R1-Distill / Ollama Qwen3-Coder (Thinking: High)",
+        "Air-gapped multi-module DAG with local reasoning verification.",
+    ),
 }
 
 
@@ -889,7 +959,7 @@ def _normalize_host_name(host: Optional[str]) -> Optional[str]:
     canonical = _HOST_ALIASES.get(cleaned)
     if canonical is None:
         raise ValueError(
-            f"Unsupported host '{host}'; expected 'auto', 'antigravity', 'codex', or 'claude'."
+            f"Unsupported host '{host}'; expected 'auto', 'antigravity', 'codex', 'claude', 'cursor', 'copilot', 'windsurf', 'deepseek', or 'local'."
         )
     return canonical
 
@@ -905,6 +975,10 @@ def _infer_host_from_model(active_model: Optional[str]) -> Optional[str]:
         return "codex"
     if re.search(r"(?<![a-z0-9])(?:claude|fable|mythos|opus|opusplan|sonnet|haiku)(?![a-z0-9])", norm):
         return "claude"
+    if re.search(r"(?<![a-z0-9])deepseek(?![a-z0-9])", norm) is not None:
+        return "deepseek"
+    if re.search(r"(?<![a-z0-9])(?:ollama|vllm|local)(?![a-z0-9])", norm) is not None:
+        return "local"
     if re.search(r"(?<![a-z0-9])(?:gemini|hydrogen|neon|carbon|argon|flash)(?![a-z0-9])", norm):
         return "antigravity"
     return None
@@ -924,6 +998,10 @@ def detect_active_host(
     if env_host:
         return env_host
 
+    model_host = _infer_host_from_model(active_model)
+    if model_host is not None:
+        return model_host
+
     # Runtime session env vars take precedence (even inside an outer IDE terminal or multi-bridge repo)
     if any(_env_flag_active(k) for k in _CODEX_ENV_VARS) or any(
         k.startswith("CODEX_") and _env_flag_active(k) for k in os.environ
@@ -937,10 +1015,6 @@ def detect_active_host(
         k.startswith("ANTIGRAVITY_") and _env_flag_active(k) for k in os.environ
     ):
         return "antigravity"
-
-    model_host = _infer_host_from_model(active_model)
-    if model_host:
-        return model_host
 
     # Client-workspace fallback (skip when .agent/skills marks a multi-bridge Hub/Antigravity checkout)
     effective_root = repo_root or _REPO_ROOT
@@ -2283,7 +2357,7 @@ def main() -> int:
     route_parser.add_argument("--task", required=True, help="Task description")
     route_parser.add_argument("--files", nargs="*", help="Candidate target files")
     route_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
-    route_parser.add_argument("--host", choices=["auto", "antigravity", "codex", "claude"], default="auto", help="AI host override for model recommendations (default auto)")
+    _host_opt = route_parser.add_argument("--host", choices=["auto", "antigravity", "codex", "claude", "cursor", "copilot", "windsurf", "deepseek", "local"], default="auto", help="AI host override for model recommendations (default auto)")
     route_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     route_parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
@@ -2301,7 +2375,7 @@ def main() -> int:
     scaff_parser.add_argument("--tier", choices=["fast", "standard", "deep", "auto"], default="auto", help="Planning tier override (default auto)")
     scaff_parser.add_argument("--execution-mode", choices=["solo", "teamwork"], default="solo", help="Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork")
     scaff_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
-    scaff_parser.add_argument("--host", choices=["auto", "antigravity", "codex", "claude"], default="auto", help="AI host override for model recommendations (default auto)")
+    _host_opt = scaff_parser.add_argument("--host", choices=["auto", "antigravity", "codex", "claude", "cursor", "copilot", "windsurf", "deepseek", "local"], default="auto", help="AI host override for model recommendations (default auto)")
     scaff_parser.add_argument("--tournament", action="store_true", help="Generate 3-way orthogonal tournament Trade-off Matrix")
     scaff_parser.add_argument("--decisions", help="Optional JSON or k=v,k2=v2 architectural decisions resolving Ambiguity Gate forks")
     scaff_parser.add_argument("--output", help="Optional output filepath to save plan (pass 'auto' for .synapse/plans/<slug>.md)")
@@ -2340,7 +2414,7 @@ def main() -> int:
     pipe_parser.add_argument("--tier", choices=["fast", "standard", "deep", "auto"], default="auto", help="Planning tier override (default auto)")
     pipe_parser.add_argument("--execution-mode", choices=["solo", "teamwork"], default="solo", help="Execution mode: sequential single-agent /solo (default) or multi-worker /teamwork")
     pipe_parser.add_argument("--profile", choices=["code", "manual"], default="code", help="Planning profile: code (default) or manual")
-    pipe_parser.add_argument("--host", choices=["auto", "antigravity", "codex", "claude"], default="auto", help="AI host override for model recommendations (default auto)")
+    _host_opt = pipe_parser.add_argument("--host", choices=["auto", "antigravity", "codex", "claude", "cursor", "copilot", "windsurf", "deepseek", "local"], default="auto", help="AI host override for model recommendations (default auto)")
     pipe_parser.add_argument("--output", help="Optional output directory to persist pipeline stage artifacts")
     pipe_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
     pipe_parser.add_argument("--threshold", type=float, default=90.0, help="Pass gate threshold (default 90.0)")

@@ -108,6 +108,8 @@ class DynamicBudgetEngine:
         "openai": 4,
         "anthropic": 10,
         "gemini": 5,
+        "deepseek": 4,
+        "local_openai": 4,
     }
 
     @classmethod
@@ -240,6 +242,16 @@ class DynamicBudgetEngine:
         return text, False, 0
 
     @classmethod
+    def detect_partial_stop_sequence(
+        cls,
+        accumulated_text: str,
+        stop_sequences: List[str],
+    ) -> Tuple[str, bool]:
+        """Truncates streamed accumulated text immediately upon hitting any stop sequence."""
+        trimmed, hit, _saved = cls.truncate_stream(accumulated_text, stop_sequences)
+        return trimmed, hit is True
+
+    @classmethod
     def format_provider_payload(
         cls,
         budget_config: Dict[str, Any],
@@ -276,7 +288,7 @@ class DynamicBudgetEngine:
                 }
             return payload
 
-        elif provider_norm == "openai":
+        if provider_norm == "openai":
             if thinking_budget >= 2048:
                 reasoning_effort = "high"
             elif thinking_budget > 0:
@@ -290,7 +302,7 @@ class DynamicBudgetEngine:
                 "reasoning_effort": reasoning_effort,
             }
 
-        elif provider_norm == "gemini":
+        if provider_norm == "gemini":
             return {
                 "generationConfig": {
                     "maxOutputTokens": max_tokens,
@@ -301,12 +313,29 @@ class DynamicBudgetEngine:
                 }
             }
 
-        else:
+        if provider_norm == "deepseek":
+            thinking_mode = "enabled" if thinking_budget else "disabled"
             return {
                 "max_tokens": max_tokens,
-                "thinking_budget": thinking_budget,
-                "stop_sequences": stop_seqs,
+                "stop": stop_seqs[:4],
+                "thinking": {"type": thinking_mode},
             }
+
+        if provider_norm == "local_openai":
+            local_payload: Dict[str, Any] = {
+                "max_tokens": max_tokens,
+                "stop": stop_seqs[:4],
+                "options": {"num_predict": max_tokens},
+            }
+            if thinking_budget and budget_config.get("supports_thinking") is not False:
+                local_payload["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+            return local_payload
+
+        return {
+            "max_tokens": max_tokens,
+            "thinking_budget": thinking_budget,
+            "stop_sequences": stop_seqs,
+        }
 
     @classmethod
     def run_benchmark_demo(cls) -> Dict[str, Any]:

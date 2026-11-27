@@ -31,6 +31,20 @@
       "flash_lite": "gemini-3.8-flash",
       "flash": "gemini-4-hydrogen",
       "pro": "gemini-4-neon"
+    },
+    "orchestration": {
+      "strategy": "capability_tier_cross_family_pairing",
+      "execution_boundary": "hybrid_control_plane_stdlib_gateway",
+      "preferred_providers": [
+        "gemini",
+        "anthropic",
+        "openai",
+        "deepseek",
+        "local_openai"
+      ],
+      "cross_family_audit": true,
+      "gateway_opt_in": false,
+      "local_endpoint_url": "http://127.0.0.1:11434/v1"
     }
   },
   "telemetry": {

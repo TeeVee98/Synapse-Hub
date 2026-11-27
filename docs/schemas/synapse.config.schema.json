@@ -83,14 +83,32 @@
     },
     "model_router": {
       "type": "object",
-      "description": "QA model routing tier overrides",
+      "description": "QA model routing tier overrides and multi-provider orchestration policy",
       "properties": {
         "models": {
           "type": "object",
           "properties": {
             "flash_lite": { "type": "string" },
             "flash": { "type": "string" },
-            "pro": { "type": "string" }
+            "pro": { "type": "string" },
+            "fast_explorer": { "type": "string" },
+            "code_workhorse": { "type": "string" },
+            "deep_architect": { "type": "string" },
+            "adversarial_auditor": { "type": "string" }
+          }
+        },
+        "orchestration": {
+          "type": "object",
+          "properties": {
+            "strategy": { "type": "string" },
+            "execution_boundary": { "type": "string" },
+            "preferred_providers": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "cross_family_audit": { "type": "boolean" },
+            "gateway_opt_in": { "type": "boolean" },
+            "local_endpoint_url": { "type": "string" }
           }
         }
       }

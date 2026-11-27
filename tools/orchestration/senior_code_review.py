@@ -50,6 +50,14 @@ from tools.lint.output_diff_sentinel import OutputDiffSentinel
 from tools.ai.cove_verifier import ChainOfVerificationEngine
 from tools.lint.humanize_linter import HumanizeLinter
 from tools.orchestration.solo_contracts import AstTautologyAnalyzer
+from tools.core.model_registry import ProviderFamily
+from tools.orchestration.ide_cli_bridge import (
+    CliBridgeRequestDTO,
+    CliBridgeResultDTO,
+    discover_local_cli_adapters,
+    invoke_readonly_cli_audit,
+)
+from tools.orchestration.multi_model_gateway import StdlibGatewayRequestDTO, execute_stdlib_gateway_call
 from tools.orchestration.plan_review_auditor import (
     CallerCompatibilityDTO,
     PlanReconciliationDTO,
@@ -1072,6 +1080,120 @@ def _dict_to_finding(item: Dict[str, str]) -> Finding:
     )
 
 
+def _is_cross_llm_enabled(cross_llm: bool) -> bool:
+    return cross_llm or os.environ.get("SYNAPSE_CROSS_LLM_AUDIT") == "1"
+
+
+def run_cross_llm_semantic_audit(
+    diff_text: str,
+    repo_root: str,
+    cross_llm: bool = False,
+    preferred_auditor: Optional[ProviderFamily] = None,
+) -> CliBridgeResultDTO:
+    """Opt-in orthogonal Cross-Family Semantic Auditor preferring local CLI Bridge (0 API key cost) before HTTP Gateway."""
+    target_prov = ProviderFamily.ANTHROPIC if preferred_auditor is None else preferred_auditor
+    if not _is_cross_llm_enabled(cross_llm):
+        return CliBridgeResultDTO(
+            success=False,
+            cli_binary="",
+            provider=target_prov,
+            model_id="",
+            read_only_enforced=True,
+            findings=(),
+            raw_summary="Cross-LLM audit disabled by default.",
+            error_code="CROSS_LLM_DISABLED",
+        )
+    if not str(diff_text or "").strip():
+        return CliBridgeResultDTO(
+            success=True,
+            cli_binary="",
+            provider=target_prov,
+            model_id="",
+            read_only_enforced=True,
+            findings=(),
+            raw_summary="Empty diff; skipped cross-LLM audit.",
+            error_code=None,
+        )
+
+    prompt = "Act as an orthogonal adversarial reviewer; report concrete bugs, security holes, and race conditions."
+    excerpt = diff_text[:8000]
+    cli_map = discover_local_cli_adapters(preferred_order=(target_prov,))
+    if cli_map:
+        chosen_prov = next(iter(cli_map))
+        cli_res = invoke_readonly_cli_audit(
+            CliBridgeRequestDTO(
+                target_provider=chosen_prov,
+                prompt=prompt,
+                diff_excerpt=excerpt,
+                repo_root=repo_root,
+            )
+        )
+        if cli_res.success:
+            return cli_res
+
+    gw_res = execute_stdlib_gateway_call(
+        StdlibGatewayRequestDTO(
+            model_id="claude-opus-5.5" if target_prov == ProviderFamily.ANTHROPIC else "gpt-6.2-astra",
+            system_prefix="Orthogonal Cross-Family Adversarial Auditor (read-only).",
+            user_prompt=f"{prompt}\n\n{excerpt}",
+            fsm_stage="AUTOPSY_HEAL",
+        ),
+        available_providers=(target_prov,) if preferred_auditor is not None else None,
+    )
+    if gw_res.success:
+        return CliBridgeResultDTO(
+            success=True,
+            cli_binary="stdlib_gateway",
+            provider=ProviderFamily(gw_res.provider),
+            model_id=gw_res.model_id,
+            read_only_enforced=True,
+            findings=(),
+            raw_summary=gw_res.content[:500],
+            error_code=None,
+        )
+    return CliBridgeResultDTO(
+        success=False,
+        cli_binary="",
+        provider=target_prov,
+        model_id="",
+        read_only_enforced=True,
+        findings=(),
+        raw_summary="No secondary CLI or gateway credentials available.",
+        error_code="CROSS_LLM_UNAVAILABLE",
+    )
+
+
+def _merge_cross_llm_findings(
+    diff_text: str,
+    repo_dir: str,
+    cross_llm: bool,
+    findings: List[Finding],
+) -> Optional[Dict[str, Any]]:
+    if not _is_cross_llm_enabled(cross_llm):
+        return None
+    sem = run_cross_llm_semantic_audit(diff_text, repo_root=repo_dir, cross_llm=True)
+    for item in sem.findings:
+        findings.append(
+            Finding(
+                severity=item.severity,
+                title=item.title,
+                file_path=item.file_path,
+                line_no=item.line_no,
+                what_is=f"[Cross-LLM {sem.provider.value}/{item.category}] {item.title}",
+                problem=item.rationale,
+                fix=item.rationale,
+                if_skipped="Orthogonal reviewer risk flagged across provider boundary.",
+            )
+        )
+    return {
+        "success": sem.success,
+        "provider": sem.provider.value,
+        "model_id": sem.model_id,
+        "cli_binary": sem.cli_binary,
+        "error_code": sem.error_code,
+    }
+
+
 def evaluate_review(
     repo_dir: str,
     target: str = "uncommitted",
@@ -1087,6 +1209,7 @@ def evaluate_review(
     baseline_files: Optional[Sequence[str]] = None,
     write_receipt: bool = True,
     profile: str = "auto",
+    cross_llm: bool = False,
 ) -> Tuple[int, Dict[str, Any], str, Optional[Dict[str, Any]]]:
     """Executes diff extraction, AST review, Plan-vs-Solo reconciliation, and receipt signing without stdout output."""
     from tools.manual.manual_pipeline_adapter import detect_plan_profile
@@ -1140,6 +1263,8 @@ def evaluate_review(
             findings=caller_findings,
         )
         findings.extend(_dict_to_finding(item) for item in caller_findings)
+
+    cross_llm_summary = _merge_cross_llm_findings(diff_text, repo_dir, cross_llm, findings)
 
     verdict, passed, exit_code = compute_review_verdict(findings, strict=strict)
     must_count = sum(1 for f in findings if f.severity == "Must fix")
@@ -1211,6 +1336,8 @@ def evaluate_review(
         "caller_compatibility": asdict(caller_dto),
         "findings": [f.to_dict() for f in findings],
     }
+    if cross_llm_summary is not None:
+        payload["cross_llm_audit"] = cross_llm_summary
     if signed_receipt is not None:
         payload["receipt_path"] = resolved_receipt_path
         payload["receipt_hmac"] = signed_receipt.receipt_hmac
@@ -1297,6 +1424,7 @@ def main():
     parser.add_argument("--receipt-out", default=None, help="Output path for HMAC-signed code_review_receipt.json")
     parser.add_argument("--baseline-files", nargs="*", default=None, help="Pre-existing dirty files to exclude from unplanned scope-creep findings")
     parser.add_argument("--no-receipt", action="store_true", help="Strict zero-write diagnostic mode: skip writing code_review_receipt.json")
+    _xlm_arg = parser.add_argument("--cross-llm", action="store_true", help="Enable opt-in orthogonal Cross-Family Semantic Auditor")
     parser.add_argument("--profile", choices=["auto", "code", "manual"], default="auto", help="Review profile: auto (default), code, or manual")
 
     args = parser.parse_args()
@@ -1318,6 +1446,8 @@ def main():
         extra_kwargs["write_receipt"] = False
     if args.profile and args.profile != "auto":
         extra_kwargs["profile"] = args.profile
+    if getattr(args, "cross_llm", False):
+        extra_kwargs["cross_llm"] = True
     sys.exit(
         run_review(
             args.target_dir,

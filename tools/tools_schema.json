@@ -2499,6 +2499,22 @@
           "required": false,
           "help": "Dynamic test command (e.g. 'pytest tests/test_target.py')"
         },
+        "--profile": {
+          "type": "string",
+          "choices": [
+            "code",
+            "manual"
+          ],
+          "default": "code",
+          "required": false,
+          "help": "Verification profile: code (default) or manual"
+        },
+        "--spec": {
+          "type": "string",
+          "default": "",
+          "required": false,
+          "help": "Specification/BRD file path for --profile manual verification"
+        },
         "--target": {
           "type": "string",
           "default": "",
@@ -2640,21 +2656,11 @@
           "required": false,
           "help": "Path to cryptographic event stream JSONL log"
         },
-        "--profile": {
-          "type": "string",
-          "choices": [
-            "code",
-            "manual"
-          ],
-          "default": "code",
+        "--cross-llm": {
+          "type": "boolean",
+          "default": false,
           "required": false,
-          "help": "Verification profile: code (default) or manual"
-        },
-        "--spec": {
-          "type": "string",
-          "default": "",
-          "required": false,
-          "help": "Specification/BRD file path for --profile manual verification"
+          "help": "Enable opt-in orthogonal Cross-Family Semantic Auditor inside --purple"
         },
         "--json": {
           "type": "boolean",
@@ -2701,7 +2707,12 @@
             "auto",
             "antigravity",
             "codex",
-            "claude"
+            "claude",
+            "cursor",
+            "copilot",
+            "windsurf",
+            "deepseek",
+            "local"
           ],
           "default": "auto",
           "required": false,
@@ -4164,6 +4175,12 @@
           "default": false,
           "required": false,
           "help": "Strict zero-write diagnostic mode: skip writing code_review_receipt.json"
+        },
+        "--cross-llm": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Enable opt-in orthogonal Cross-Family Semantic Auditor"
         },
         "--profile": {
           "type": "string",

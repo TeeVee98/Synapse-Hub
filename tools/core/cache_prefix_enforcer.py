@@ -173,6 +173,24 @@ class CachePrefixEnforcer:
                     "contents": [{"role": "user", "parts": [{"text": suffix.strip() or "Execute current workflow."}]}]
                 }
             }
+        elif provider.lower() in ("openai", "deepseek"):
+            return {
+                "prefix_cache_eligible": partitioned["is_cache_eligible"],
+                "prefix_hash": partitioned["prefix_hash"],
+                "messages": [
+                    {"role": "system", "content": prefix},
+                    {"role": "user", "content": suffix.strip()},
+                ],
+            }
+        elif provider.lower() == "local_openai":
+            return {
+                "prefix_cache_eligible": partitioned["is_cache_eligible"],
+                "keep_alive": "10m",
+                "messages": [
+                    {"role": "system", "content": prefix},
+                    {"role": "user", "content": suffix.strip()},
+                ],
+            }
         else:
             return {
                 "static_prefix": prefix,
@@ -185,7 +203,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Tier 1 KV-Cache Prefix Integrity Guard")
     parser.add_argument("--file", "-f", help="Target prompt or AGENTS.md file to inspect")
     parser.add_argument("--json", action="store_true", help="Output JSON analysis")
-    parser.add_argument("--provider", default="anthropic", choices=["anthropic", "gemini", "standard"], help="Target provider")
+    _provider_arg = parser.add_argument(
+        "--provider",
+        default="anthropic",
+        choices=["anthropic", "gemini", "openai", "deepseek", "local_openai", "standard"],
+        help="Target provider",
+    )
     args = parser.parse_args()
 
     target_path = args.file or os.path.join(_REPO_ROOT, "AGENTS.md")

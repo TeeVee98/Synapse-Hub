@@ -39,8 +39,15 @@ import json
 import time
 import threading
 from enum import Enum
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Set, Tuple
 from contextlib import contextmanager
+
+from tools.core.model_registry import (
+    CapabilityTier,
+    ModelRegistry,
+    ModelSpecDTO,
+    ProviderFamily,
+)
 
 
 class CircuitBreakerState(str, Enum):
@@ -110,6 +117,8 @@ class TokenCircuitBreaker:
         self.current_model_idx = 0
         self.tripped_timestamp = 0.0
         self.trip_reason = ""
+        self._failover_transitions: Dict[str, ModelSpecDTO] = {}
+        self._failed_providers: Set[ProviderFamily] = set()
         self._lock = threading.Lock()
 
     def get_active_model(self) -> str:
@@ -232,6 +241,39 @@ class TokenCircuitBreaker:
             self.current_model_idx = 0
             self.tripped_timestamp = 0.0
             self.trip_reason = ""
+            self._failover_transitions = {}
+            self._failed_providers = set()
+
+    def route_failover_candidate(
+        self,
+        failed_model_id: str,
+        required_tier: CapabilityTier,
+        status_code: int = 429,
+        excluded_providers: Tuple[ProviderFamily, ...] = (),
+    ) -> ModelSpecDTO:
+        """Selects a tier-preserving cross-provider fallback idempotently under lock (CAS on failed_model_id)."""
+        with self._lock:
+            cached = self._failover_transitions.get(failed_model_id)
+            if cached is not None:
+                return cached
+            combined_excluded = tuple(self._failed_providers | set(excluded_providers))
+            candidates = resolve_tier_preserving_failover(
+                failed_model_id=failed_model_id,
+                required_tier=required_tier,
+                excluded_providers=combined_excluded,
+            )
+            if not candidates:
+                self._trip_unlocked(
+                    f"Cross-provider failover exhausted on HTTP {status_code} for {failed_model_id}"
+                )
+                raise RateLimitExceededError(self.trip_reason)
+            chosen = next(iter(candidates))
+            failed_spec = ModelRegistry().get_model(failed_model_id)
+            if failed_spec is not None:
+                self._failed_providers = self._failed_providers | {failed_spec.provider}
+            self._failover_transitions[failed_model_id] = chosen
+            self.state = CircuitBreakerState.FALLBACK
+            return chosen
 
     def get_status(self) -> Dict[str, Any]:
         """Returns structured circuit breaker status."""
@@ -290,6 +332,21 @@ def get_active_model() -> str:
 
 def get_circuit_breaker() -> TokenCircuitBreaker:
     return GLOBAL_CIRCUIT_BREAKER
+
+
+def resolve_tier_preserving_failover(
+    failed_model_id: str,
+    required_tier: CapabilityTier,
+    excluded_providers: Tuple[ProviderFamily, ...] = (),
+) -> List[ModelSpecDTO]:
+    """Returns ordered cross-provider fallback candidates preserving >= required_tier before graceful step-down."""
+    reg = ModelRegistry()
+    failed_spec = reg.get_model(failed_model_id)
+    blocked = set(excluded_providers)
+    if failed_spec is not None:
+        blocked = blocked | {failed_spec.provider}
+    eligible = [m for m in reg.specs.values() if m.provider not in blocked]
+    return sorted(eligible, key=lambda m: (-m.rank, m.input_per_m))
 
 
 # ---------------------------------------------------------------------------

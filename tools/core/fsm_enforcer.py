@@ -31,10 +31,7 @@ _REPO_ROOT = os.path.dirname(_TOOLS_ROOT)
 for _p in (_REPO_ROOT, _TOOLS_ROOT):
     if _p not in sys.path:
         sys.path.insert(0, _p)
-try:
-    import tools  # noqa: F401
-except ImportError:  # synapse-ignore: SWALLOWED_EXCEPTION
-    pass
+
 
 
 import os
@@ -80,6 +77,31 @@ def load_stage_actors() -> Dict[str, List[str]]:
     return DEFAULT_STAGE_ACTORS
 
 STAGE_ACTORS = load_stage_actors()
+
+
+def resolve_actor_model_binding(actor_id: str, repo_root: Optional[str] = None) -> Dict[str, Any]:
+    """Resolves declarative capability_tier and orthogonal-auditor requirement for an FSM actor."""
+    from tools.core.model_registry import LEGACY_TIER_ALIASES, ModelRegistry
+
+    base_root = _REPO_ROOT if repo_root is None else repo_root
+    manifest_path = os.path.join(base_root, "agents_manifest.json")
+    with open(manifest_path, "r", encoding="utf-8") as mfh:
+        manifest = json.load(mfh)
+    entries = list(manifest.get("personas", [])) + list(manifest.get("specialists", []))
+    matched = next((item for item in entries if item.get("id") == actor_id), {})
+    tier_key = str(matched.get("capability_tier", "code_workhorse")).strip().lower()
+    tier_enum = LEGACY_TIER_ALIASES.get(tier_key, LEGACY_TIER_ALIASES["code_workhorse"])
+    reg = ModelRegistry(
+        manifest_path=os.path.join(base_root, "models_manifest.json"),
+        config_path=os.path.join(base_root, "synapse.config.json"),
+    )
+    first_spec = next(iter(reg.list_models(tier=tier_enum)))
+    return {
+        "actor_id": actor_id,
+        "capability_tier": tier_enum.value,
+        "requires_orthogonal_auditor": bool(matched.get("requires_orthogonal_auditor")),
+        "recommended_model": first_spec.model_id,
+    }
 
 
 def load_persona_prompt(actor_id: str, repo_root: Optional[str] = None) -> Dict[str, Any]:
@@ -489,6 +511,7 @@ class FsmEnforcer:
             "stage_advanced": stage_upper,
             "proof_token": proof_token,
             "next_required_stage": next_stage,
+            "model_binding": resolve_actor_model_binding(actor),
             "workflow_completed": (self.state["status"] == "COMPLETED")
         }
 

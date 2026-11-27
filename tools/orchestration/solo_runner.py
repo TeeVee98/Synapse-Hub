@@ -43,7 +43,12 @@ from tools.lint.micro_mutator import evaluate_target
 from tools.orchestration.worktree_manager import WorktreeManager
 from tools.orchestration.qa_event_stream import QaEventStream
 from tools.orchestration.qa_instinct_vault import QAInstinctVault
-from tools.orchestration.senior_code_review import get_git_diff, parse_diff, analyze_diff
+from tools.orchestration.senior_code_review import (
+    analyze_diff,
+    get_git_diff,
+    parse_diff,
+    run_cross_llm_semantic_audit,
+)
 from tools.orchestration.goldfish_review import review_file as run_goldfish_review
 from tools.orchestration.matrix_sharder import shard_tests_lpt
 from tools.report.pinpoint_failure import compute_error_fingerprint
@@ -2057,6 +2062,7 @@ def certify_purple_phase(
     oracle_cmd: Optional[str] = None,
     check_neuro_symbolic: bool = True,
     target_files: Optional[List[str]] = None,
+    cross_llm: bool = False,
 ) -> Dict[str, Any]:
     """
     Weapon 2 Phase 3: Purple Team (Senior Tech Lead Auditor & Goldfish Review).
@@ -2089,6 +2095,7 @@ def certify_purple_phase(
     findings: List[Dict[str, Any]] = []
     lines_cuttable = 0
     files_analyzed = 0
+    diff_text = ""
     review_status = "CLEAN"
     try:
         diff_text = get_git_diff(root, target)
@@ -2217,10 +2224,51 @@ def certify_purple_phase(
         except Exception as cg_err:
             downstream_impact = {"error": str(cg_err)}
 
+    cross_llm_audit = None
+    if cross_llm:
+        sem_res = run_cross_llm_semantic_audit(diff_text, repo_root=root, cross_llm=True)
+        for item in sem_res.findings:
+            findings.append(
+                {
+                    "severity": item.severity,
+                    "title": item.title,
+                    "file": item.file_path,
+                    "line": item.line_no,
+                    "message": item.rationale,
+                }
+            )
+            if item.severity == "Must fix":
+                review_status = "MUST_FIX_DETECTED"
+        cross_llm_audit = {
+            "success": sem_res.success,
+            "provider": sem_res.provider.value,
+            "model_id": sem_res.model_id,
+            "cli_binary": sem_res.cli_binary,
+            "error_code": sem_res.error_code,
+        }
+
     passed = (review_status == "CLEAN") and (spec_review is None or spec_review.get("passed", True))
     verdict = "CERTIFIED_PURPLE" if passed else "PURPLE_AUDIT_WARNINGS"
 
+    from tools.reasoning.qa_model_router import resolve_cross_family_assignment
+
+    pairing_dto = resolve_cross_family_assignment(
+        "Adversarial purple audit",
+        available_providers=(),
+    )
+    cross_model_pairing = {
+        "capability_tier": pairing_dto.capability_tier.value,
+        "primary_prover_model": pairing_dto.primary_prover.model_id,
+        "primary_prover_provider": pairing_dto.primary_prover.provider.value,
+        "adversarial_auditor_model": pairing_dto.adversarial_auditor.model_id,
+        "adversarial_auditor_provider": pairing_dto.adversarial_auditor.provider.value,
+        "cross_family_isolated": pairing_dto.primary_prover.provider != pairing_dto.adversarial_auditor.provider,
+        "degradation_reason": pairing_dto.degradation_reason,
+    }
+
     receipt_payload = {
+        "cross_model_pairing": cross_model_pairing,
+        "cross_llm_audit": cross_llm_audit,
         "status": verdict,
         "certified_at": datetime.now(timezone.utc).isoformat(),
         "target_scope": target,
@@ -2275,6 +2323,8 @@ def certify_purple_phase(
         "neuro_symbolic_reviews": neuro_symbolic_reviews,
         "downstream_impact": downstream_impact,
         "downstream_impacts": downstream_impacts,
+        "cross_model_pairing": cross_model_pairing,
+        "cross_llm_audit": cross_llm_audit,
         "receipt_file": out_receipt,
         "message": (
             "✅ Purple Phase Certified: Zero must-fix code review defects & clean specification."
@@ -2947,6 +2997,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sandbox", choices=["worktree", "docker", "host"], default="worktree", help="Execution isolation backend for Green & Mutation phases (default: worktree)")
     parser.add_argument("--shard", type=int, default=1, help="Actor Swarm Sharding: Partition test files across N shards via LPT bin-packing")
     parser.add_argument("--event-stream", type=str, default="", help="Path to cryptographic event stream JSONL log")
+    _xlm_solo = parser.add_argument("--cross-llm", action="store_true", help="Enable opt-in orthogonal Cross-Family Semantic Auditor inside --purple")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
 
     return parser
@@ -3265,6 +3316,7 @@ def main() -> int:
                 repo_root=_REPO_ROOT,
                 event_stream_path=args.event_stream or None,
                 oracle_cmd=args.oracle_cmd,
+                cross_llm=bool(getattr(args, "cross_llm", False)),
             )
         results["purple_phase"] = purple_res
         if not purple_res.get("passed", False):
@@ -3290,9 +3342,10 @@ def main() -> int:
             if manual_profile:
                 review_root = manual_root
             else:
+                wt_prefix = os.path.abspath(_REPO_ROOT).rstrip(os.sep) + os.sep
                 review_root = (
                     cwd_abs
-                    if cwd_abs != os.path.abspath(_REPO_ROOT) and os.path.isfile(os.path.join(cwd_abs, ".git"))
+                    if cwd_abs.startswith(wt_prefix) and os.path.isfile(os.path.join(cwd_abs, ".git"))
                     else _REPO_ROOT
                 )
             auto_plan = resolve_active_plan_path(review_root)
