@@ -102,9 +102,31 @@ class TestBumpVersion(unittest.TestCase):
             "Install [VSIX](dist/synapse-hub-vscode-4.7.2.vsix).\n",
             encoding="utf-8",
         )
+        badges_dir = root / "docs" / "badges"
+        badges_dir.mkdir(parents=True, exist_ok=True)
+        (badges_dir / "npm-version.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="20" role="img" aria-label="npm: v4.8.1">'
+            '<title>npm: v4.8.1</title><g shape-rendering="crispEdges"><rect width="35" height="20" fill="#555"/>'
+            '<rect x="35" width="53" height="20" fill="#007ec6"/></g>'
+            '<g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" '
+            'text-rendering="geometricPrecision" font-size="110">'
+            '<text x="185" y="140" textLength="250" transform="scale(.1)">npm</text>'
+            '<text x="605" y="140" textLength="430" transform="scale(.1)">v4.8.1</text></g></svg>\n',
+            encoding="utf-8",
+        )
+        (badges_dir / "vscode-marketplace.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="20" role="img" aria-label="VS Code Marketplace: v4.8.1">'
+            '<title>VS Code Marketplace: v4.8.1</title><g shape-rendering="crispEdges"><rect width="127" height="20" fill="#555"/>'
+            '<rect x="127" width="53" height="20" fill="#007ec6"/></g>'
+            '<g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" '
+            'text-rendering="geometricPrecision" font-size="110">'
+            '<text x="645" y="140" textLength="1170" transform="scale(.1)">VS Code Marketplace</text>'
+            '<text x="1525" y="140" textLength="430" transform="scale(.1)">v4.8.1</text></g></svg>\n',
+            encoding="utf-8",
+        )
         (root / "README.md").write_text(
-            "[![npm version](https://img.shields.io/badge/npm-v4.8.1-blue.svg?style=flat-square)](https://www.npmjs.com/package/@teevee98/synapse-hub)\n"
-            "[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-v4.8.1-blue.svg?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)\n"
+            "[![npm version](docs/badges/npm-version.svg)](https://www.npmjs.com/package/@teevee98/synapse-hub)\n"
+            "[![VS Code Marketplace](docs/badges/vscode-marketplace.svg)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)\n"
             "> **Phiên bản:** `v4.8.1`\n"
             "VSIX: editors/vscode/dist/synapse-hub-vscode-4.7.2.vsix\n"
             "  uses: TeeVee98/Synapse-Hub@v4.8.1\n"
@@ -112,8 +134,8 @@ class TestBumpVersion(unittest.TestCase):
             encoding="utf-8",
         )
         (root / "README.en.md").write_text(
-            "[![npm version](https://img.shields.io/badge/npm-v4.8.1-blue.svg?style=flat-square)](https://www.npmjs.com/package/@teevee98/synapse-hub)\n"
-            "[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-v4.8.1-blue.svg?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)\n"
+            "[![npm version](docs/badges/npm-version.svg)](https://www.npmjs.com/package/@teevee98/synapse-hub)\n"
+            "[![VS Code Marketplace](docs/badges/vscode-marketplace.svg)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)\n"
             "> **Version:** `v4.8.1`\n"
             "VSIX: editors/vscode/dist/synapse-hub-vscode-4.7.2.vsix\n"
             "  uses: TeeVee98/Synapse-Hub@v4.8.1\n"
@@ -215,7 +237,7 @@ class TestBumpVersion(unittest.TestCase):
                 bump_version.ORIGINAL_SNAPSHOTS.clear()
 
     def test_readme_version_badges_four_scenarios(self):
-        """Positive, Negative, Boundary, and Resilience scenarios for static README badges."""
+        """Positive, Negative, Boundary, and Resilience scenarios for local SVG badges."""
         update_badges = getattr(bump_version, "update_readme_version_badges", None)
         self.assertIsNotNone(update_badges, "update_readme_version_badges must exist in bump_version")
 
@@ -226,9 +248,12 @@ class TestBumpVersion(unittest.TestCase):
             bump_version.REPO_ROOT = tmpdir
             bump_version.ORIGINAL_SNAPSHOTS.clear()
             try:
+                npm_svg = root / "docs" / "badges" / "npm-version.svg"
+                vsc_svg = root / "docs" / "badges" / "vscode-marketplace.svg"
+
                 # Boundary: dry_run=True detects change without writing to disk
                 self.assertTrue(update_badges("4.8.2", dry_run=True))
-                self.assertIn("npm-v4.8.1-blue.svg", (root / "README.md").read_text(encoding="utf-8"))
+                self.assertIn("v4.8.1", npm_svg.read_text(encoding="utf-8"))
 
                 # Negative: invalid or empty version raises ValueError cleanly
                 with self.assertRaises(ValueError):
@@ -236,24 +261,25 @@ class TestBumpVersion(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     update_badges("invalid-ver")
 
-                # Positive: updates both npm and VS Code Marketplace badges via main()
+                # Positive: updates both local SVG badges via main()
                 with patch.object(sys, "argv", ["bump_version.py", "4.8.2", "--no-test"]):
                     bump_version.main()
 
-                for fname in ("README.md", "README.en.md"):
-                    txt = (root / fname).read_text(encoding="utf-8")
-                    self.assertIn("https://img.shields.io/badge/npm-v4.8.2-blue.svg?style=flat-square", txt)
-                    self.assertIn("https://img.shields.io/badge/VS%20Code%20Marketplace-v4.8.2-blue.svg?style=flat-square&logo=visual-studio-code", txt)
-                    self.assertNotIn("4.8.1-blue.svg", txt)
+                for svg_path, prefix in ((npm_svg, "npm: v4.8.2"), (vsc_svg, "VS Code Marketplace: v4.8.2")):
+                    txt = svg_path.read_text(encoding="utf-8")
+                    self.assertIn(prefix, txt)
+                    self.assertIn(">v4.8.2</text>", txt)
+                    self.assertNotIn("v4.8.1", txt)
 
-                # Boundary: idempotent re-run returns False & prerelease hyphens escape to '--'
+                # Boundary: idempotent re-run returns False & prerelease suffix updates cleanly
                 self.assertFalse(update_badges("4.8.2"))
                 self.assertTrue(update_badges("4.9.0-rc1"))
-                self.assertIn("npm-v4.9.0--rc1-blue.svg", (root / "README.md").read_text(encoding="utf-8"))
+                self.assertIn(">v4.9.0-rc1</text>", npm_svg.read_text(encoding="utf-8"))
+                self.assertIn("VS Code Marketplace: v4.9.0-rc1", vsc_svg.read_text(encoding="utf-8"))
 
-                # Resilience: missing README files return False without crashing
-                (root / "README.md").unlink()
-                (root / "README.en.md").unlink()
+                # Resilience: missing local badge SVGs return False without crashing
+                npm_svg.unlink()
+                vsc_svg.unlink()
                 self.assertFalse(update_badges("4.9.1"))
             finally:
                 bump_version.REPO_ROOT = orig_root

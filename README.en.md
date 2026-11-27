@@ -8,13 +8,13 @@
 > **Author:** Thế Vị ([@TeeVee98](https://github.com/TeeVee98)) | **License:** [MIT License](LICENSE)  
 > **Version:** `v4.10.0` | **Scale:** 57 Standardized QA Skills, 15 AI Agent Roles (9 Personas + 6 Specialists), 11 DoD Quality Gates, 153 CLI Commands (166 Tools), 2,512 Tests.
 
-[![npm version](https://img.shields.io/badge/npm-v4.10.0-blue.svg?style=flat-square)](https://www.npmjs.com/package/@teevee98/synapse-hub)
+[![npm version](docs/badges/npm-version.svg)](https://www.npmjs.com/package/@teevee98/synapse-hub)
 [![CI Quality Gates](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml/badge.svg)](https://github.com/TeeVee98/Synapse-Hub/actions/workflows/ci_quality_gates.yml)
 [![node version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg?style=flat-square)](https://nodejs.org)
 [![python version](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg?style=flat-square)](https://python.org)
 [![Quality Gates](https://img.shields.io/badge/Quality%20Gates-11%2F11%20DoD%20PASS-success.svg?style=flat-square)](docs/QUALITY_GATES.en.md)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
-[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-v4.10.0-blue.svg?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)
+[![VS Code Marketplace](docs/badges/vscode-marketplace.svg)](https://marketplace.visualstudio.com/items?itemName=Teevee98.synapse-hub-vscode)
 [![Ecosystem](https://img.shields.io/badge/AI%20Ecosystem-Antigravity%20%7C%20Cursor%20%7C%20Claude%20%7C%20Copilot%20%7C%20Windsurf-orange.svg?style=flat-square)](docs/CLIENT_SUPPORT_MATRIX.md)
 
 ## 📑 Table of Contents & Prerequisites

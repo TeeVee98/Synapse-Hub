@@ -258,24 +258,14 @@ def update_readme_action_pins(new_ver: str, dry_run: bool = False) -> bool:
 
 
 def update_readme_version_badges(new_ver: str, dry_run: bool = False) -> bool:
-    """Updates static Shields.io npm and VS Code Marketplace badges in root READMEs."""
+    """Updates local SVG version badges referenced by root READMEs."""
     parse_semver(new_ver)
-    badge_ver = new_ver.replace("-", "--")
-    patterns = (
-        (
-            r'(img\.shields\.io/badge/npm-v)[0-9]+\.[0-9]+\.[0-9]+(?:--[A-Za-z0-9.]+)?(-blue\.svg)',
-            rf"\g<1>{badge_ver}\g<2>",
-        ),
-        (
-            r'(img\.shields\.io/badge/VS%20Code%20Marketplace-v)[0-9]+\.[0-9]+\.[0-9]+(?:--[A-Za-z0-9.]+)?(-blue\.svg)',
-            rf"\g<1>{badge_ver}\g<2>",
-        ),
-    )
+    ver_pattern = r'v[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.]+)?'
+    replacement = f"v{new_ver}"
     updated = False
-    for readme_file in ("README.md", "README.en.md"):
-        for pattern, replacement in patterns:
-            if update_file(readme_file, pattern, replacement, dry_run):
-                updated = True
+    for badge_path in ("docs/badges/npm-version.svg", "docs/badges/vscode-marketplace.svg"):
+        if update_file(badge_path, ver_pattern, replacement, dry_run):
+            updated = True
     return updated
 
 
