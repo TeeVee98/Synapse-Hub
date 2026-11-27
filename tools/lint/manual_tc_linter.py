@@ -116,16 +116,16 @@ INLINE_PROFILE_PATTERN = re.compile(
 )
 
 FIELD_ALIASES = {
-    "case_id": ["case id", "tc id", "tc_id", "id", "mã test case", "mã tc"],
+    "case_id": ["case id", "tc id", "tc_id", "testcase_id", "test case id", "id", "mã test case", "mã tc"],
     "req_id": ["req_id", "req id", "requirement id", "requirement", "mã req", "mã yêu cầu"],
     "module": ["module / screen", "module", "screen", "chức năng", "màn hình"],
-    "title": ["test title & objective", "test title", "title", "scenario / title", "scenario", "tiêu đề", "mục tiêu"],
+    "title": ["test title & objective", "test title", "title", "scenario / title", "scenario", "tên testcase", "tên test case", "tiêu đề", "mục tiêu"],
     "precondition": ["pre-condition", "pre-conditions", "precondition", "preconditions", "tiền điều kiện", "điều kiện tiên quyết"],
     "steps": ["test steps (1-1)", "test steps", "steps", "các bước thực hiện", "bước thực hiện"],
-    "data": ["test data", "data", "dữ liệu kiểm thử", "dữ liệu"],
+    "data": ["test data", "data test", "data", "dữ liệu kiểm thử", "dữ liệu"],
     "expected": ["expected result", "expected", "kết quả mong đợi", "kết quả kỳ vọng", "kết quả"],
     "priority": ["priority / severity", "priority", "severity", "độ ưu tiên", "mức độ ưu tiên"],
-    "risk_score": ["risk score (rpn)", "risk score", "rpn", "risk level", "risk tier", "mức rủi ro", "điểm rủi ro"],
+    "risk_score": ["risk score (rpn)", "risk score", "rpn", "risk level", "risk tier", "mức rủi ro", "điểm rủi ro", "mức độ nghiêm trọng lỗi"],
     "automatable_type": ["automatable / type", "automatable", "auto type", "automatable / auto type", "loại tự động hóa"],
     "tags": ["automation tags", "tags", "tag", "nhãn"],
 }
@@ -325,6 +325,93 @@ def _scan_blacklist_defects(
     return found
 
 
+_COMPOUND_TITLE_PATTERNS = (
+    (re.compile(r"\bvs\.?\b", re.IGNORECASE), "comparative 'vs' scenario bundling"),
+    (re.compile(r"\b(?:approve|accept)\s+and\s+(?:reject|deny)\b", re.IGNORECASE), "dual approve-and-reject bundling"),
+    (re.compile(r"\b(?:create|add)\s+and\s+(?:delete|remove)\b", re.IGNORECASE), "dual create-and-delete bundling"),
+    (re.compile(r"\b(?:valid|pass)\s+and\s+(?:invalid|fail)\b", re.IGNORECASE), "dual valid-and-invalid bundling"),
+    (re.compile(r"(?:đồng\s+ý|duyệt)\s+và\s+(?:từ\s+chối|trả\s+lại)", re.IGNORECASE), "dual Vietnamese approve-and-reject bundling"),
+    (re.compile(r"(?:hàng\s+loạt.*và.*đơn\s+lẻ|đơn\s+lẻ.*và.*hàng\s+loạt)", re.IGNORECASE), "dual batch-and-single bundling"),
+    (re.compile(r"(?:trong\s+hạn.*và.*quá\s+hạn|quá\s+hạn.*và.*trong\s+hạn)", re.IGNORECASE), "dual in-limit-and-expired bundling"),
+)
+_COMPOUND_STEPS_RE = re.compile(r"\b(?:case|th|kịch\s+bản)\s*[-_#]?\s*[1-9]\b", re.IGNORECASE)
+_XLSX_TC_HEADER_TOKENS = ("tc id", "case id", "tc_id", "testcase_id", "test case id", "mã tc", "mã test case")
+_XLSX_QA_SHEET_TOKENS = ("q&a", "qa", "question", "ambiguity", "assumption")
+
+
+def _detect_compound_test_case(title: str, steps: str) -> Optional[str]:
+    """Detects bundled multi-scenario test cases that violate 1-condition = 1-TC atomicity."""
+    title_str = str(title or "").strip()
+    for pat, reason in _COMPOUND_TITLE_PATTERNS:
+        if pat.search(title_str):
+            return reason
+    step_markers = _COMPOUND_STEPS_RE.findall(str(steps or ""))
+    if len(set(m.lower() for m in step_markers)) >= 2:
+        return "multiple sub-cases bundled in Test Steps"
+    return None
+
+
+def _find_xlsx_header_row(ws_rows: List[tuple]) -> Optional[tuple]:
+    """Finds (row_idx_1based, cleaned_headers) for a worksheet test-case table within first 25 rows."""
+    for row_idx, raw_row in enumerate(ws_rows[:25], start=1):
+        cells = [str(c).strip() if c is not None else "" for c in raw_row]
+        non_empty = [c for c in cells if c]
+        if len(non_empty) < 3:
+            continue
+        if any(any(tok in c.lower() for tok in _XLSX_TC_HEADER_TOKENS) for c in non_empty):
+            return row_idx, cells
+    return None
+
+
+def parse_xlsx_test_tables(file_path: str) -> tuple:
+    """Parses multi-sheet enterprise .xlsx workbooks into normalized test tables + has_qa_sheet flag."""
+    try:
+        import openpyxl  # type: ignore[import-untyped]
+    except ImportError:
+        return [], False
+
+    wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
+    tables: List[Dict[str, Any]] = []
+    has_qa_sheet = False
+    try:
+        for sheet_name in wb.sheetnames:
+            sname_low = sheet_name.strip().lower()
+            if any(tok in sname_low for tok in _XLSX_QA_SHEET_TOKENS):
+                has_qa_sheet = True
+            ws = wb[sheet_name]
+            ws_rows = list(ws.iter_rows(values_only=True))
+            found = _find_xlsx_header_row(ws_rows)
+            if not found:
+                continue
+            header_idx, raw_headers = found
+            active_cols = [(idx, h) for idx, h in enumerate(raw_headers) if h]
+            headers = [h for _, h in active_cols]
+            rows: List[Dict[str, Any]] = []
+            for r_offset, raw_row in enumerate(ws_rows[header_idx:], start=header_idx + 1):
+                row_dict: Dict[str, Any] = {}
+                for col_idx, col_name in active_cols:
+                    val = raw_row[col_idx] if col_idx < len(raw_row) else None
+                    row_dict[col_name] = "" if val is None else str(val).strip()
+                case_id = _extract_canonical_field(row_dict, "case_id")
+                title_val = _extract_canonical_field(row_dict, "title")
+                if not case_id or not title_val:
+                    continue
+                row_dict["__line_number__"] = r_offset
+                row_dict["__sheet_name__"] = sheet_name
+                rows.append(row_dict)
+            if rows:
+                tables.append({
+                    "headers": headers,
+                    "rows": rows,
+                    "header_line": header_idx,
+                    "sheet_name": sheet_name,
+                    "is_test_table": True,
+                })
+    finally:
+        wb.close()
+    return tables, has_qa_sheet
+
+
 SEMANTIC_S1_KEYWORDS = [
     "double-click", "double click", "double-submit", "double submit",
     "idempotency", "disable button", "khóa nút", "bấm 2 lần",
@@ -353,6 +440,7 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
         "speculative_oracles": 0,
         "vague_preconditions": 0,
         "rtm_linked_cases": 0,
+        "compound_cases": 0,
     }
 
     if not os.path.isfile(file_path):
@@ -388,33 +476,54 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
                 "error": "File not found"
             }
 
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-    except Exception as e:
-        return {
-            "file": file_path,
-            "profile": profile or "default",
-            "has_test_cases": False,
-            "column_counts": [],
-            "total_test_cases": 0,
-            "passed": False,
-            "defects": [{"line": 0, "type": "READ_ERROR", "message": f"Cannot read file: {e}"}],
-            "warnings": [],
-            "metrics": empty_metrics,
-            "error": f"Cannot read file: {e}"
-        }
+    is_xlsx = file_path.lower().endswith(".xlsx")
+    content = ""
+    has_qa_sheet = False
+    if is_xlsx:
+        try:
+            test_tables, has_qa_sheet = parse_xlsx_test_tables(file_path)
+        except Exception as e:
+            return {
+                "file": file_path,
+                "profile": profile or "default",
+                "has_test_cases": False,
+                "column_counts": [],
+                "total_test_cases": 0,
+                "passed": False,
+                "defects": [{"line": 0, "type": "READ_ERROR", "message": f"Cannot read Excel workbook: {e}"}],
+                "warnings": [],
+                "metrics": empty_metrics,
+                "error": f"Cannot read Excel workbook: {e}"
+            }
+        chosen_profile = (profile.strip().lower() if profile else None) or "default"
+    else:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception as e:
+            return {
+                "file": file_path,
+                "profile": profile or "default",
+                "has_test_cases": False,
+                "column_counts": [],
+                "total_test_cases": 0,
+                "passed": False,
+                "defects": [{"line": 0, "type": "READ_ERROR", "message": f"Cannot read file: {e}"}],
+                "warnings": [],
+                "metrics": empty_metrics,
+                "error": f"Cannot read file: {e}"
+            }
 
-    # Profile resolution precedence: CLI flag > inline comment > default
-    m_profile = INLINE_PROFILE_PATTERN.search(content)
-    inline_profile = m_profile.group(1).strip().lower() if m_profile else None
-    chosen_profile = (profile.strip().lower() if profile else None) or inline_profile or "default"
+        # Profile resolution precedence: CLI flag > inline comment > default
+        m_profile = INLINE_PROFILE_PATTERN.search(content)
+        inline_profile = m_profile.group(1).strip().lower() if m_profile else None
+        chosen_profile = (profile.strip().lower() if profile else None) or inline_profile or "default"
+        tables = parse_markdown_tables(content)
+        test_tables = [t for t in tables if t.get("is_test_table")]
+
     if chosen_profile not in LINTER_PROFILES:
         chosen_profile = "default"
     prof_cfg = LINTER_PROFILES[chosen_profile]
-
-    tables = parse_markdown_tables(content)
-    test_tables = [t for t in tables if t.get("is_test_table")]
 
     if not test_tables:
         return {
@@ -436,6 +545,7 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
     speculative_oracle_count = 0
     missing_precondition_count = 0
     rtm_linked_count = 0
+    compound_case_count = 0
 
     category_counts = {
         "happy": 0,
@@ -443,41 +553,53 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
         "security_resilience": 0
     }
 
-    # Ambiguity & Assumptions Log Check
-    has_h2_sections = bool(re.search(r"^##\s+", content, re.MULTILINE))
-    m_ambig = AMBIGUITY_LOG_PATTERN.search(content)
-    if has_h2_sections or m_ambig:
-        if not m_ambig:
-            defects.append({
-                "line": 1,
-                "type": "MISSING_AMBIGUITY_LOG",
-                "message": "Missing mandatory '## Ambiguity & Assumptions Log' section per RBT Manual Testing standards."
-            })
-        else:
-            # Check if the section is non-empty
-            after_header = content[m_ambig.end():]
-            next_heading = re.search(r"^#{1,6}\s+", after_header, re.MULTILINE)
-            section_body = after_header[:next_heading.start()] if next_heading else after_header
-            cleaned_body = re.sub(r"[\s\-_*`#]+", "", section_body)
-            if not cleaned_body:
-                header_line = content[:m_ambig.start()].count("\n") + 1
+    # Ambiguity & Assumptions Log Check (Markdown sections or Q&A sheet for Excel)
+    if not is_xlsx:
+        has_h2_sections = bool(re.search(r"^##\s+", content, re.MULTILINE))
+        m_ambig = AMBIGUITY_LOG_PATTERN.search(content)
+        if has_h2_sections or m_ambig:
+            if not m_ambig:
                 defects.append({
-                    "line": header_line,
+                    "line": 1,
                     "type": "MISSING_AMBIGUITY_LOG",
-                    "message": "Mandatory '## Ambiguity & Assumptions Log' section is present but empty. Please document assumptions or confirmed ambiguities."
+                    "message": "Missing mandatory '## Ambiguity & Assumptions Log' section per RBT Manual Testing standards."
                 })
+            else:
+                after_header = content[m_ambig.end():]
+                next_heading = re.search(r"^#{1,6}\s+", after_header, re.MULTILINE)
+                section_body = after_header[:next_heading.start()] if next_heading else after_header
+                cleaned_body = re.sub(r"[\s\-_*`#]+", "", section_body)
+                if not cleaned_body:
+                    header_line = content[:m_ambig.start()].count("\n") + 1
+                    defects.append({
+                        "line": header_line,
+                        "type": "MISSING_AMBIGUITY_LOG",
+                        "message": "Mandatory '## Ambiguity & Assumptions Log' section is present but empty. Please document assumptions or confirmed ambiguities."
+                    })
+    elif not has_qa_sheet:
+        warnings.append({
+            "line": 0,
+            "type": "MISSING_QA_SHEET",
+            "message": "Excel workbook has no Q&A / Ambiguity worksheet for Dev/BA clarifications."
+        })
 
     for t_idx, t in enumerate(test_tables):
         headers = t["headers"]
         col_count = len(headers)
         column_counts.append(col_count)
 
-        # Check ISO 29119-3 12-column standard
-        if col_count < 12:
+        # Check ISO 29119-3 12-column standard (relaxed to warning for corporate .xlsx templates)
+        if not is_xlsx and col_count < 12:
             defects.append({
                 "line": t["header_line"],
                 "type": "COLUMN_COUNT_VIOLATION",
                 "message": f"Table has {col_count} columns (Expected 12 columns per ISO 29119-3 standard). Missing: {12 - col_count} columns."
+            })
+        elif is_xlsx and col_count < 12:
+            warnings.append({
+                "line": t["header_line"],
+                "type": "CORPORATE_COLUMN_LAYOUT",
+                "message": f"Excel sheet '{t.get('sheet_name', '')}' uses {col_count}-column corporate template (< 12 ISO columns)."
             })
 
         for row in t["rows"]:
@@ -509,7 +631,7 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
                 if col_name.startswith("__") or not isinstance(cell_val, str):
                     continue
                 col_lower = col_name.lower()
-                if any(ex in col_lower for ex in ["actual", "status", "tested by", "execution date"]):
+                if any(ex in col_lower for ex in ["actual", "status", "tested by", "execution date", "bug id", "người test", "ngày test", "lần 1", "lần 2", "notes", "môi trường"]):
                     continue
                 if not any(sc[0] == col_name for sc in spec_cells):
                     spec_cells.append((col_name, cell_val))
@@ -517,6 +639,21 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
             cell_defects = _scan_blacklist_defects(spec_cells, line_no, tc_id)
             speculative_oracle_count += len(cell_defects)
             defects.extend(cell_defects)
+
+            # Check 1b: Atomicity Guard (1 condition = 1 TC; warn on compound bundling, block under strict_semantic)
+            compound_reason = _detect_compound_test_case(test_title, steps)
+            if compound_reason:
+                compound_case_count += 1
+                compound_item = {
+                    "line": line_no,
+                    "tc_id": tc_id,
+                    "type": "COMPOUND_TEST_CASE",
+                    "message": f"Compound test case detected ({compound_reason}) in '{test_title}'. Split into atomic single-condition TCs.",
+                }
+                if strict_semantic:
+                    defects.append(compound_item)
+                else:
+                    warnings.append(compound_item)
 
             # Check 2: Vague Preconditions for Privileged/Mutation Actions
             if re.search(r"\b(?:tạo|xóa|sửa|chỉnh\s+sửa|phê\s+duyệt|delete|update|create|edit)\b", test_title, re.IGNORECASE):
@@ -725,6 +862,7 @@ def lint_test_case_file(file_path: str, profile: Optional[str] = None, strict_se
             "speculative_oracles": speculative_oracle_count,
             "vague_preconditions": missing_precondition_count,
             "rtm_linked_cases": rtm_linked_count,
+            "compound_cases": compound_case_count,
         }
     }
 

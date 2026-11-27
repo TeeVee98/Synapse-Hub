@@ -440,3 +440,146 @@ def test_manual_adapter_vietnamese_bilingual_spec_mutation(tmp_path: Path) -> No
     assert rev_clean.coverage_audit.orphan_tc_ids == ()
 
 
+def test_manual_adapter_atomicity_and_xlsx_workbook_audit(tmp_path: Path) -> None:
+    """Atomicity guard flags compound TCs; .xlsx enterprise workbooks audit end-to-end."""
+    openpyxl = pytest.importorskip("openpyxl")
+    adapter = _load_adapter()
+    from tools.lint.manual_tc_linter import lint_test_case_file
+
+    (tmp_path / ".git").mkdir(exist_ok=True)
+    spec_file = tmp_path / "docs" / "ltcq_brd.md"
+    spec_file.parent.mkdir(parents=True, exist_ok=True)
+    spec_file.write_text(
+        "# Feature: Archive Submission\n\n"
+        "## Actor & Preconditions\n"
+        "- Actor: Department staff and archive admin.\n"
+        "- Precondition: Account active.\n\n"
+        "## Business Rules & Acceptance Criteria\n"
+        "- YC-01: Submit archive within 60 days; reject expired archive exceeding max 60 days.\n"
+        "- YC-02: Reader Search API denies unauthorized access to confidential records returning 403.\n",
+        encoding="utf-8",
+    )
+
+    # 1. Atomicity guard on Markdown (compound A-vs-B + dual action bundling)
+    bundled_md = tmp_path / "docs" / "bundled_tc.md"
+    bundled_md.write_text(
+        "<!-- synapse-linter-profile: default -->\n"
+        "## Ambiguity & Assumptions Log\n"
+        "- [QA-01] Day 60 is inclusive.\n\n"
+        "| TC ID | REQ ID | Module | Risk Level | Test Title | Pre-Condition | Test Steps | Expected Result | Priority | Test Data | Automatable | Auto Type | Tags |\n"
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
+        "| TC-01 | YC-01 | Archive | High | Boundary day 60 vs day 61 archive submission | Record ready | 1. Submit day 60 2. Submit day 61 | Day 60 succeeds and day 61 is rejected exceeding max 60 days | P0 | `days=60,61` | Yes | API | @negative @yc-01 |\n"
+        "| TC-02 | YC-02 | Security | Critical | Approve and reject reader access on confidential archive | Reader logged in | 1. Query confidential record | HTTP 403 Forbidden denied access returned | P0 | `role=reader` | Yes | API | @security @rbac @yc-02 |\n",
+        encoding="utf-8",
+    )
+    lint_warn = lint_test_case_file(str(bundled_md))
+    assert lint_warn["metrics"]["compound_cases"] == 2
+    assert any(w.get("type") == "COMPOUND_TEST_CASE" for w in lint_warn["warnings"])
+
+    lint_strict = lint_test_case_file(str(bundled_md), strict_semantic=True)
+    assert lint_strict["passed"] is False
+    assert any(d.get("type") == "COMPOUND_TEST_CASE" for d in lint_strict["defects"])
+
+    # 2. Direct .xlsx enterprise workbook audit (multi-sheet with Q&A + corporate headers)
+    wb = openpyxl.Workbook()
+    ws_qa = wb.active
+    ws_qa.title = "Q&A"
+    ws_qa.append(["STT", "Question", "Answer"])
+    ws_qa.append([1, "Is day 60 inclusive?", "Confirmed inclusive"])
+
+    ws_tc = wb.create_sheet("Nop luu co quan")
+    ws_tc.append(["TEST CASE REPORT"])
+    ws_tc.append([
+        "Testcase_ID", "REQ ID", "Tên testcase", "Tiền điều kiện",
+        "Các bước thực hiện", "Data test", "Kết quả mong đợi", "Độ ưu tiên", "Nhãn",
+    ])
+    ws_tc.append([
+        "TC_XLS_01", "YC-01", "Submit archive on day 60 within limit",
+        "Department account active", "1. Open Publish 2. Click send",
+        "days=60", "Archive submitted successfully with status Pending",
+        "High", "@happy @yc-01",
+    ])
+    ws_tc.append([
+        "TC_XLS_02", "YC-01", "Reject expired archive exceeding max 60 days",
+        "Department account active", "1. Open Publish 2. Click send on day 61 record",
+        "days=61", "System rejects submission with HTTP 400 max 60 days error",
+        "High", "@negative @yc-01",
+    ])
+    ws_tc.append([
+        "TC_XLS_03", "YC-02", "Deny unauthorized reader access to confidential archive",
+        "Reader account active", "1. Call Search API with reader token",
+        "role=reader", "HTTP 403 Forbidden returned with zero confidential data",
+        "High", "@security @rbac @yc-02",
+    ])
+    xlsx_path = tmp_path / "docs" / "enterprise_tc.xlsx"
+    wb.save(str(xlsx_path))
+
+    # Lint .xlsx directly
+    xls_lint = lint_test_case_file(str(xlsx_path))
+    assert xls_lint["has_test_cases"] is True
+    assert xls_lint["total_test_cases"] == 3
+    assert xls_lint["passed"] is True
+    assert xls_lint["metrics"]["compound_cases"] == 0
+
+    # Full Manual Red -> Green -> Spec-Mutation -> Zero-Trust Review on .xlsx
+    red = adapter.certify_manual_red_phase(str(spec_file), milestone_id="M1", repo_root=str(tmp_path))
+    assert red.status == "CERTIFIED_RED"
+
+    green = adapter.verify_manual_green_phase(
+        spec_path=str(spec_file),
+        tc_files=(str(xlsx_path),),
+        milestone_id="M1",
+        repo_root=str(tmp_path),
+    )
+    assert green.passed is True
+    assert green.total_test_cases == 3
+    assert set(green.covered_req_ids) == {"YC-01", "YC-02"}
+    assert green.compound_tc_warnings == ()
+
+    mut = adapter.run_spec_mutation_audit(
+        spec_path=str(spec_file),
+        tc_files=(str(xlsx_path),),
+        threshold=80.0,
+        repo_root=str(tmp_path),
+        milestone_id="M1",
+    )
+    assert mut.passed is True
+    assert mut.kill_score == 100.0
+
+    rev_xls = adapter.audit_manual_delivery(
+        repo_root=str(tmp_path),
+        plan_path=None,
+        changed_files=("docs/enterprise_tc.xlsx",),
+        milestone_id="M1",
+        strict_solo=True,
+        spec_path=str(spec_file),
+    )
+    assert rev_xls.passed is True
+    assert rev_xls.receipt_verified is True
+
+    # Negative: .xlsx containing vague oracle ("hoặc") fails closed
+    ws_tc.append([
+        "TC_XLS_04", "YC-01", "Check boundary vs invalid",
+        "Account active", "1. Submit", "days=61",
+        "Báo lỗi hoặc chặn submit", "Medium", "@negative @yc-01",
+    ])
+    bad_xlsx = tmp_path / "docs" / "bad_enterprise_tc.xlsx"
+    wb.save(str(bad_xlsx))
+    bad_lint = lint_test_case_file(str(bad_xlsx))
+    assert bad_lint["passed"] is False
+    assert bad_lint["metrics"]["speculative_oracles"] >= 1
+    assert bad_lint["metrics"]["compound_cases"] >= 1
+
+    # Audit of bundled markdown surfaces COMPOUND_TEST_CASE_BUNDLING Should fix finding
+    rev_bundled = adapter.audit_manual_delivery(
+        repo_root=str(tmp_path),
+        plan_path=None,
+        changed_files=("docs/bundled_tc.md",),
+        milestone_id="M1",
+        strict_solo=True,
+        spec_path=str(spec_file),
+    )
+    assert "COMPOUND_TEST_CASE_BUNDLING" in {f.get("code") for f in rev_bundled.findings}
+
+
+

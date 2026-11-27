@@ -40,6 +40,7 @@ from tools.lint.manual_tc_linter import (
     _extract_canonical_field,
     lint_test_case_file,
     parse_markdown_tables,
+    parse_xlsx_test_tables,
 )
 from tools.manual.checklist_query import CANONICAL_FIELDS
 from tools.orchestration.goldfish_review import evaluate_spec_content
@@ -163,6 +164,7 @@ class ManualCoverageAuditDTO:
     linter_defects: Tuple[str, ...]
     field_checklist_gaps: Tuple[str, ...]
     passed: bool
+    compound_tc_warnings: Tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -407,10 +409,14 @@ def certify_manual_red_phase(
 def _extract_tc_rows(abs_files: Sequence[str]) -> List[Dict[str, str]]:
     parsed_rows: List[Dict[str, str]] = []
     for abs_f in abs_files:
-        text = _read_bounded_text(abs_f)
-        if not text:
-            continue
-        for table in parse_markdown_tables(text):
+        if abs_f.lower().endswith(".xlsx"):
+            tables, _ = parse_xlsx_test_tables(abs_f)
+        else:
+            text = _read_bounded_text(abs_f)
+            if not text:
+                continue
+            tables = parse_markdown_tables(text)
+        for table in tables:
             for row in table.get("rows") or []:
                 tc_id = _extract_canonical_field(row, "case_id")
                 if not tc_id:
@@ -452,6 +458,7 @@ def verify_manual_green_phase(
     norm_tc_files = tuple(_norm_rel(f, effective_root) for f in tc_files if str(f).strip())
 
     defects: List[str] = []
+    compound_warnings: List[str] = []
     linter_all_passed = bool(abs_tc_files)
     for abs_f in abs_tc_files:
         if not os.path.isfile(abs_f):
@@ -463,6 +470,10 @@ def verify_manual_green_phase(
             linter_all_passed = False
             defects.append(f"No markdown test case table found in {_norm_rel(abs_f, effective_root)}")
             continue
+        for w in res.get("warnings") or []:
+            if w.get("type") == "COMPOUND_TEST_CASE":
+                tc_tag = f"[{w['tc_id']}] " if w.get("tc_id") else ""
+                compound_warnings.append(f"L{w.get('line', 1)}: {tc_tag}{w.get('message', '')}")
         if not res.get("passed", False):
             linter_all_passed = False
             for d in res.get("defects") or []:
@@ -518,6 +529,7 @@ def verify_manual_green_phase(
         linter_defects=tuple(defects),
         field_checklist_gaps=tuple(field_gaps),
         passed=passed,
+        compound_tc_warnings=tuple(compound_warnings),
     )
 
 
@@ -747,9 +759,10 @@ def _resolve_manual_artifacts(
 
     for cf in changed_files:
         norm = _norm_rel(cf, repo_root)
-        if not norm.lower().endswith(".md"):
+        low = norm.lower()
+        if not (low.endswith(".md") or low.endswith(".xlsx")):
             continue
-        base_name = os.path.basename(norm).lower()
+        base_name = os.path.basename(low)
         if (
             norm == norm_plan
             or norm.startswith(".synapse/")
@@ -758,6 +771,12 @@ def _resolve_manual_artifacts(
         ):
             continue
         abs_cf = _resolve_path(norm, repo_root)
+        if low.endswith(".xlsx"):
+            if os.path.isfile(abs_cf):
+                xls_tables, _ = parse_xlsx_test_tables(abs_cf)
+                if xls_tables:
+                    tc_candidates.append(norm)
+            continue
         text = _read_bounded_text(abs_cf) or ""
         tables = parse_markdown_tables(text)
         has_tc = any(
@@ -944,6 +963,20 @@ def audit_manual_delivery(
                 problem="Vague oracles, missing columns, or Golden Ratio violations degrade QA rigor.",
                 fix="Resolve defects reported by python3 tools/lint/manual_tc_linter.py.",
                 if_skipped="Ambiguous manual test steps cause inconsistent QA execution.",
+            )
+        )
+
+    if coverage.compound_tc_warnings:
+        findings.append(
+            _make_manual_finding(
+                severity="Should fix",
+                code="COMPOUND_TEST_CASE_BUNDLING",
+                title=f"Detected {len(coverage.compound_tc_warnings)} compound test case(s) violating 1-condition atomicity",
+                file_path=resolved_tcs[0] if resolved_tcs else "docs/",
+                what_is="; ".join(coverage.compound_tc_warnings[:3]),
+                problem="Bundling multiple scenarios (A vs B, approve and reject) into one TC obscures Pass/Fail granularity.",
+                fix="Split each compound test case into atomic single-condition TCs.",
+                if_skipped="Partial failures inside bundled TCs mask exact defect root causes.",
             )
         )
 
