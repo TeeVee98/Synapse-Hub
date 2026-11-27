@@ -31,7 +31,7 @@ Introduce an additive, backward-compatible `--profile manual` mode across `/supe
    - **Red Phase (`--profile manual --red --spec <brd.md>`):** Computes SHA-256 `spec_hash` and locks extracted `AC-`/`REQ-` IDs in an HMAC-signed receipt so requirements cannot be silently dropped.
    - **Green Phase (`--profile manual --green`):** Verifies `manual_tc_linter.py` pass status (supporting both ISO 29119-3 Markdown tables and multi-sheet corporate `.xlsx` workbooks), TC atomicity (`COMPOUND_TEST_CASE` guard), 100% requirement RTM linkage, zero orphan TCs, and 25-field negative/boundary coverage.
    - **Purple / Mutation Phase (`--profile manual --mutation`):** Runs deterministic fault-injection **Spec-Mutation** (omission, boundary inversion, RBAC/IDOR bypass, OTP lockout bypass, double-submit race, field chaos) with bilingual English and ASCII-folded Vietnamese token matching, enforcing a kill score `>= 80.0%` with HMAC-signed receipt.
-4. **Zero-Trust Manual Review (`/review --profile manual`):** Reconciles write sets, AC coverage, linter defects, read-only HMAC provenance (`get_receipt_hmac_key_readonly()`), and Spec-Mutation score into a signed `reports/code_review_receipt.json`.
+4. **Zero-Trust Manual Review (`/review --profile manual`):** Reconciles write sets across `.md` and corporate `.xlsx` test suites, AC/REQ/YC coverage, linter defects, TC atomicity (`COMPOUND_TEST_CASE_BUNDLING`), suite depth (`SHALLOW_TC_DEPTH` < 2.0 TCs/req on specs with >= 4 requirements), read-only HMAC provenance (`get_receipt_hmac_key_readonly()`), and Spec-Mutation score into a signed `reports/code_review_receipt.json`.
 
 ## Consequences
 

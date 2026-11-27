@@ -108,10 +108,10 @@ Before creating Red tests or editing files, state in 3 concise lines:
    python3 tools/core/decision_log.py --log decisions.tsv --audit --strict --json
    ```
 4. **Manual QA Profile (`--profile manual --spec <brd.md>`):**
-   - For Manual QA test suite authoring (default remains `--profile code`):
-     - **Red Phase (`--profile manual --red --spec <brd.md> --milestone M1`):** Computes SHA-256 `spec_hash` and locks extracted `AC-`/`REQ-` IDs in an HMAC-signed receipt so requirements cannot be dropped.
-     - **Green Phase (`--profile manual --green --spec <brd.md> --target <tc.md> --milestone M1`):** Enforces `manual_tc_linter.py` (ISO 29119-3 columns, zero vague oracles, Golden Ratio) + 100% REQ/AC RTM coverage + zero orphan TCs.
-     - **Purple / Spec-Mutation (`--profile manual --mutation --spec <brd.md> --target <tc.md> --threshold 80.0`):** Injects fault mutants (requirement omission, boundary inversion, RBAC/IDOR bypass, OTP lockout, double-submit race, 25-field faults) enforcing `kill_score >= 80.0%` with an HMAC-signed receipt.
+   - For Manual QA test suite authoring (default remains `--profile code`; supports both ISO 29119-3 Markdown `.md` suites and corporate multi-sheet `.xlsx` workbooks):
+     - **Red Phase (`--profile manual --red --spec <brd.md> --milestone M1`):** Computes SHA-256 `spec_hash` and locks extracted `AC-`/`REQ-`/`YC-` IDs in an HMAC-signed receipt so requirements cannot be dropped.
+     - **Green Phase (`--profile manual --green --spec <brd.md> --target <tc.md|tc.xlsx> --milestone M1`):** Enforces `manual_tc_linter.py` (ISO 29119-3 columns or corporate `.xlsx` layout, zero vague oracles, Golden Ratio, 1-condition = 1-TC `COMPOUND_TEST_CASE` atomicity guard) + 100% REQ/AC RTM coverage + zero orphan TCs. Author atomic test cases (`>= 2.0` TCs per requirement on multi-requirement specs) and tag assumption-bound cases with `@qa-xx`.
+     - **Purple / Spec-Mutation (`--profile manual --mutation --spec <brd.md> --target <tc.md|tc.xlsx> --threshold 80.0`):** Injects bilingual English/Vietnamese fault mutants (requirement omission, boundary inversion, RBAC/IDOR bypass, OTP lockout, double-submit race, 25-field faults) enforcing `kill_score >= 80.0%` with an HMAC-signed receipt.
      - `--from-plan` automatically detects `Profile: manual` plans and executes manual milestones sequentially.
 
 ---

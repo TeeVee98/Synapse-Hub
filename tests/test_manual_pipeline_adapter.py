@@ -556,6 +556,7 @@ def test_manual_adapter_atomicity_and_xlsx_workbook_audit(tmp_path: Path) -> Non
     )
     assert rev_xls.passed is True
     assert rev_xls.receipt_verified is True
+    assert "SHALLOW_TC_DEPTH" not in {f.get("code") for f in rev_xls.findings}
 
     # Negative: .xlsx containing vague oracle ("hoặc") fails closed
     ws_tc.append([
@@ -580,6 +581,79 @@ def test_manual_adapter_atomicity_and_xlsx_workbook_audit(tmp_path: Path) -> Non
         spec_path=str(spec_file),
     )
     assert "COMPOUND_TEST_CASE_BUNDLING" in {f.get("code") for f in rev_bundled.findings}
+
+    # 3. Shallow TC depth guard: >= 4 requirements with < 2.0 TCs/req emits SHALLOW_TC_DEPTH
+    deep_spec = tmp_path / "docs" / "four_req_brd.md"
+    deep_spec.write_text(
+        "# Feature: Multi-Screen Workflow\n\n"
+        "## Actor & Preconditions\n"
+        "- Actor: Staff and Admin.\n"
+        "- Precondition: Account active.\n\n"
+        "## Business Rules & Acceptance Criteria\n"
+        "- YC-01: Create archive record successfully.\n"
+        "- YC-02: Submit archive within 60 days.\n"
+        "- YC-03: Approve archive transfer to agency.\n"
+        "- YC-04: View approved PDF document.\n",
+        encoding="utf-8",
+    )
+    shallow_tc = tmp_path / "docs" / "shallow_tc.md"
+    shallow_tc.write_text(
+        "<!-- synapse-linter-profile: default -->\n"
+        "## Ambiguity & Assumptions Log\n"
+        "- [QA-01] Baseline assumptions confirmed.\n\n"
+        "| TC ID | REQ ID | Module | Risk Level | Test Title | Pre-Condition | Test Steps | Expected Result | Priority | Test Data | Automatable | Auto Type | Tags |\n"
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
+        "| TC-01 | YC-01 | Archive | High | Create record happy path | Staff logged in | 1. Fill form 2. Save | Record created with HTTP 201 | P0 | `code=A1` | Yes | UI | @happy @yc-01 |\n"
+        "| TC-02 | YC-02 | Archive | High | Submit archive within limit | Record exists | 1. Click send 2. Confirm | Status changes to Submitted | P0 | `days=10` | Yes | UI | @happy @yc-02 |\n"
+        "| TC-03 | YC-03 | Approval | High | Approve archive transfer | Admin logged in | 1. Enter reason 2. Approve | Ownership transferred to agency | P0 | `reason=OK` | Yes | UI | @happy @yc-03 |\n"
+        "| TC-04 | YC-04 | Viewer | High | View approved PDF file | Borrow approved | 1. Open viewer 2. Click PDF | PDF document rendered with HTTP 200 | P0 | `file=a.pdf` | Yes | UI | @happy @yc-04 |\n",
+        encoding="utf-8",
+    )
+    adapter.certify_manual_red_phase(str(deep_spec), milestone_id="M2", repo_root=str(tmp_path))
+    rev_shallow = adapter.audit_manual_delivery(
+        repo_root=str(tmp_path),
+        plan_path=None,
+        changed_files=("docs/shallow_tc.md",),
+        milestone_id="M2",
+        strict_solo=True,
+        spec_path=str(deep_spec),
+    )
+    shallow_findings = [f for f in rev_shallow.findings if f.get("code") == "SHALLOW_TC_DEPTH"]
+    assert len(shallow_findings) == 1
+    assert shallow_findings[0]["file_path"] == "docs/shallow_tc.md"
+    assert "1.0 TCs/req" in shallow_findings[0]["title"]
+
+    # Boundary: 0 TCs on 4 reqs must not emit SHALLOW_TC_DEPTH (covered by UNCOVERED_REQUIREMENTS)
+    rev_empty = adapter.audit_manual_delivery(
+        repo_root=str(tmp_path),
+        plan_path=None,
+        changed_files=(),
+        milestone_id="M2",
+        strict_solo=True,
+        spec_path=str(deep_spec),
+    )
+    assert "SHALLOW_TC_DEPTH" not in {f.get("code") for f in rev_empty.findings}
+
+    # Boundary: exactly 2.0 TCs/req (8 TCs across 4 reqs) must not emit SHALLOW_TC_DEPTH
+    exact_tc = tmp_path / "docs" / "exact_depth_tc.md"
+    exact_tc.write_text(
+        shallow_tc.read_text(encoding="utf-8")
+        + "| TC-05 | YC-01 | Archive | High | Reject empty code | Staff logged in | 1. Leave empty 2. Save | Rejected HTTP 400 | P0 | `code=\"\"` | Yes | UI | @negative @yc-01 |\n"
+        + "| TC-06 | YC-02 | Archive | High | Reject day 61 | Record expired | 1. Click send | Rejected exceeding 60 days | P0 | `days=61` | Yes | UI | @negative @yc-02 |\n"
+        + "| TC-07 | YC-03 | Approval | High | Reject empty reason | Admin logged in | 1. Leave empty 2. Approve | Rejected empty reason | P0 | `reason=\"\"` | Yes | UI | @negative @yc-03 |\n"
+        + "| TC-08 | YC-04 | Viewer | High | Deny pending PDF | Borrow pending | 1. Open viewer 2. Click PDF | HTTP 403 Forbidden denied | P0 | `status=pending` | Yes | API | @security @rbac @yc-04 |\n",
+        encoding="utf-8",
+    )
+    rev_exact = adapter.audit_manual_delivery(
+        repo_root=str(tmp_path),
+        plan_path=None,
+        changed_files=("docs/exact_depth_tc.md",),
+        milestone_id="M2",
+        strict_solo=True,
+        spec_path=str(deep_spec),
+    )
+    assert "SHALLOW_TC_DEPTH" not in {f.get("code") for f in rev_exact.findings}
+
 
 
 

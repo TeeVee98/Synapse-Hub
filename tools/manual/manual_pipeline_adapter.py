@@ -980,6 +980,22 @@ def audit_manual_delivery(
             )
         )
 
+    if len(inv.requirement_ids) >= 4 and coverage.total_test_cases > 0:
+        tc_per_req = round(coverage.total_test_cases / len(inv.requirement_ids), 2)
+        if tc_per_req < 2.0:
+            findings.append(
+                _make_manual_finding(
+                    severity="Should fix",
+                    code="SHALLOW_TC_DEPTH",
+                    title=f"Shallow test suite depth ({coverage.total_test_cases} TCs across {len(inv.requirement_ids)} requirements = {tc_per_req} TCs/req < 2.0)",
+                    file_path=resolved_tcs[0] if resolved_tcs else "docs/",
+                    what_is=f"Multi-requirement specification has only {tc_per_req} test cases per requirement on average.",
+                    problem="Over-compressed specs or happy-path-only suites miss negative, boundary, cancellation, duplicate, and RBAC edge cases.",
+                    fix="Decompose each screen/popup/rule into atomic Happy + Negative/Boundary + RBAC/Concurrency TCs (target >= 2.0 TCs/req).",
+                    if_skipped="Important negative and boundary regressions slip past manual QA.",
+                )
+            )
+
     if not spec_mut.passed:
         findings.append(
             _make_manual_finding(
