@@ -4326,6 +4326,12 @@
           "required": true,
           "help": "Path to pilot evidence manifest JSON."
         },
+        "--verify-artifacts": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Require physical on-disk artifact_path SHA-256 verification for every domain receipt."
+        },
         "--json": {
           "type": "boolean",
           "default": false,

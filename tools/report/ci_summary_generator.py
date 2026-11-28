@@ -63,6 +63,16 @@ def evaluate_required_suite(
     return "passed"
 
 
+@dataclass(frozen=True)
+class CandidateProducerBindingDTO:
+    producer_job: str
+    status: str
+    mode: str
+    build_id: str
+    run_id: str
+    artifact_sha256: str
+
+
 REQUIRED_RC_PRODUCERS: Tuple[str, ...] = (
     "api-suite",
     "e2e-crm-suite",
@@ -72,11 +82,12 @@ REQUIRED_RC_PRODUCERS: Tuple[str, ...] = (
 
 
 def validate_candidate_manifest(
-    manifest: Any,
+    manifest: Dict[str, Any],
     expected_build_id: Optional[str] = None,
     expected_run_id: Optional[str] = None,
     expected_environment: Optional[str] = None,
     required_producers: Sequence[str] = REQUIRED_RC_PRODUCERS,
+    require_producers: Optional[bool] = None,
 ) -> Tuple[bool, List[str]]:
     """Validates candidate manifest identity, producer completion, and live-mode fidelity."""
     if not isinstance(manifest, dict):
@@ -96,20 +107,36 @@ def validate_candidate_manifest(
         issues.append(f"Environment mismatch: expected '{expected_environment}', got '{manifest_env}'")
 
     producers = manifest.get("producers")
-    if producers is not None:
-        if not isinstance(producers, dict):
-            return False, issues + ["Candidate manifest producers must be a mapping"]
-        is_rc_lane = manifest.get("lane") == "release-candidate"
+    is_rc_lane = manifest.get("lane") == "release-candidate"
+    must_check_producers = (
+        bool(require_producers)
+        if require_producers is not None
+        else (is_rc_lane or producers is not None)
+    )
+    if must_check_producers:
+        if not isinstance(producers, dict) or not producers:
+            return False, issues + ["Missing or empty required 'producers' mapping in candidate manifest"]
         for req_job in required_producers:
             entry = producers.get(req_job)
             if not isinstance(entry, dict):
                 issues.append(f"Missing required producer '{req_job}'")
                 continue
-            status = str(entry.get("status", "")).lower()
-            if status != "success":
-                issues.append(f"Producer '{req_job}' did not succeed (status='{status}')")
-            if is_rc_lane and str(entry.get("mode", "")).lower() == "offline":
-                issues.append(f"Offline result substituted for live release candidate in '{req_job}'")
+            binding = CandidateProducerBindingDTO(
+                producer_job=req_job,
+                status=str(entry.get("status", "")).lower(),
+                mode=str(entry.get("mode", "")).strip().lower(),
+                build_id=str(entry.get("build_id") or ""),
+                run_id=str(entry.get("run_id") or ""),
+                artifact_sha256=str(entry.get("artifact_sha256") or ""),
+            )
+            if binding.status != "success":
+                issues.append(f"Producer '{req_job}' did not succeed (status='{binding.status}')")
+            if is_rc_lane and binding.mode in ("", "offline"):
+                issues.append(f"Offline or undeclared result substituted for live release candidate in '{req_job}'")
+            if expected_build_id and binding.build_id and binding.build_id != expected_build_id:
+                issues.append(f"Producer '{req_job}' build mismatch: expected '{expected_build_id}', got '{binding.build_id}'")
+            if expected_run_id and binding.run_id and binding.run_id != expected_run_id:
+                issues.append(f"Producer '{req_job}' run_id mismatch: expected '{expected_run_id}', got '{binding.run_id}'")
 
     return len(issues) == 0, issues
 
@@ -174,6 +201,7 @@ def parse_junit_file(xml_path: str) -> Tuple[int, int, int]:
 def _evaluate_junit_tier(
     xml_paths: Sequence[str],
     missing_msg: str,
+    artifacts_dir: Optional[str] = None,
 ) -> Tuple[int, int, int, int, bool, str, str, Set[str]]:
     """Aggregates deduplicated JUnit XMLs and enforces executed > 0 and zero failures."""
     existing = sorted({os.path.abspath(p) for p in xml_paths if os.path.exists(p)})
@@ -191,6 +219,9 @@ def _evaluate_junit_tier(
         t, f, s, is_valid, suite_names, digest = _parse_junit_detailed(path)
         observed_names.add(os.path.basename(path))
         observed_names.add(os.path.splitext(os.path.basename(path))[0])
+        if artifacts_dir:
+            rel_path = os.path.relpath(path, artifacts_dir).replace("\\", "/")
+            observed_names.add(rel_path)
         observed_names.update(suite_names)
         if not is_valid:
             malformed_count += 1
@@ -287,6 +318,7 @@ def generate_markdown_summary(
 
     # Tier 1: Static Defect & Security Sentinel
     static_pass = True
+    static_artifact_name: Optional[str] = None
     verify_reports = glob.glob(os.path.join(artifacts_dir, "**/verify_all*.json"), recursive=True)
     linter_reports = glob.glob(os.path.join(artifacts_dir, "**/infer_linter*.json"), recursive=True)
     if search_repo_local:
@@ -298,6 +330,7 @@ def generate_markdown_summary(
             with open(verify_reports[0], "r", encoding="utf-8") as f:
                 vdata = json.load(f)
             static_pass = bool(vdata.get("all_passed", False))
+            static_artifact_name = os.path.basename(verify_reports[0])
             static_details = f"Gates 1-10: {'10/10 PASS' if static_pass else 'FAILED'}"
         except Exception:
             static_pass = False
@@ -308,6 +341,7 @@ def generate_markdown_summary(
                 ldata = json.load(f)
             crit = ldata.get("critical_defects_count", 0)
             static_pass = crit == 0
+            static_artifact_name = os.path.basename(linter_reports[0])
             static_details = f"Critical Defects: {crit}, Health Score: {ldata.get('codebase_health_score_pct', 100)}%"
         except Exception:
             static_pass = False
@@ -324,6 +358,7 @@ def generate_markdown_summary(
     api_total, api_exec, _, _, api_pass, status_api, api_details, api_names = _evaluate_junit_tier(
         api_xmls,
         "Missing API test report artifact (api_junit.xml not found)",
+        artifacts_dir=artifacts_dir,
     )
 
     # Tier 3: Web E2E CRM & DAST Suite (Sprint 2 & 3)
@@ -341,6 +376,7 @@ def generate_markdown_summary(
     web_total, web_exec, _, _, web_pass, status_web, web_details, web_names = _evaluate_junit_tier(
         web_xml_candidates,
         "Missing Web E2E report artifact (playwright junit.xml not found)",
+        artifacts_dir=artifacts_dir,
     )
 
     # Tier 4: Performance & SLA Sentinel (Sprint 4)
@@ -384,6 +420,7 @@ def generate_markdown_summary(
     mob_total, mob_exec, _, _, mob_pass, status_mob, mob_details, mob_names = _evaluate_junit_tier(
         mob_xmls,
         "Missing Mobile test report artifact (mobile_junit.xml not found)",
+        artifacts_dir=artifacts_dir,
     )
 
     # Expected shard & candidate build verification (when configured or manifest present)
@@ -426,6 +463,20 @@ def generate_markdown_summary(
     verdict = "### 🏆 DEFINITION OF DONE (DoD) CERTIFIED — 100% PASS" if all_passed else "### ❌ QUALITY GATES FAILED"
     total_executed = api_exec + web_exec + mob_exec
     total_tests = api_total + web_total + mob_total
+    if not req_shards:
+        shard_note = "Not configured (unverified)"
+    elif shard_ok:
+        shard_note = "All expected shards present"
+    else:
+        shard_note = f"Missing shard(s): {', '.join(missing_shards)}"
+    if static_pass and static_artifact_name:
+        pom_note = f"Verified via `{static_artifact_name}` (Page/Screen Object separation gates passed)."
+        cred_note = f"Verified via `{static_artifact_name}` (credential hygiene gates passed)."
+        waits_note = f"Verified via `{static_artifact_name}` (dynamic smart-wait gates passed)."
+    else:
+        pom_note = "Unverified (static gate artifact missing or failed)."
+        cred_note = "Unverified (static gate artifact missing or failed)."
+        waits_note = "Unverified (static gate artifact missing or failed)."
 
     md = f"""# Enterprise Test Automation CI/CD Summary
 
@@ -452,11 +503,11 @@ def generate_markdown_summary(
 ### 🛡️ Core Invariant Audit
 
 - **Truth Anchor (Zero Fake Passes):** {total_executed} executed tests ({total_tests} total) evaluated; zero swallowed exceptions (`pass`, dummy suppression).
-- **Shard Completeness:** {'All expected shards present' if shard_ok else f"Missing shard(s): {', '.join(missing_shards)}"}
+- **Shard Completeness:** {shard_note}
 - **Candidate Build Binding:** {build_note}
-- **Clean POM / SOM Separation:** 100% locators encapsulated in Page and Screen Classes; zero raw CSS/XPath in test scripts.
-- **Credential Security:** 100% verified; zero raw plaintext passwords committed.
-- **Dynamic Smart Waits:** 100% dynamic event-driven waits; zero brittle static sleeps (`Thread.sleep`, `waitForTimeout`).
+- **Clean POM / SOM Separation:** {pom_note}
+- **Credential Security:** {cred_note}
+- **Dynamic Smart Waits:** {waits_note}
 """
     return md, all_passed
 
@@ -465,9 +516,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="CI/CD Step Summary Generator")
     parser.add_argument("--artifacts-dir", default="artifacts", help="Path to downloaded artifacts")
     parser.add_argument("--output", default=None, help="Path to write output markdown (e.g. $GITHUB_STEP_SUMMARY)")
+    parser.add_argument("--expected-shards", default=None, help="Comma-separated expected shard identifiers")
     args = parser.parse_args()
 
-    summary_md, all_passed = generate_markdown_summary(args.artifacts_dir)
+    cli_shards = (
+        [s.strip() for s in args.expected_shards.split(",") if s.strip()]
+        if args.expected_shards
+        else None
+    )
+    summary_md, all_passed = generate_markdown_summary(args.artifacts_dir, expected_shards=cli_shards)
 
     if args.output:
         try:

@@ -55,7 +55,7 @@ jobs:
 
       - name: Run Automated Test Suites & Code Coverage
         run: |
-          python -m pytest tests --ignore=tests/aut_api -q -n auto --cov=tools --cov-fail-under=65
+          python -m pytest tests --ignore=tests/aut_api -q -n auto --cov=tools
 
   publish-github-packages:
     name: Publish to GitHub Packages

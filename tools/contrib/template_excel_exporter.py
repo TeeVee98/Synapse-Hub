@@ -34,8 +34,20 @@ import sys
 import re
 import json
 import datetime
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+
+@dataclass(frozen=True)
+class TraceCellMismatchDTO:
+    sheet: str
+    cell: str
+    row: int
+    case_id: str
+    role: str
+    expected: str
+    actual: str
 
 # Enforce UTF-8 stdio
 if hasattr(sys.stdout, 'reconfigure'):
@@ -48,6 +60,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 try:
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False
@@ -564,12 +577,45 @@ def _compare_sheet_cells(
     return formulas_ok, unrelated_ok
 
 
+def _collect_row_trace_mismatches(
+    det_ws: Any,
+    detail_name: str,
+    row_idx: int,
+    case_id: str,
+    col_map: Dict[str, int],
+    exp_rec: Dict[str, str],
+) -> List[Dict[str, Any]]:
+    """Checks all mapped trace role columns on a single reopened worksheet row."""
+    mismatches: List[Dict[str, Any]] = []
+    for role in _WRITTEN_TRACE_ROLES:
+        if role not in col_map or role not in exp_rec:
+            continue
+        col_idx = col_map[role]
+        raw_exp = exp_rec[role]
+        expected_val = "" if raw_exp is None else str(raw_exp).strip()
+        raw_act = det_ws.cell(row_idx, col_idx).value
+        actual_val = "" if raw_act is None else str(raw_act).strip()
+        if actual_val != expected_val:
+            mismatch = TraceCellMismatchDTO(
+                sheet=detail_name,
+                cell=f"{get_column_letter(col_idx)}{row_idx}",
+                row=row_idx,
+                case_id=case_id,
+                role=role,
+                expected=expected_val,
+                actual=actual_val,
+            )
+            mismatches.append(asdict(mismatch))
+    return mismatches
+
+
 def compare_workbook_semantics(
     source_path: str,
     exported_path: str,
     profile: Optional[Dict[str, Any]] = None,
     expected_dispositions: Optional[Dict[str, str]] = None,
     expected_counts: Optional[Dict[str, int]] = None,
+    expected_case_traces: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> Dict[str, Any]:
     """Reopens exported workbook and verifies sheet order, formulas, merges, unrelated cells, and totals."""
     eff_profile = resolve_template_profile(profile)
@@ -609,6 +655,7 @@ def compare_workbook_semantics(
     counts: Dict[str, int] = {}
     actual_case_count = 0
     disp_match = True
+    cell_mismatches: List[Dict[str, Any]] = []
     case_col = col_map["case_id"]
     disp_col = col_map.get("disposition")
     for r in range(hdr_row + 1, det_ws.max_row + 1):
@@ -623,9 +670,21 @@ def compare_workbook_semantics(
         counts[dval] = counts.get(dval, 0) + 1
         if expected_dispositions and expected_dispositions.get(cid) != dval:
             disp_match = False
+        if expected_case_traces and cid in expected_case_traces:
+            cell_mismatches.extend(
+                _collect_row_trace_mismatches(
+                    det_ws,
+                    detail_name,
+                    r,
+                    cid,
+                    col_map,
+                    expected_case_traces[cid],
+                )
+            )
 
     reconciled = (
         disp_match
+        and len(cell_mismatches) == 0
         and sum(counts.values()) == actual_case_count
         and (expected_counts is None or counts == expected_counts)
     )
@@ -645,6 +704,7 @@ def compare_workbook_semantics(
         "reconciled": reconciled,
         "case_count": actual_case_count,
         "disposition_counts": counts,
+        "cell_mismatches": cell_mismatches,
     }
 
 
@@ -674,6 +734,7 @@ def export_versioned_trace_workbook(
 
     counts: Dict[str, int] = {}
     expected_dispositions: Dict[str, str] = {}
+    expected_case_traces: Dict[str, Dict[str, str]] = {}
     case_count = 0
     case_col = col_map["case_id"]
     for r in range(hdr_row + 1, ws.max_row + 1):
@@ -699,6 +760,7 @@ def export_versioned_trace_workbook(
         disp = rec["disposition"]
         counts[disp] = counts.get(disp, 0) + 1
         expected_dispositions[cid] = disp
+        expected_case_traces[cid] = dict(rec)
 
     out_dir = os.path.dirname(os.path.abspath(output_path))
     if out_dir:
@@ -713,6 +775,7 @@ def export_versioned_trace_workbook(
             profile=eff_profile,
             expected_dispositions=expected_dispositions,
             expected_counts=counts,
+            expected_case_traces=expected_case_traces,
         )
     return {
         "output_path": output_path,

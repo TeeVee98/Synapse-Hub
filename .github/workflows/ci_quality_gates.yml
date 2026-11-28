@@ -323,24 +323,112 @@ jobs:
             fi
           done
 
+      - name: Install Python Test Dependencies (RC Lane)
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pydantic pytest
+
       - name: Install Playwright Browsers (Chromium, Firefox, WebKit)
         working-directory: examples/playwright-crm-suite
         run: |
           npm ci
           npx playwright install --with-deps chromium firefox webkit
 
-      - name: Run Accessibility Pilot (Chromium)
-        working-directory: examples/playwright-crm-suite
+      - name: Execute Live Staging RC Suites & Capture Artifacts
         env:
-          SYNAPSE_WEB_MODE: offline
-        run: npx playwright test accessibility.spec.ts --project=chromium
+          BOOK_API_BASE_URL: ${{ vars.STAGING_API_URL || secrets.STAGING_API_URL }}
+          CRM_BASE_URL: ${{ vars.STAGING_CRM_URL || secrets.STAGING_CRM_URL }}
+          APPIUM_SERVER_URL: ${{ vars.STAGING_APPIUM_URL || secrets.STAGING_APPIUM_URL }}
+          K6_TARGET_URL: ${{ vars.STAGING_K6_URL || secrets.STAGING_K6_URL }}
+          AUT_TEST_PASSWORD: ${{ secrets.AUT_TEST_PASSWORD || 'CI_Test_Pass_2026!' }}
+          SYNAPSE_API_OFFLINE: "0"
+          SYNAPSE_WEB_MODE: staging
+        run: |
+          mkdir -p reports reports/perf
+          API_RC=0
+          pytest tests/aut_api -v --junitxml=reports/rc_api_junit.xml || API_RC=$?
+          E2E_RC=0
+          (cd examples/playwright-crm-suite && npx playwright test accessibility.spec.ts --project=chromium) || E2E_RC=$?
+          MOB_RC=0
+          pytest examples/mobile-crm-suite/tests -v --junitxml=reports/rc_mobile_junit.xml || MOB_RC=$?
+          PERF_RC=0
+          python3 tools/perf/benchmark_perf_runner.py || PERF_RC=$?
+          {
+            echo "RC_API_EXIT=$API_RC"
+            echo "RC_E2E_EXIT=$E2E_RC"
+            echo "RC_MOBILE_EXIT=$MOB_RC"
+            echo "RC_PERF_EXIT=$PERF_RC"
+          } > reports/rc_exit_codes.env
 
-      - name: Record Candidate Evidence Manifest
+      - name: Record Candidate Evidence Manifest (Bound Producers)
         env:
           RC_ENV: ${{ inputs.release_env }}
+          BOOK_API_BASE_URL: ${{ vars.STAGING_API_URL || secrets.STAGING_API_URL }}
+          CRM_BASE_URL: ${{ vars.STAGING_CRM_URL || secrets.STAGING_CRM_URL }}
+          APPIUM_SERVER_URL: ${{ vars.STAGING_APPIUM_URL || secrets.STAGING_APPIUM_URL }}
+          K6_TARGET_URL: ${{ vars.STAGING_K6_URL || secrets.STAGING_K6_URL }}
         run: |
-          mkdir -p reports
-          python3 -c "import json, os; json.dump({'build_id': os.environ['GITHUB_SHA'], 'run_id': os.environ['GITHUB_RUN_ID'], 'job': 'rc-evidence-lane', 'environment': os.environ.get('RC_ENV', 'staging'), 'lane': 'release-candidate'}, open('reports/candidate_manifest.json', 'w', encoding='utf-8'), indent=2)"
+          set -a
+          source reports/rc_exit_codes.env
+          set +a
+          PYTHONPATH=. python3 - <<'PY'
+          import hashlib, json, os, sys
+          from tools.report.ci_summary_generator import validate_candidate_manifest
+
+          def sha256_file(path: str) -> str:
+              if not os.path.isfile(path) or os.path.getsize(path) == 0:
+                  return ""
+              hasher = hashlib.sha256()
+              with open(path, "rb") as fh:
+                  for chunk in iter(lambda: fh.read(65536), b""):
+                      hasher.update(chunk)
+              return hasher.hexdigest()
+
+          build_id = os.environ["GITHUB_SHA"]
+          run_id = os.environ["GITHUB_RUN_ID"]
+          rc_env = os.environ.get("RC_ENV", "staging")
+          producer_specs = (
+              ("api-suite", "staging", os.environ["BOOK_API_BASE_URL"], int(os.environ.get("RC_API_EXIT", "1")), "reports/rc_api_junit.xml"),
+              ("e2e-crm-suite", "staging", os.environ["CRM_BASE_URL"], int(os.environ.get("RC_E2E_EXIT", "1")), "examples/playwright-crm-suite/reports/a11y_receipt.json"),
+              ("mobile-som-suite", "device", os.environ["APPIUM_SERVER_URL"], int(os.environ.get("RC_MOBILE_EXIT", "1")), "reports/rc_mobile_junit.xml"),
+              ("perf-sla-sentinel", "staging", os.environ["K6_TARGET_URL"], int(os.environ.get("RC_PERF_EXIT", "1")), "reports/perf/perf_results.jtl"),
+          )
+          producers = {}
+          missing_digests = []
+          for name, mode, url, rc, art_path in producer_specs:
+              digest = sha256_file(art_path)
+              if not digest:
+                  missing_digests.append(f"{name}:{art_path}")
+              producers[name] = {
+                  "status": "success" if (rc == 0 and bool(digest)) else "failed",
+                  "mode": mode,
+                  "build_id": build_id,
+                  "run_id": run_id,
+                  "target_url": url,
+                  "artifact_path": art_path,
+                  "artifact_sha256": digest,
+              }
+          manifest = {
+              "build_id": build_id,
+              "run_id": run_id,
+              "job": "rc-evidence-lane",
+              "environment": rc_env,
+              "lane": "release-candidate",
+              "producers": producers,
+          }
+          ok, issues = validate_candidate_manifest(
+              manifest,
+              expected_build_id=build_id,
+              expected_run_id=run_id,
+              expected_environment=rc_env,
+              require_producers=True,
+          )
+          with open("reports/candidate_manifest.json", "w", encoding="utf-8") as fh:
+              json.dump(manifest, fh, indent=2)
+          if not ok or missing_digests:
+              print("::error::RC candidate evidence failed: " + "; ".join(issues + missing_digests))
+              sys.exit(1)
+          PY
 
       - name: Upload Release Candidate Manifest
         if: always()
@@ -349,6 +437,9 @@ jobs:
           name: rc-candidate-manifest
           path: |
             reports/candidate_manifest.json
+            reports/rc_api_junit.xml
+            reports/rc_mobile_junit.xml
+            reports/perf/perf_results.jtl
             examples/playwright-crm-suite/reports/a11y_receipt.json
           retention-days: 14
 
@@ -381,7 +472,7 @@ jobs:
           SYNAPSE_CANDIDATE_BUILD: ${{ (github.event_name == 'workflow_dispatch' && inputs.release_candidate == true) && github.sha || '' }}
           SYNAPSE_RUN_ID: ${{ (github.event_name == 'workflow_dispatch' && inputs.release_candidate == true) && github.run_id || '' }}
           SYNAPSE_RELEASE_ENV: ${{ (github.event_name == 'workflow_dispatch' && inputs.release_candidate == true) && inputs.release_env || '' }}
-        run: python tools/report/ci_summary_generator.py --artifacts-dir artifacts/ --output "$GITHUB_STEP_SUMMARY"
+        run: python tools/report/ci_summary_generator.py --artifacts-dir artifacts/ --expected-shards playwright-e2e-report-0,playwright-e2e-report-1,playwright-e2e-report-2,playwright-e2e-report-3 --output "$GITHUB_STEP_SUMMARY"
 
       - name: Send Telegram Executive CI/CD Notification
         if: always()

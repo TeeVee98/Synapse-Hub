@@ -471,4 +471,133 @@ def test_ci_workflow_defines_release_candidate_lane_and_browser_matrix():
     assert "release_candidate" in wf_text
     assert "chromium firefox webkit" in wf_text
     assert "candidate_manifest.json" in wf_text
-    assert "SYNAPSE_API_OFFLINE: \"1\"" in wf_text
+    assert 'SYNAPSE_API_OFFLINE: "1"' in wf_text
+    assert "--expected-shards playwright-e2e-report-0,playwright-e2e-report-1,playwright-e2e-report-2,playwright-e2e-report-3" in wf_text
+    assert '"producers"' in wf_text or "'producers'" in wf_text
+    # RC lane must derive producer statuses from real suite runs & file hashes rather than hardcoding success
+    rc_section = wf_text.split("rc-evidence-lane:", 1)[1].split("dod-acceptance:", 1)[0]
+    assert 'PYTHONPATH="."' in rc_section or "PYTHONPATH=." in rc_section
+    assert "with open(" in rc_section
+    assert '"api-suite": {"status": "success"' not in rc_section
+    assert "rc_api_junit.xml" in rc_section
+    assert "rc_mobile_junit.xml" in rc_section
+
+
+def test_rc_rejects_missing_or_empty_producers_and_producer_binding_drift():
+    """Negative (TC-CI-01): RC manifest without producers, empty producers, or producer build/run drift fails closed."""
+    from tools.report.ci_summary_generator import validate_candidate_manifest
+
+    producerless_rc = {
+        "build_id": "sha-rc-999",
+        "run_id": "run-777",
+        "environment": "staging",
+        "lane": "release-candidate",
+    }
+    ok_missing, issues_missing = validate_candidate_manifest(
+        producerless_rc,
+        expected_build_id="sha-rc-999",
+        expected_run_id="run-777",
+        expected_environment="staging",
+    )
+    assert ok_missing is False
+    assert any("producers" in msg.lower() for msg in issues_missing)
+
+    empty_producers_rc = {**producerless_rc, "producers": {}}
+    ok_empty, issues_empty = validate_candidate_manifest(
+        empty_producers_rc,
+        expected_build_id="sha-rc-999",
+        expected_run_id="run-777",
+        expected_environment="staging",
+    )
+    assert ok_empty is False
+    assert any("producers" in msg.lower() for msg in issues_empty)
+
+    ok_forced, issues_forced = validate_candidate_manifest(
+        {"build_id": "sha-rc-999"},
+        expected_build_id="sha-rc-999",
+        require_producers=True,
+    )
+    assert ok_forced is False
+    assert len(issues_forced) >= 1
+
+    bad_binding_rc = {
+        **producerless_rc,
+        "producers": {
+            "api-suite": {"status": "success", "mode": "staging", "build_id": "stale-sha", "run_id": "run-777"},
+            "e2e-crm-suite": {"status": "success", "mode": "staging", "build_id": "sha-rc-999", "run_id": "wrong-run"},
+            "mobile-som-suite": {"status": "success", "mode": "", "build_id": "sha-rc-999", "run_id": "run-777"},
+            "perf-sla-sentinel": {"status": "success", "mode": "staging", "build_id": "sha-rc-999", "run_id": "run-777"},
+        },
+    }
+    ok_bind, issues_bind = validate_candidate_manifest(
+        bad_binding_rc,
+        expected_build_id="sha-rc-999",
+        expected_run_id="run-777",
+        expected_environment="staging",
+    )
+    assert ok_bind is False
+    assert len(issues_bind) >= 3
+
+
+def test_shard_relative_directory_matching_cli_flag_and_unverified_empty_invariants():
+    """Positive, Negative, Boundary & CLI (TC-CI-01): Relative shard dirs, --expected-shards CLI, and honest Unverified invariants."""
+    # Boundary: empty directory never claims 100% verified invariants or present shards
+    with tempfile.TemporaryDirectory() as empty_dir:
+        empty_md, empty_ok = generate_markdown_summary(artifacts_dir=empty_dir)
+        assert empty_ok is False
+        assert "100% verified" not in empty_md
+        assert "100% locators" not in empty_md
+        assert "100% dynamic" not in empty_md
+        assert "All expected shards present" not in empty_md
+        assert "Not configured (unverified)" in empty_md
+        assert "Unverified" in empty_md
+
+    # Positive & Negative CLI: relative directory names match playwright-e2e-report-{0..3}
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _write_valid_static_and_k6(root)
+        (root / "api-test-report").mkdir()
+        _write_junit(root / "api-test-report" / "api_junit.xml", "api", [("a1", "pass")])
+        (root / "mobile-som-report").mkdir()
+        _write_junit(root / "mobile-som-report" / "mobile_junit.xml", "mobile", [("m1", "pass")])
+
+        for idx in range(4):
+            shard_dir = root / f"playwright-e2e-report-{idx}"
+            shard_dir.mkdir()
+            _write_junit(shard_dir / "junit.xml", "e2e", [(f"crm_tc_{idx}", "pass")])
+
+        shards_csv = "playwright-e2e-report-0,playwright-e2e-report-1,playwright-e2e-report-2,playwright-e2e-report-3"
+        proc_ok = subprocess.run(
+            [
+                sys.executable,
+                "tools/report/ci_summary_generator.py",
+                "--artifacts-dir",
+                str(root),
+                "--expected-shards",
+                shards_csv,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert proc_ok.returncode == 0, proc_ok.stdout + proc_ok.stderr
+        assert "All expected shards present" in proc_ok.stdout
+        assert "Unverified" not in proc_ok.stdout
+
+        # Drop shard 2 -> must fail closed and pinpoint playwright-e2e-report-2
+        (root / "playwright-e2e-report-2" / "junit.xml").unlink()
+        proc_drop = subprocess.run(
+            [
+                sys.executable,
+                "tools/report/ci_summary_generator.py",
+                "--artifacts-dir",
+                str(root),
+                "--expected-shards",
+                shards_csv,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert proc_drop.returncode == 1
+        assert "playwright-e2e-report-2" in proc_drop.stdout

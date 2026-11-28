@@ -172,6 +172,7 @@ def test_synthetic_75_case_pilot_preserves_workbook_and_reconciles(tmp_path):
     assert cmp_res["merged_cells_preserved"] is True
     assert cmp_res["unrelated_cells_preserved"] is True
     assert cmp_res["reconciled"] is True
+    assert cmp_res["cell_mismatches"] == []
 
     reopened = openpyxl.load_workbook(out_xlsx, data_only=False)
     assert reopened["AssignmentSheet"]["C5"].value == "qa_owner_2"
@@ -224,6 +225,92 @@ def test_negative_missing_sheet_tampered_reopen_and_generic_hub_code(tmp_path):
     bad_cmp = compare_workbook_semantics(str(template_xlsx), str(out_xlsx), profile=profile)
     assert bad_cmp["passed"] is False
     assert bad_cmp["formulas_preserved"] is False
+
+
+def test_negative_cell_level_trace_drift_pinpoints_sheet_cell_and_case_id(tmp_path):
+    """Negative (TC-XLS-01): Clearing req/ver/anchor or mutating build on SYN-TC-001 fails even when all 75 dispositions match."""
+    from tools.contrib.template_excel_exporter import (
+        _extract_case_trace_index,
+        compare_workbook_semantics,
+        export_versioned_trace_workbook,
+    )
+
+    template_xlsx = _build_synthetic_75_workbook(tmp_path / "cell_drift_template.xlsx")
+    out_xlsx = tmp_path / "cell_drift_exported.xlsx"
+    matrix = _build_synthetic_75_trace_matrix(tmp_path)
+    profile = {
+        "detail_sheet": "AssignmentSheet",
+        "summary_sheet": "ExecutiveSummary",
+        "header_row": 4,
+        "column_labels": {
+            "case_id": ["Automation Case ID"],
+            "requirement_id": ["Requirement Refs"],
+            "document_version": ["Doc Revisions"],
+            "source_anchor": ["Source Anchors"],
+            "disposition": ["Trace Disposition"],
+            "candidate_build": ["Candidate Build"],
+        },
+    }
+    report = export_versioned_trace_workbook(str(template_xlsx), str(out_xlsx), matrix, profile=profile)
+    assert report["comparison"]["passed"] is True
+    assert report["comparison"]["cell_mismatches"] == []
+
+    # Clear requirement_id (D5), document_version (E5), source_anchor (F5) on row 5 (SYN-TC-001)
+    # while leaving all 75 dispositions completely intact (sum == 75).
+    wb = openpyxl.load_workbook(out_xlsx, data_only=False)
+    ws = wb["AssignmentSheet"]
+    ws["D5"] = ""
+    ws["E5"] = None
+    ws["F5"] = ""
+    wb.save(out_xlsx)
+
+    expected_traces = _extract_case_trace_index(matrix)
+    drift_cmp = compare_workbook_semantics(
+        source_path=str(template_xlsx),
+        exported_path=str(out_xlsx),
+        profile=profile,
+        expected_counts=report["disposition_counts"],
+        expected_case_traces=expected_traces,
+    )
+    assert drift_cmp["passed"] is False
+    assert drift_cmp["reconciled"] is False
+    assert sum(drift_cmp["disposition_counts"].values()) == 75
+
+    mismatches = drift_cmp["cell_mismatches"]
+    assert len(mismatches) == 3
+    by_cell = {m["cell"]: m for m in mismatches}
+    assert set(by_cell.keys()) == {"D5", "E5", "F5"}
+    for cell_ref, role, exp_val in (
+        ("D5", "requirement_id", "REQ-01"),
+        ("E5", "document_version", "URD:v2.0.5"),
+        ("F5", "source_anchor", "URD#p:1"),
+    ):
+        rec = by_cell[cell_ref]
+        assert rec["sheet"] == "AssignmentSheet"
+        assert rec["row"] == 5
+        assert rec["case_id"] == "SYN-TC-001"
+        assert rec["role"] == role
+        assert rec["expected"] == exp_val
+        assert rec["actual"] == ""
+
+    # Boundary: Formula-blocked trace cell in template must be flagged on reopen rather than silently passing
+    formula_tpl = _build_synthetic_75_workbook(tmp_path / "formula_blocked_template.xlsx")
+    f_wb = openpyxl.load_workbook(formula_tpl, data_only=False)
+    f_wb["AssignmentSheet"]["D5"] = '=CONCAT("LOCKED-",B5)'
+    f_wb.save(formula_tpl)
+    formula_out = tmp_path / "formula_blocked_out.xlsx"
+    f_rep = export_versioned_trace_workbook(str(formula_tpl), str(formula_out), matrix, profile=profile)
+    assert f_rep["comparison"]["formulas_preserved"] is True
+    assert f_rep["comparison"]["reconciled"] is False
+    assert f_rep["comparison"]["passed"] is False
+    assert any(
+        m["sheet"] == "AssignmentSheet"
+        and m["cell"] == "D5"
+        and m["case_id"] == "SYN-TC-001"
+        and m["role"] == "requirement_id"
+        and m["actual"] == '=CONCAT("LOCKED-",B5)'
+        for m in f_rep["comparison"]["cell_mismatches"]
+    )
 
 
 def test_boundary_empty_trace_marks_all_unmapped_and_missing_header_fails(tmp_path):

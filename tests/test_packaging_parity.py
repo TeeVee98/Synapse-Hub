@@ -435,3 +435,118 @@ def test_wheel_packages_workflow_skills_parity():
                 assert any(n.endswith(f".claude/commands/{wf}.md") for n in namelist), (
                     f"Wheel missing .claude/commands/{wf}.md"
                 )
+
+
+def _probe_isolated_registry(import_root: str) -> dict:
+    """Loads ModelRegistry in an isolated subprocess rooted at import_root without repo checkout."""
+    probe_code = (
+        "import json, sys; "
+        f"sys.path.insert(0, {import_root!r}); "
+        "from tools.core.model_registry import CapabilityTier, ModelRegistry; "
+        "reg = ModelRegistry(); "
+        "rcpt = reg.get_resolution_receipt(); "
+        "models = sorted("
+        "[{'id': m.model_id, 'provider': m.provider.value, 'tier': m.capability_tier.value} "
+        "for m in reg.specs.values()], key=lambda x: x['id']); "
+        "chains = {t.value: list(reg.get_tier_chain(t)) for t in CapabilityTier}; "
+        "orch = {k: list(v) if isinstance(v, tuple) else v for k, v in reg.orchestration_policy.items()}; "
+        "print(json.dumps({'models': models, 'chains': chains, 'orch': orch, "
+        "'used_builtin_fallback': rcpt.used_builtin_fallback}))"
+    )
+    run_env = os.environ.copy()
+    run_env["PYTHONIOENCODING"] = "utf-8"
+    run_env.pop("PYTHONPATH", None)
+    proc = subprocess.run(
+        [sys.executable, "-c", probe_code],
+        cwd=import_root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=run_env,
+        timeout=30,
+    )
+    assert proc.returncode == 0, f"Isolated ModelRegistry probe failed:\n{proc.stderr}\n{proc.stdout}"
+    return json.loads(proc.stdout)
+
+
+def test_clean_install_model_registry_parity_across_source_npm_and_wheel():
+    """Positive & Parity: Source, npm .tgz, wheel .whl, and MANIFEST.in deliver identical 18-model registry."""
+    source_probe = _probe_isolated_registry(REPO_ROOT)
+    assert len(source_probe["models"]) == 18
+    assert source_probe["used_builtin_fallback"] is False
+    assert len({m["provider"] for m in source_probe["models"]}) == 5
+
+    # Verify MANIFEST.in ships both root manifests in Python source distributions
+    with open(os.path.join(REPO_ROOT, "MANIFEST.in"), "r", encoding="utf-8") as mfh:
+        manifest_in = mfh.read()
+    assert "include models_manifest.json" in manifest_in
+    assert "include synapse.config.json" in manifest_in
+
+    # Verify npm tarball ships models_manifest.json + synapse.config.json and matches source 1:1
+    with tempfile.TemporaryDirectory() as pack_dir, tempfile.TemporaryDirectory() as npm_extract:
+        tarball = _pack_npm_tarball(pack_dir)
+        with tarfile.open(tarball, "r:gz") as tf:
+            names = set(tf.getnames())
+            assert "package/models_manifest.json" in names
+            assert "package/synapse.config.json" in names
+            tf.extractall(npm_extract, filter="data")
+        npm_probe = _probe_isolated_registry(os.path.join(npm_extract, "package"))
+        assert npm_probe == source_probe
+
+    # Verify built Python wheel ships models_manifest.json + synapse.config.json and matches source 1:1
+    with FileLock(_WHEEL_LOCK, timeout=120.0):
+        build_dir = os.path.join(REPO_ROOT, "build")
+        if os.path.exists(build_dir):
+            shutil.rmtree(build_dir, ignore_errors=True)
+        with tempfile.TemporaryDirectory() as whl_dir, tempfile.TemporaryDirectory() as whl_extract:
+            res = subprocess.run(
+                [sys.executable, "-m", "pip", "wheel", "--no-deps", "-w", whl_dir, REPO_ROOT],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            assert res.returncode == 0, f"pip wheel failed:\n{res.stderr}\n{res.stdout}"
+            wheel_path = glob.glob(os.path.join(whl_dir, "*.whl"))[0]
+            with zipfile.ZipFile(wheel_path, "r") as zf:
+                w_names = set(zf.namelist())
+                assert any(n.endswith("models_manifest.json") for n in w_names)
+                assert any(n.endswith("synapse.config.json") for n in w_names)
+                zf.extractall(whl_extract)
+            whl_probe = _probe_isolated_registry(whl_extract)
+            assert whl_probe == source_probe
+
+
+def test_publish_workflow_coverage_floor_parity_and_missing_manifest_negative(tmp_path):
+    """Negative & Boundary: Rejects workflow --cov-fail-under below pyproject.toml floor and detects omitted manifest."""
+    from tools.core.model_registry import resolve_packaged_resource_path
+
+    with open(os.path.join(REPO_ROOT, "pyproject.toml"), "r", encoding="utf-8") as pfh:
+        pyproject_text = pfh.read()
+    m_floor = re.search(r"(?ms)^\[tool\.coverage\.report\].*?^fail_under\s*=\s*(\d+)", pyproject_text)
+    assert m_floor is not None, "pyproject.toml missing [tool.coverage.report] fail_under"
+    canonical_floor = int(m_floor.group(1))
+    assert canonical_floor >= 70
+
+    for wf in glob.glob(os.path.join(WORKFLOW_DIR, "*.yml")):
+        with open(wf, "r", encoding="utf-8") as wfh:
+            wf_text = wfh.read()
+        for match in re.finditer(r"--cov-fail-under(?:=|\s+)(\d+)", wf_text):
+            wf_floor = int(match.group(1))
+            assert wf_floor >= canonical_floor, (
+                f"{os.path.basename(wf)} lowers coverage floor to {wf_floor} (< pyproject.toml {canonical_floor})"
+            )
+
+    # Boundary & Negative checks on resolve_packaged_resource_path and missing manifest fallback
+    assert resolve_packaged_resource_path("") is None
+    assert resolve_packaged_resource_path("   ") is None
+    assert resolve_packaged_resource_path("models_manifest.json", explicit_path=str(tmp_path / "missing.json")) is None
+    custom_file = tmp_path / "custom_manifest.json"
+    custom_file.write_text('{"models": []}', encoding="utf-8")
+    assert resolve_packaged_resource_path("models_manifest.json", explicit_path=str(custom_file)) == str(custom_file)
+
+    # Strip models_manifest.json in an isolated extracted package copy -> triggers builtin fallback (< 18 models)
+    iso_pkg = tmp_path / "stripped_pkg"
+    shutil.copytree(os.path.join(REPO_ROOT, "tools"), iso_pkg / "tools")
+    stripped_probe = _probe_isolated_registry(str(iso_pkg))
+    assert stripped_probe["used_builtin_fallback"] is True
+    assert len(stripped_probe["models"]) < 18

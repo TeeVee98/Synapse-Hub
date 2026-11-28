@@ -199,3 +199,111 @@ def test_cli_live_evaluation_json_and_require_comparable_gate(tmp_path):
     assert beta["missing_reasons"]["missing_run"] == 2
     assert beta["fallback_attempts"] == 4
     assert beta["fallback_successes"] == 4
+
+
+def _build_structured_manifest_and_records(runs_per_model: int = 2):
+    from benchmarks.qa_eval.live_evaluation import compute_dataset_digest
+
+    categories = ("plan", "code", "review")
+    tasks = [
+        {
+            "task_id": f"HELD-{idx:02d}",
+            "category": categories[(idx - 1) % 3],
+            "prompt": f"Evaluate QA workflow scenario {idx} for category {categories[(idx - 1) % 3]}.",
+            "expected_criteria": [f"criterion-{idx}-a", f"criterion-{idx}-b"],
+        }
+        for idx in range(1, 10)
+    ]
+    rubric = {
+        "revision": "rubric-v2.0",
+        "dimensions": {"correctness": 0.6, "safety": 0.4},
+    }
+    digest = compute_dataset_digest(tasks, rubric=rubric)
+    manifest = {
+        "dataset_id": "qa_heldout_structured_v2",
+        "dataset_digest": digest,
+        "tasks": tasks,
+        "rubric": rubric,
+        "expected_runs_per_model": runs_per_model,
+        "budget_usd": 25.0,
+        "budget_approved": True,
+        "rubric_approved": True,
+        "rubric_revision": "rubric-v2.0",
+    }
+    records = []
+    for model_id, base_lat, unit_cost in (("model-alpha", 300.0, 0.10), ("model-beta", 500.0, 0.25)):
+        for r_idx in range(1, runs_per_model + 1):
+            for t_idx, task in enumerate(tasks, start=1):
+                # Make model-beta fail all 'review' tasks to verify zero-success category boundary
+                passed = True if model_id == "model-alpha" else (task["category"] != "review")
+                records.append(
+                    {
+                        "model_id": model_id,
+                        "task_id": task["task_id"],
+                        "run_index": r_idx,
+                        "dataset_digest": digest,
+                        "status": "completed",
+                        "cost_usd": unit_cost,
+                        "latency_ms": base_lat + float(t_idx * 15),
+                        "fallback_triggered": False,
+                        "human_verdict": "pass" if passed else "fail",
+                    }
+                )
+    return manifest, records
+
+
+def test_content_addressed_digest_mutated_prompt_or_rubric_and_category_breakdown():
+    """Positive, Negative & Boundary (TC-EVAL-01): Content digest detects prompt/rubric edits and emits plan/code/review breakdown."""
+    from benchmarks.qa_eval.live_evaluation import (
+        compute_dataset_digest,
+        compute_rubric_digest,
+        evaluate_live_runs,
+    )
+
+    manifest, records = _build_structured_manifest_and_records(runs_per_model=2)
+    report = evaluate_live_runs(manifest, records)
+
+    assert report["passed"] is True
+    assert report["ranking_eligible"] is True
+    assert len(report["rubric_digest"]) == 64
+    assert report["rubric_digest"] == compute_rubric_digest(manifest["rubric"])
+
+    alpha_cats = report["models"]["model-alpha"]["category_breakdown"]
+    assert sorted(alpha_cats.keys()) == ["code", "plan", "review"]
+    for cat in ("plan", "code", "review"):
+        assert alpha_cats[cat]["denominator"] == 6
+        assert alpha_cats[cat]["successes"] == 6
+        assert alpha_cats[cat]["success_rate"] == 1.0
+        assert alpha_cats[cat]["cost_per_success_usd"] == round(0.60 / 6, 6)
+        assert alpha_cats[cat]["latency_p95_ms"] is not None
+
+    # Boundary: model-beta has 0 successes in 'review' -> cost_per_success_usd is None
+    beta_cats = report["models"]["model-beta"]["category_breakdown"]
+    assert beta_cats["review"]["successes"] == 0
+    assert beta_cats["review"]["cost_per_success_usd"] is None
+    assert beta_cats["plan"]["success_rate"] == 1.0
+
+    # Negative 1: Editing a task prompt with identical task_ids changes dataset_digest and quarantines stale records
+    edited_tasks = [dict(t) for t in manifest["tasks"]]
+    edited_tasks[0]["prompt"] = "MUTATED prompt text with identical HELD-01 ID."
+    new_digest_prompt = compute_dataset_digest(edited_tasks, rubric=manifest["rubric"])
+    assert new_digest_prompt != manifest["dataset_digest"]
+
+    updated_manifest = dict(manifest, tasks=edited_tasks, dataset_digest=new_digest_prompt)
+    stale_res = evaluate_live_runs(updated_manifest, records)
+    assert stale_res["passed"] is False
+    assert stale_res["ranking_eligible"] is False
+    assert stale_res["models"]["model-alpha"]["missing_reasons"]["dataset_digest_mismatch"] == 18
+
+    # Negative 2: Editing rubric with identical task_ids and prompts changes both rubric_digest and dataset_digest
+    edited_rubric = {"revision": "rubric-v2.0", "dimensions": {"correctness": 0.9, "safety": 0.1}}
+    assert compute_rubric_digest(edited_rubric) != compute_rubric_digest(manifest["rubric"])
+    new_digest_rubric = compute_dataset_digest(manifest["tasks"], rubric=edited_rubric)
+    assert new_digest_rubric != manifest["dataset_digest"]
+
+    # Negative 3: Manifest declaring stale dataset_digest while tasks/rubric changed is blocked with manifest_digest_mismatch
+    drifted_manifest = dict(manifest, tasks=edited_tasks)
+    drift_res = evaluate_live_runs(drifted_manifest, records)
+    assert drift_res["passed"] is False
+    assert "manifest_digest_mismatch" in drift_res["blockers"]
+

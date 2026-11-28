@@ -9,6 +9,8 @@ include requirements-extras.txt
 include requirements.lock
 include skills_manifest.json
 include skills_index.json
+include models_manifest.json
+include synapse.config.json
 recursive-include docs *
 recursive-include scripts *
 recursive-include templates *

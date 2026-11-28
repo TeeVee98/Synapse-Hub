@@ -55,12 +55,44 @@ import argparse
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Tuple
 
-try:
-    from tools.perf.jtl_analyzer import parse_jtl_timestamp
-except ImportError:
-    from perf.jtl_analyzer import parse_jtl_timestamp
+
+def parse_jtl_timestamp(raw_val: Any) -> int:
+    """Parses JMeter JTL timestamps (epoch ms, epoch sec, or ISO/JMeter date strings) to epoch ms."""
+    if raw_val is None or raw_val == "":
+        return 0
+    if isinstance(raw_val, (int, float)):
+        num = float(raw_val)
+        return int(num * 1000) if 0 < num < 1e11 else int(num)
+
+    text = str(raw_val).strip()
+    if not text:
+        return 0
+    _last_err: Optional[Exception] = None
+    try:
+        num = float(text)
+        return int(num * 1000) if 0 < num < 1e11 else int(num)
+    except ValueError as err:
+        _last_err = err
+
+    iso_candidate = text[:-1] + "+00:00" if text.endswith("Z") else text
+    try:
+        dt = datetime.fromisoformat(iso_candidate)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp() * 1000)
+    except ValueError as err:
+        _last_err = err
+
+    for fmt in ("%Y/%m/%d %H:%M:%S.%f", "%Y/%m/%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+        try:
+            dt = datetime.strptime(text, fmt).replace(tzinfo=timezone.utc)
+            return int(dt.timestamp() * 1000)
+        except ValueError as err:
+            _last_err = err
+    raise ValueError(f"Unrecognized JTL timestamp format: {text} ({_last_err})")
 
 # Enforce UTF-8 stdout encoding for Windows/macOS/Linux console compatibility
 if hasattr(sys.stdout, "reconfigure"):

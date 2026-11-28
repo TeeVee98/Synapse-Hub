@@ -71,6 +71,7 @@
     ".dockerignore",
     "docker-compose.yml",
     "synapse.config.json",
+    "models_manifest.json",
     "skills_manifest.json",
     "skills_index.json",
     "plugin.json",

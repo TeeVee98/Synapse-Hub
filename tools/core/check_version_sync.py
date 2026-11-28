@@ -42,7 +42,15 @@ import sys
 import re
 import json
 import argparse
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
+
+
+@dataclass(frozen=True)
+class ReleaseAcceptanceReadinessDTO:
+    version: str
+    verified_cli_rows_synced: bool
+    adr_path: str
 
 def _find_repo_root() -> str:
     curr = os.path.dirname(os.path.abspath(__file__))
@@ -297,6 +305,18 @@ def extract_versions(repo_root: str) -> Dict[str, str]:
             if m:
                 versions["tools/ui_server.py"] = m.group(1)
 
+    # 15. docs/CLIENT_SUPPORT_MATRIX.md (Verified CLI package rows)
+    matrix_path = os.path.join(repo_root, "docs", "CLIENT_SUPPORT_MATRIX.md")
+    if os.path.exists(matrix_path):
+        with open(matrix_path, "r", encoding="utf-8") as f:
+            for line in f:
+                m = re.match(
+                    r"^\|\s*\*\*([^*]+)\*\*\s*\|\s*\*\*Verified\*\*\s*\|\s*`([0-9]+\.[0-9]+\.[0-9]+)`",
+                    line.strip(),
+                )
+                if m:
+                    versions[f"docs/CLIENT_SUPPORT_MATRIX.md ({m.group(1).strip()})"] = m.group(2)
+
     return versions
 
 
@@ -386,6 +406,19 @@ def check_sync(repo_root: str, expected_version: Optional[str] = None) -> Tuple[
         return False, versions, f"Docs-as-code parity failed: {'; '.join(docs_viols)}"
 
     return True, versions, target_ver
+
+
+def build_readiness_receipt(repo_root: str) -> ReleaseAcceptanceReadinessDTO:
+    """Returns a typed readiness snapshot verifying CLI rows and ADR-0032 presence."""
+    versions = extract_versions(repo_root)
+    canonical = versions.get("package.json", "")
+    matrix_rows = [v for k, v in versions.items() if k.startswith("docs/CLIENT_SUPPORT_MATRIX.md")]
+    adr_rel = "docs/adr/ADR-0032-v411-release-acceptance-hardening.md"
+    return ReleaseAcceptanceReadinessDTO(
+        version=canonical,
+        verified_cli_rows_synced=bool(matrix_rows) and all(v == canonical for v in matrix_rows),
+        adr_path=adr_rel if os.path.isfile(os.path.join(repo_root, adr_rel)) else "",
+    )
 
 
 def main() -> int:

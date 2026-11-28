@@ -95,6 +95,23 @@ class CrossModelAssignmentDTO:
 
 
 @dataclass(frozen=True)
+class PackagedCatalogResolutionDTO:
+    manifest_path: str
+    config_path: Optional[str]
+    model_count: int
+    used_builtin_fallback: bool
+
+
+@dataclass(frozen=True)
+class PackageParityReceiptDTO:
+    source_model_ids: Tuple[str, ...]
+    npm_model_ids: Tuple[str, ...]
+    wheel_model_ids: Tuple[str, ...]
+    tier_chains_equal: bool
+    router_overrides_equal: bool
+
+
+@dataclass(frozen=True)
 class ManifestSyncReportDTO:
     synced_providers: Tuple[str, ...]
     discovered_models: Tuple[str, ...]
@@ -235,6 +252,47 @@ def _read_json_dict(path: str) -> Optional[Dict[str, Any]]:
     return payload if isinstance(payload, dict) else None
 
 
+def resolve_packaged_resource_path(
+    filename: str,
+    explicit_path: Optional[str] = None,
+    repo_root: Optional[str] = None,
+) -> Optional[str]:
+    """Resolves a packaged resource via explicit path -> repo root -> tools root -> importlib.resources."""
+    if not filename:
+        return None
+    clean_name = str(filename).strip()
+    if not clean_name:
+        return None
+    if explicit_path:
+        cleaned_explicit = str(explicit_path).strip()
+        return cleaned_explicit if os.path.isfile(cleaned_explicit) else None
+
+    search_dirs = (
+        *(d for d in (repo_root, _REPO_ROOT) if d),
+        *(os.path.join(d, "tools") for d in (repo_root, _REPO_ROOT) if d),
+        _TOOLS_ROOT,
+        os.path.join(_TOOLS_ROOT, "core"),
+    )
+    for base_dir in search_dirs:
+        cand = os.path.join(base_dir, clean_name)
+        if os.path.isfile(cand):
+            return cand
+
+    try:
+        import importlib.resources as pkg_resources
+
+        resource = pkg_resources.files("tools").joinpath(clean_name)
+        if resource.is_file():
+            r_str = str(resource)
+            if os.path.isfile(r_str):
+                return r_str
+            with pkg_resources.as_file(resource) as extracted:
+                return str(extracted)
+    except (ImportError, AttributeError, TypeError, OSError):
+        return None
+    return None
+
+
 def _synthesize_custom_override_spec(model_id: str, tier: CapabilityTier) -> ModelSpecDTO:
     """Synthesizes a safe ModelSpecDTO when synapse.config.json specifies a custom model ID."""
     low = model_id.lower()
@@ -273,8 +331,16 @@ class ModelRegistry:
         manifest_path: Optional[str] = None,
         config_path: Optional[str] = None,
     ) -> None:
-        self.manifest_path = manifest_path or os.path.join(_REPO_ROOT, "models_manifest.json")
-        self.config_path = config_path or os.path.join(_REPO_ROOT, "synapse.config.json")
+        self.manifest_path = (
+            manifest_path
+            or resolve_packaged_resource_path("models_manifest.json")
+            or os.path.join(_REPO_ROOT, "models_manifest.json")
+        )
+        self.config_path = (
+            config_path
+            or resolve_packaged_resource_path("synapse.config.json")
+            or os.path.join(_REPO_ROOT, "synapse.config.json")
+        )
         self._specs: Dict[str, ModelSpecDTO] = {}
         self._tier_chains: Dict[CapabilityTier, Tuple[str, ...]] = {}
         self._tier_overrides: Dict[CapabilityTier, str] = {}
@@ -298,6 +364,7 @@ class ModelRegistry:
                     parsed = _parse_model_spec_entry(entry)
                     if parsed is not None:
                         loaded[parsed.model_id] = parsed
+        self.used_builtin_fallback = not bool(loaded)
         self._specs = loaded if loaded else _build_builtin_specs()
         chains = raw.get("default_tier_chains") if raw else None
         if isinstance(chains, Mapping):
@@ -356,6 +423,14 @@ class ModelRegistry:
     @property
     def specs(self) -> Dict[str, ModelSpecDTO]:
         return dict(self._specs)
+
+    def get_resolution_receipt(self) -> PackagedCatalogResolutionDTO:
+        return PackagedCatalogResolutionDTO(
+            manifest_path=self.manifest_path,
+            config_path=self.config_path if os.path.isfile(self.config_path) else None,
+            model_count=len(self._specs),
+            used_builtin_fallback=self.used_builtin_fallback,
+        )
 
     def get_model(self, model_id: str) -> Optional[ModelSpecDTO]:
         return self._specs.get(str(model_id or "").strip())
@@ -493,7 +568,11 @@ def sync_models_manifest_live(
             error_code="NO_DISCOVERY_SOURCES",
         )
 
-    target_path = manifest_path or os.path.join(_REPO_ROOT, "models_manifest.json")
+    target_path = (
+        manifest_path
+        or resolve_packaged_resource_path("models_manifest.json")
+        or os.path.join(_REPO_ROOT, "models_manifest.json")
+    )
     manifest_obj = _read_json_dict(target_path) or {"version": "1.0", "models": []}
     raw_models = list(manifest_obj.get("models", []))
     existing_ids = {str(m.get("model_id", "")).strip() for m in raw_models if isinstance(m, Mapping)}
