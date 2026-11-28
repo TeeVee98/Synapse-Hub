@@ -42,6 +42,16 @@ import subprocess
 import argparse
 from typing import Dict, Any, Optional, Tuple
 
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+
+from tools.context.history_processor_pipeline import (
+    HistoryCompressionReceiptDTO,
+    HistoryProcessorPipeline,
+    HistoryTurn,
+    SubmitReviewReceiptDTO,
+)
+
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -56,6 +66,67 @@ class SweQaAci:
 
     def __init__(self, repo_root: Optional[str] = None):
         self.repo_root = repo_root or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+    def compress_history(
+        self, history: Sequence[HistoryTurn], *, keep_last: int = 3, cache_breakpoints: int = 2
+    ) -> Tuple[list[HistoryTurn], HistoryCompressionReceiptDTO]:
+        """Return a compressed snapshot and its audit receipt."""
+        return HistoryProcessorPipeline(keep_last, cache_breakpoints).process(history)
+
+    def review_on_submit(
+        self, changes: Mapping[str, str], *, allowed_paths: Sequence[str] | None = None
+    ) -> SubmitReviewReceiptDTO:
+        """Review proposed full file contents against scope, encoding, syntax, and Clean POM."""
+        root = Path(self.repo_root).resolve()
+        scope = None if allowed_paths is None else {Path(name).as_posix() for name in allowed_paths}
+        reasons: list[str] = []
+        syntax_valid = True
+        clean_pom_valid = True
+        for name, content in sorted(changes.items()):
+            path = Path(name)
+            try:
+                resolved = (root / path).resolve()
+            except (OSError, RuntimeError, ValueError) as error:
+                reasons.append(f"{name}: invalid submit path ({error})")
+                continue
+            if path.is_absolute() or not path.parts or ".." in path.parts or not resolved.is_relative_to(root):
+                reasons.append(f"{name}: outside repository scope")
+                continue
+            if ".git" in resolved.relative_to(root).parts or (scope is not None and path.as_posix() not in scope):
+                reasons.append(f"{name}: outside submission scope")
+                continue
+            if not isinstance(content, str):
+                reasons.append(f"{name}: proposed content must be text")
+                continue
+            try:
+                content.encode("utf-8")
+            except UnicodeEncodeError:
+                reasons.append(f"{name}: proposed content cannot be encoded as UTF-8")
+                continue
+            if "\ufeff" in content:
+                reasons.append(f"{name}: UTF-8 BOM detected")
+                continue
+
+            suffix = path.suffix.lower()
+            if suffix == ".json":
+                try:
+                    json.loads(content)
+                except json.JSONDecodeError as error:
+                    syntax_valid = False
+                    reasons.append(f"{name}: invalid JSON ({error})")
+            elif suffix in {".py", ".ts", ".js", ".tsx", ".jsx", ".groovy", ".java"}:
+                valid, message = self.validate_syntax(content, name)
+                if not valid:
+                    syntax_valid = False
+                    reasons.append(f"{name}: {message}")
+
+            valid, message = self.check_clean_pom(path.as_posix(), content)
+            if not valid:
+                clean_pom_valid = False
+                reasons.append(f"{name}: {message}")
+        return SubmitReviewReceiptDTO(
+            not reasons, tuple(sorted(changes)), syntax_valid, clean_pom_valid, tuple(reasons)
+        )
 
     def resolve_path(self, file_path: str) -> str:
         """Resolves file path safely relative to repo root."""

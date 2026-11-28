@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "SPDX-FileCopyrightText": "Copyright (c) 2026 Thế Vị (@TeeVee98). All rights reserved.",
+  "SPDX-License-Identifier": "MIT",
+  "source_repository": "https://github.com/dair-ai/Prompt-Engineering-Guide",
+  "patterns": [
+    {"id": "zeroshot", "name": "Zero-Shot Prompting", "when_to_use": "The task and output contract are clear without examples.", "source_path": "pages/techniques/zeroshot.en.mdx"},
+    {"id": "fewshot", "name": "Few-Shot Prompting", "when_to_use": "A few labeled examples clarify the format or decision boundary.", "source_path": "pages/techniques/fewshot.en.mdx"},
+    {"id": "cot", "name": "Chain-of-Thought Prompting", "when_to_use": "A multistep task benefits from independently verifiable intermediate results.", "source_path": "pages/techniques/cot.en.mdx"},
+    {"id": "meta-prompting", "name": "Meta Prompting", "when_to_use": "The same task structure applies across different inputs or domains.", "source_path": "pages/techniques/meta-prompting.en.mdx"},
+    {"id": "consistency", "name": "Self-Consistency", "when_to_use": "Several independent candidate answers can be normalized and voted on.", "source_path": "pages/techniques/consistency.en.mdx"},
+    {"id": "knowledge", "name": "Generated Knowledge Prompting", "when_to_use": "A separate stage can surface useful background facts for later verification.", "source_path": "pages/techniques/knowledge.en.mdx"},
+    {"id": "prompt_chaining", "name": "Prompt Chaining", "when_to_use": "A workflow has distinct stages with individually validated outputs.", "source_path": "pages/techniques/prompt_chaining.en.mdx"},
+    {"id": "tot", "name": "Tree of Thoughts", "when_to_use": "Alternative candidates need bounded branching and a common scoring rule.", "source_path": "pages/techniques/tot.en.mdx"},
+    {"id": "rag", "name": "Retrieval-Augmented Generation", "when_to_use": "A response must cite relevant, externally supplied evidence.", "source_path": "pages/techniques/rag.en.mdx"},
+    {"id": "art", "name": "Automatic Reasoning and Tool-use", "when_to_use": "Known benign tasks can reuse prior tool-use demonstrations with validation.", "source_path": "pages/techniques/art.en.mdx"},
+    {"id": "ape", "name": "Automatic Prompt Engineer", "when_to_use": "Candidate instructions can be compared on a separate held-out task set.", "source_path": "pages/techniques/ape.en.mdx"},
+    {"id": "activeprompt", "name": "Active-Prompt", "when_to_use": "Annotation effort should focus on examples with unstable predictions.", "source_path": "pages/techniques/activeprompt.en.mdx"},
+    {"id": "dsp", "name": "Directional Stimulus Prompting", "when_to_use": "A concise hint can emphasize a desired fact or feature in structured output.", "source_path": "pages/techniques/dsp.en.mdx"},
+    {"id": "pal", "name": "Program-Aided Language Models", "when_to_use": "An approved local computation can verify an arithmetic or data result.", "source_path": "pages/techniques/pal.en.mdx"},
+    {"id": "react", "name": "ReAct", "when_to_use": "A bounded read-only investigation needs to alternate evidence gathering and decisions.", "source_path": "pages/techniques/react.en.mdx"},
+    {"id": "reflexion", "name": "Reflexion", "when_to_use": "A revision can use measured errors from a previous attempt.", "source_path": "pages/techniques/reflexion.en.mdx"},
+    {"id": "multimodalcot", "name": "Multimodal Chain-of-Thought", "when_to_use": "Text and visual evidence jointly support a result with inspectable evidence.", "source_path": "pages/techniques/multimodalcot.en.mdx"},
+    {"id": "graph", "name": "Graph Prompting", "when_to_use": "Relationships among entities are more useful than their linear presentation.", "source_path": "pages/techniques/graph.en.mdx"}
+  ],
+  "context_engineering": [
+    "Specify the goal, audience, constraints, and machine-readable output contract.",
+    "Retrieve source excerpts with their identifiers and curatorial metadata.",
+    "Exclude redundant or irrelevant content before spending the context budget.",
+    "Keep tool outputs and retrieved content clearly separated from trusted instructions.",
+    "Retain durable decisions and active evidence when compacting earlier context.",
+    "Measure changes against held-out examples and regression criteria."
+  ],
+  "risk_mitigations": {
+    "direct_injection": "Treat user text as data within a fixed instruction hierarchy and validate requested actions.",
+    "indirect_injection": "Delimit retrieved material and verify its provenance before drawing conclusions.",
+    "prompt_leaking": "Keep secrets outside prompts and audit outputs for unexpected disclosure.",
+    "delimiter_jailbreak": "Validate message envelopes and preserve role boundaries at serialization time.",
+    "roleplay_obfuscation": "Apply the same action and disclosure rules across personas and role changes.",
+    "sycophancy_bias": "Require independent evidence, test disagreement handling, and disclose uncertainty.",
+    "factuality": "Verify claims against registered sources and flag unsupported citations."
+  }
+}

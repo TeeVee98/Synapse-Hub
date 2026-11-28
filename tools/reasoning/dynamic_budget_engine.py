@@ -52,6 +52,10 @@ except ImportError:
         return max(1, int(len(text) / 3.85))
 
 
+import math
+
+from tools.reasoning.rlvr_trace_grader import ReasoningModelProfileDTO
+
 class DynamicBudgetEngine:
     """
     Tier 9 Dynamic Budget & Hard Stop-Sequences Engine.
@@ -111,6 +115,42 @@ class DynamicBudgetEngine:
         "deepseek": 4,
         "local_openai": 4,
     }
+
+    @staticmethod
+    def estimate_kv_cache_and_flops(
+        *, num_layers: int, hidden_size: int, context_tokens: int, vocab_size: int = 0,
+        kv_width: int | None = None, bytes_per_value: int = 2,
+    ) -> Tuple[float, float]:
+        """Return decoder KV cache in MiB and analytical forward FLOPs per new token."""
+        width = hidden_size if kv_width is None else kv_width
+        if num_layers < 1 or hidden_size < 1 or context_tokens < 0 or vocab_size < 0:
+            raise ValueError("Layers and hidden size must be positive; token counts must be non-negative")
+        if not 0 < width <= hidden_size or bytes_per_value < 1:
+            raise ValueError("KV width must be within hidden size and bytes_per_value must be positive")
+        cache_mebibytes = 2 * num_layers * context_tokens * width * bytes_per_value / 2**20
+        parameter_count = 12 * num_layers * hidden_size**2 + vocab_size * hidden_size
+        attention_flops = 4 * num_layers * context_tokens * hidden_size
+        return cache_mebibytes, float(2 * parameter_count + attention_flops)
+
+    @staticmethod
+    def resolve_reasoning_model_profile(
+        model_id: str, temperature: float | None = None, *, sizing: Tuple[float, float] | None = None,
+    ) -> ReasoningModelProfileDTO:
+        """Resolve opt-in R1 sampling rules and attach caller-provided sizing telemetry."""
+        if not model_id.strip():
+            raise ValueError("model_id must not be empty")
+        chosen_temperature = 0.6 if temperature is None else temperature
+        if not math.isfinite(chosen_temperature):
+            raise ValueError("Temperature must be finite")
+        cache_mb, flops = (0.0, 0.0) if sizing is None else sizing
+        if any(value < 0.0 or not math.isfinite(value) for value in (cache_mb, flops)):
+            raise ValueError("Sizing telemetry must be finite and non-negative")
+        name = model_id.strip().casefold().rsplit("/", 1)[-1].split(":", 1)[0]
+        is_r1 = name in {"deepseek-r1", "deepseek-reasoner"} or name.startswith("deepseek-r1-")
+        if is_r1:
+            chosen_temperature = min(0.7, max(0.5, chosen_temperature))
+        prefix = "<think>\n" if is_r1 else ""
+        return ReasoningModelProfileDTO(model_id, chosen_temperature, is_r1, prefix, cache_mb, flops)
 
     @classmethod
     def resolve_budget(

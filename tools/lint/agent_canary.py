@@ -45,7 +45,9 @@ import sqlite3
 import argparse
 import subprocess
 import tempfile
+from contextlib import closing
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, Tuple
 
 # Relative & Central paths
@@ -53,23 +55,24 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 GLOBAL_DIR = os.path.expanduser("~/.agent_memory")
 GLOBAL_DB = os.path.join(GLOBAL_DIR, "global_cache.db")
-CACHE_DB = GLOBAL_DB
+CACHE_DB = os.path.join(REPO_ROOT, ".synapse", "canary_cache.db")
 REPORTS_DIR = os.path.join(REPO_ROOT, "reports")
 
 
 def _ensure_cache_db(target_db: str = "") -> Tuple[str, Optional[str]]:
     """Ensures a seeded SQLite healing cache DB is available, falling back to a temp DB in clean CI."""
     db_path = target_db or CACHE_DB
-    if db_path and os.path.exists(db_path):
-        return db_path, None
     try:
         from tools.core import cache_resolver
-        if db_path:
+        if db_path and not os.path.exists(db_path):
             cache_resolver.init_db(seed=True, target_db=db_path)
-            if os.path.exists(db_path):
-                return db_path, None
-    except Exception as e:
-        sys.stderr.write(f"Notice: Primary cache init fallback ({db_path}): {e}\n")
+        if db_path:
+            uri = Path(db_path).resolve().as_uri() + "?mode=ro"
+            with closing(sqlite3.connect(uri, uri=True)) as database:
+                if database.execute("SELECT groovy_patch FROM healing_cache LIMIT 1").fetchone():
+                    return db_path, None
+    except (OSError, sqlite3.Error) as error:
+        sys.stderr.write(f"Notice: Primary cache unavailable ({db_path}): {error}\n")
 
     # Fallback: ephemeral temp DB when GLOBAL_DB is absent/mocked or non-writable
     try:
