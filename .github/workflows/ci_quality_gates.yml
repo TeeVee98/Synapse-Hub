@@ -140,11 +140,11 @@ jobs:
           cache: "npm"
           cache-dependency-path: "examples/playwright-crm-suite/package-lock.json"
 
-      - name: Install Playwright Dependencies & Chromium
+      - name: Install Playwright Dependencies & Browsers (Chromium, Firefox, WebKit)
         working-directory: examples/playwright-crm-suite
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium firefox webkit
 
       - name: Execute Playwright Test Shard
         working-directory: examples/playwright-crm-suite

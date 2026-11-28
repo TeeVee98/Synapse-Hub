@@ -55,6 +55,7 @@ from tools.report.pinpoint_failure import parse_failures
 AUTO_FIX_LINT = "AUTO_FIX_LINT"
 LOCATOR_HEAL = "LOCATOR_HEAL"
 AUT_OR_LOGIC_DEFECT = "AUT_OR_LOGIC_DEFECT"
+CI_ENV_DEFECT = "CI_ENV_DEFECT"
 
 _LINT_SIGNAL_PATTERNS = (
     r"\bEXCESSIVE_HARD_DELAY\b",
@@ -81,6 +82,18 @@ _LOCATOR_SIGNAL_PATTERNS = (
     r"\bgetByTestId\b",
 )
 
+_CI_ENV_DEFECT_PATTERNS = (
+    r"Executable doesn't exist",
+    r"browserType\.launch",
+    r"Please run the following command to download new browsers",
+    r"\bECONNREFUSED\b",
+    r"\bENOENT\b",
+    r"\bModuleNotFoundError\b",
+    r"\bImportError\b",
+    r"\bcommand not found\b",
+    r"Missing required release-candidate target",
+)
+
 _AUT_DEFECT_PATTERNS = (
     r"\bAssertionError\b",
     r"\bAssertion failed\b",
@@ -94,16 +107,13 @@ _AUT_DEFECT_PATTERNS = (
     r"\bTypeError\b",
     r"\bAttributeError\b",
     r"\bZeroDivisionError\b",
-    r"\bImportError\b",
-    r"\bModuleNotFoundError\b",
     r"\bSyntaxError\b",
-    r"\bECONNREFUSED\b",
     r"expected\s+.+?\s+(?:but got|to equal|to be|!=)",
 )
 
 
 def classify_failure(failure: Dict[str, Any]) -> Dict[str, Any]:
-    """Classifies a CI failure into AUTO_FIX_LINT, LOCATOR_HEAL, or AUT_OR_LOGIC_DEFECT."""
+    """Classifies a CI failure into AUTO_FIX_LINT, LOCATOR_HEAL, CI_ENV_DEFECT, or AUT_OR_LOGIC_DEFECT."""
     reason = str(failure.get("reason") or "")
     raw_trace = str(failure.get("trace") or "")
     combined = f"{reason}\n{raw_trace}".strip()
@@ -114,6 +124,14 @@ def classify_failure(failure: Dict[str, Any]) -> Dict[str, Any]:
                 "category": AUTO_FIX_LINT,
                 "eligible": True,
                 "rationale": f"Matched static test anti-pattern signal ({pat}).",
+            }
+
+    for pat in _CI_ENV_DEFECT_PATTERNS:
+        if re.search(pat, combined, re.IGNORECASE):
+            return {
+                "category": CI_ENV_DEFECT,
+                "eligible": False,
+                "rationale": f"Matched CI/environment infrastructure signal ({pat}); fix runner setup rather than test scripts.",
             }
 
     for pat in _AUT_DEFECT_PATTERNS:
@@ -169,7 +187,7 @@ def _parse_log_failures(log_path: str, repo_root: str) -> List[Dict[str, Any]]:
             continue
         has_signal = any(
             re.search(pat, stripped, re.IGNORECASE)
-            for pat in (_LINT_SIGNAL_PATTERNS + _LOCATOR_SIGNAL_PATTERNS + _AUT_DEFECT_PATTERNS)
+            for pat in (_LINT_SIGNAL_PATTERNS + _CI_ENV_DEFECT_PATTERNS + _LOCATOR_SIGNAL_PATTERNS + _AUT_DEFECT_PATTERNS)
         )
         if not has_signal:
             continue
@@ -435,6 +453,7 @@ def _build_pr_markdown(result: Dict[str, Any]) -> str:
     planned = result.get("planned_patches") or []
     patches = applied if applied else planned
     skipped = result.get("skipped_aut_defects") or []
+    skipped_env = result.get("skipped_env_defects") or []
 
     lines = [
         "## CI/CD Autonomous Self-Healing Report",
@@ -452,6 +471,13 @@ def _build_pr_markdown(result: Dict[str, Any]) -> str:
             lines.append(f"- `{p['file']}` ({p['category']}): {p.get('summary', 'patched')}")
             if p.get("diff"):
                 lines.extend(["```diff", p["diff"].strip(), "```"])
+    else:
+        lines.append("- None")
+
+    lines.extend(["", "### Skipped CI / Environment Defects (Runner / Setup)"])
+    if skipped_env:
+        for s in skipped_env:
+            lines.append(f"- `{s.get('tc', 'unknown')}` (`{s.get('file', '?')}:{s.get('line', '?')}`): {s.get('reason', '')}")
     else:
         lines.append("- None")
 
@@ -655,6 +681,16 @@ def build_copilot_repair_prompt(
     lines.extend(["", "## Skipped AUT / Logic Defects (DO NOT MASK)"])
     if skipped:
         for item in skipped:
+            lines.append(
+                f"- `{item.get('tc', 'unknown')}` (`{item.get('file', '?')}:{item.get('line', '?')}`): {item.get('reason', '')}"
+            )
+    else:
+        lines.append("- None")
+
+    skipped_env = result.get("skipped_env_defects") or []
+    lines.extend(["", "## Skipped CI / Environment Defects (Runner / Setup)"])
+    if skipped_env:
+        for item in skipped_env:
             lines.append(
                 f"- `{item.get('tc', 'unknown')}` (`{item.get('file', '?')}:{item.get('line', '?')}`): {item.get('reason', '')}"
             )
@@ -991,9 +1027,11 @@ def run_ci_auto_heal(
             "planned_patches": [],
             "applied_patches": [],
             "skipped_aut_defects": [],
+            "skipped_env_defects": [],
             "triage_breakdown": {
                 "auto_fix_lint": 0,
                 "locator_heal": 0,
+                "ci_env_defect": 0,
                 "aut_or_logic_defect": 0,
             },
             "needs_ai_escalation": False,
@@ -1012,11 +1050,13 @@ def run_ci_auto_heal(
     planned_patches: List[Dict[str, Any]] = []
     applied_patches: List[Dict[str, Any]] = []
     skipped_aut_defects: List[Dict[str, Any]] = []
+    skipped_env_defects: List[Dict[str, Any]] = []
     unresolved_eligible: List[Dict[str, Any]] = []
     seen_lint_files = set()
     triage_breakdown: Dict[str, int] = {
         "auto_fix_lint": 0,
         "locator_heal": 0,
+        "ci_env_defect": 0,
         "aut_or_logic_defect": 0,
     }
     skipped_cap_count = 0
@@ -1028,16 +1068,18 @@ def run_ci_auto_heal(
         if triage_key in triage_breakdown:
             triage_breakdown[triage_key] += 1
         if not triage["eligible"]:
-            skipped_aut_defects.append(
-                {
-                    "tc": failure.get("tc", "unknown"),
-                    "file": failure.get("file", "UnknownFile"),
-                    "line": failure.get("line", "?"),
-                    "reason": failure.get("reason", ""),
-                    "category": triage["category"],
-                    "rationale": triage["rationale"],
-                }
-            )
+            skipped_entry = {
+                "tc": failure.get("tc", "unknown"),
+                "file": failure.get("file", "UnknownFile"),
+                "line": failure.get("line", "?"),
+                "reason": failure.get("reason", ""),
+                "category": triage["category"],
+                "rationale": triage["rationale"],
+            }
+            if triage["category"] == CI_ENV_DEFECT:
+                skipped_env_defects.append(skipped_entry)
+            else:
+                skipped_aut_defects.append(skipped_entry)
             continue
 
         if len(planned_patches) >= fix_cap:
@@ -1119,9 +1161,19 @@ def run_ci_auto_heal(
     verify_output = ""
 
     if not apply_patches:
-        status = "DRY_RUN_PLANNED" if planned_patches else "AUT_DEFECTS_ONLY_NO_PATCH"
+        if planned_patches:
+            status = "DRY_RUN_PLANNED"
+        elif skipped_env_defects and not skipped_aut_defects:
+            status = "CI_ENV_DEFECTS_ONLY_NO_PATCH"
+        else:
+            status = "AUT_DEFECTS_ONLY_NO_PATCH"
     elif not applied_patches:
-        status = "AUT_DEFECTS_ONLY_NO_PATCH" if skipped_aut_defects else "NO_ELIGIBLE_PATCHES"
+        if skipped_env_defects and not skipped_aut_defects:
+            status = "CI_ENV_DEFECTS_ONLY_NO_PATCH"
+        elif skipped_aut_defects:
+            status = "AUT_DEFECTS_ONLY_NO_PATCH"
+        else:
+            status = "NO_ELIGIBLE_PATCHES"
     elif verify_cmd:
         verify_ok, verify_output = _run_verify_command(verify_cmd, resolved_root)
         if verify_ok:
@@ -1148,6 +1200,7 @@ def run_ci_auto_heal(
         "planned_patches": planned_patches,
         "applied_patches": applied_patches,
         "skipped_aut_defects": skipped_aut_defects,
+        "skipped_env_defects": skipped_env_defects,
         "triage_breakdown": triage_breakdown,
         "needs_ai_escalation": False,
         "copilot_fallback": None,
@@ -1338,7 +1391,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        print(f"[{result['status']}] Failures: {result['failures_detected']} | Applied: {result['applied_count']} | Skipped AUT: {len(result['skipped_aut_defects'])}")
+        print(
+            f"[{result['status']}] Failures: {result['failures_detected']} | "
+            f"Applied: {result['applied_count']} | "
+            f"Skipped AUT: {len(result['skipped_aut_defects'])} | "
+            f"Skipped Env: {len(result.get('skipped_env_defects', []))}"
+        )
 
     return 1 if result["status"] == "VERIFICATION_FAILED_ROLLED_BACK" else 0
 

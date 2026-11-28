@@ -31,6 +31,7 @@ for _p in (ROOT_DIR, TOOLS_DIR):
 from tools.heal.ci_auto_healer import (
     AUT_OR_LOGIC_DEFECT,
     AUTO_FIX_LINT,
+    CI_ENV_DEFECT,
     LOCATOR_HEAL,
     build_parser,
     classify_failure,
@@ -98,6 +99,7 @@ class TestCIAutoHealerPositive:
         pr_text = pr_out.read_text(encoding="utf-8")
         assert "998877" in pr_text
         assert "LoginPage.ts" in pr_text
+        assert "### Skipped CI / Environment Defects (Runner / Setup)\n- None" in pr_text
 
         updated = page_file.read_text(encoding="utf-8")
         assert "waitForTimeout(3000)" not in updated
@@ -240,6 +242,7 @@ class TestCIAutoHealerBoundary:
         )
         assert result["status"] == "NO_FAILURES_FOUND"
         assert result["applied_count"] == 0
+        assert result["triage_breakdown"]["ci_env_defect"] == 0
 
     def test_malformed_xml_does_not_crash_collector(self, tmp_path):
         artifacts = tmp_path / "artifacts"
@@ -789,6 +792,129 @@ class TestCIAutoHealerCopilotIntegration:
         assert parsed.copilot_fallback is True
         assert parsed.copilot_issue is True
         assert parsed.out_copilot_prompt == "p.md"
+
+
+class TestCIAutoHealerEnvDefects:
+    """CI/Environment defect classification (never mislabeled as AUT product bugs)."""
+
+    def test_classifies_missing_playwright_browser_as_ci_env_defect(self, tmp_path):
+        spec_file = tmp_path / "tests" / "auth.spec.ts"
+        spec_file.parent.mkdir(parents=True)
+        original = "test('login', async ({ page }) => { await page.goto('/'); });\n"
+        spec_file.write_text(original, encoding="utf-8")
+
+        missing_target = classify_failure(
+            {"tc": "rc-lane", "reason": "Missing required release-candidate target CRM_BASE_URL"}
+        )
+        assert missing_target["category"] == CI_ENV_DEFECT
+        assert missing_target["eligible"] is False
+
+        classified = classify_failure(
+            {
+                "tc": "TC-LOGIN-01",
+                "reason": f"browserType.launch: Executable doesn't exist at {tmp_path}/ms-playwright/webkit-2388/pw_run.sh",
+                "file": str(spec_file),
+                "line": "1",
+            }
+        )
+        assert classified["category"] == CI_ENV_DEFECT
+        assert classified["eligible"] is False
+
+        artifacts = tmp_path / "artifacts"
+        artifacts.mkdir()
+        _write_junit_xml(
+            artifacts / "e2e_junit.xml",
+            "TC-LOGIN-01",
+            f"browserType.launch: Executable doesn't exist at {tmp_path}/ms-playwright/firefox-1572/firefox/firefox",
+            f"browserType.launch: Executable doesn't exist\n    at {spec_file}:1:1",
+        )
+        pr_out = tmp_path / "auto_heal_pr.md"
+        result = run_ci_auto_heal(
+            repo_root=str(tmp_path),
+            artifacts_dir=str(artifacts),
+            apply_patches=True,
+            out_pr=str(pr_out),
+        )
+
+        assert result["status"] == "CI_ENV_DEFECTS_ONLY_NO_PATCH"
+        assert result["applied_count"] == 0
+        assert result["triage_breakdown"]["ci_env_defect"] == 1
+        assert len(result["skipped_env_defects"]) == 1
+        assert result["skipped_aut_defects"] == []
+        assert spec_file.read_text(encoding="utf-8") == original
+        pr_text = pr_out.read_text(encoding="utf-8")
+        assert "Skipped CI / Environment Defects" in pr_text
+        assert "Executable doesn't exist" in pr_text
+
+    def test_mixed_env_aut_and_missing_target_statuses_and_cli_summary(self, tmp_path, capsys):
+        mixed_artifacts = tmp_path / "mixed"
+        mixed_artifacts.mkdir()
+        _write_junit_xml(
+            mixed_artifacts / "env.xml",
+            "tc_env",
+            "Missing required release-candidate target CRM_BASE_URL",
+            "env error",
+        )
+        _write_junit_xml(
+            mixed_artifacts / "aut.xml",
+            "tc_aut",
+            "AssertionError: expected 200 got 500",
+            "AssertionError",
+        )
+
+        dry_mixed = run_ci_auto_heal(
+            repo_root=str(tmp_path),
+            artifacts_dir=str(mixed_artifacts),
+            apply_patches=False,
+        )
+        assert dry_mixed["status"] == "AUT_DEFECTS_ONLY_NO_PATCH"
+
+        apply_mixed = run_ci_auto_heal(
+            repo_root=str(tmp_path),
+            artifacts_dir=str(mixed_artifacts),
+            apply_patches=True,
+        )
+        assert apply_mixed["status"] == "AUT_DEFECTS_ONLY_NO_PATCH"
+
+        missing_artifacts = tmp_path / "missing_file"
+        missing_artifacts.mkdir()
+        _write_junit_xml(
+            missing_artifacts / "loc.xml",
+            "tc_loc",
+            "TimeoutError: waiting for locator('#x')",
+            "TimeoutError at nonexistent/Page.ts:10:5",
+        )
+        res_missing = run_ci_auto_heal(
+            repo_root=str(tmp_path),
+            artifacts_dir=str(missing_artifacts),
+            apply_patches=True,
+        )
+        assert res_missing["status"] == "NO_ELIGIBLE_PATCHES"
+
+        env_only = tmp_path / "env_only"
+        env_only.mkdir()
+        _write_junit_xml(
+            env_only / "env.xml",
+            "tc_env_cli",
+            "Missing required release-candidate target API_URL",
+            "env error",
+        )
+        copilot_out = tmp_path / "env_copilot_prompt.md"
+        rc = main(
+            [
+                "--repo-root",
+                str(tmp_path),
+                "--artifacts-dir",
+                str(env_only),
+                "--out-copilot-prompt",
+                str(copilot_out),
+            ]
+        )
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "Skipped Env: 1" in out
+        assert "## Skipped CI / Environment Defects" in copilot_out.read_text(encoding="utf-8")
+
 
 
 
