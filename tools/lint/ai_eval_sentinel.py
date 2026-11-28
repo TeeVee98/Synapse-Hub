@@ -40,6 +40,9 @@ import json
 import re
 import argparse
 from typing import Dict, List, Any, Tuple
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Literal
 
 # Enforce UTF-8 stdout encoding for Windows console compatibility
 if hasattr(sys.stdout, "reconfigure"):
@@ -71,6 +74,76 @@ def detect_adversarial_injection(prompt: str) -> Tuple[bool, List[str]]:
         if match:
             flags.append(match.group(0))
     return len(flags) > 0, flags
+
+
+
+RiskCategory = Literal[
+    "direct_injection", "indirect_injection", "prompt_leaking",
+    "delimiter_jailbreak", "roleplay_obfuscation", "sycophancy_bias",
+]
+
+_RAG_RISK_ORDER: tuple[RiskCategory, ...] = (
+    "direct_injection", "indirect_injection", "prompt_leaking",
+    "delimiter_jailbreak", "roleplay_obfuscation", "sycophancy_bias",
+)
+_PROMPT_RISK_PATTERNS: dict[RiskCategory, re.Pattern] = {
+    "prompt_leaking": re.compile(
+        r"\b(?:reveal|print|show|output|disclose|display)\s+(?:(?:your|the)\s+)?"
+        r"(?:system|internal|hidden|developer)\s+(?:prompt|instructions?)\b", re.IGNORECASE,
+    ),
+    "delimiter_jailbreak": re.compile(
+        r"</(?:context|user|instructions?)>\s*<(?:system|assistant|developer)>", re.IGNORECASE,
+    ),
+    "roleplay_obfuscation": re.compile(
+        r"\b(?:act as|pretend to be|adopt)\s+(?:(?:an?|the)\s+)?"
+        r"(?:unrestricted|unfiltered|rule-free)\s+(?:persona|character|assistant|model)\b", re.IGNORECASE,
+    ),
+    "sycophancy_bias": re.compile(
+        r"\b(?:you are always right|agree with (?:me|the user) regardless|ignore contradictory evidence)\b",
+        re.IGNORECASE,
+    ),
+}
+_CITED_SOURCE = re.compile(r"(?<!\\)\[(\d{1,9})\](?!\()")
+_RISK_WINDOW_SIZE = 4096
+_RISK_WINDOW_OVERLAP = 128
+
+
+@dataclass(frozen=True)
+class RagRiskAuditDTO:
+    categories: tuple[RiskCategory, ...]
+    cited_source_ids: tuple[int, ...]
+    unregistered_source_ids: tuple[int, ...]
+    citations_grounded: bool
+
+
+def detect_prompt_risks(text: str, *, indirect: bool = False) -> tuple[RiskCategory, ...]:
+    """Classify bounded text windows as defensive evaluation signals."""
+    found: set[RiskCategory] = set()
+    stride = _RISK_WINDOW_SIZE - _RISK_WINDOW_OVERLAP
+    for offset in range(0, len(text), stride):
+        window = " ".join(text[offset:offset + _RISK_WINDOW_SIZE].split())
+        window_categories = {kind for kind, pattern in _PROMPT_RISK_PATTERNS.items() if pattern.search(window)}
+        found.update(window_categories)
+        injected, _patterns = detect_adversarial_injection(window)
+        if injected or "prompt_leaking" in window_categories:
+            found.add("indirect_injection" if indirect else "direct_injection")
+    return tuple(kind for kind in _RAG_RISK_ORDER if kind in found)
+
+
+def audit_rag_risks(
+    query: str, context: str, answer: str, *, registered_source_ids: Iterable[int] = (),
+) -> RagRiskAuditDTO:
+    """Audit query, retrieved text, and answer, plus the answer's citation IDs."""
+    categories = set(detect_prompt_risks(query))
+    categories.update(detect_prompt_risks(context, indirect=True))
+    categories.update(detect_prompt_risks(answer))
+    cited = {int(identifier) for identifier in _CITED_SOURCE.findall(answer)}
+    registered = {identifier for identifier in registered_source_ids if identifier > 0}
+    unregistered = tuple(sorted(cited - registered))
+    return RagRiskAuditDTO(
+        tuple(kind for kind in _RAG_RISK_ORDER if kind in categories),
+        tuple(sorted(cited)), unregistered, not unregistered,
+    )
 
 
 # ==============================================================================
