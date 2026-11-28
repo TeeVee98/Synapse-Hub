@@ -2793,6 +2793,22 @@
           "default": 90.0,
           "required": false,
           "help": "Pass gate threshold (default 90.0)"
+        },
+        "--slug": {
+          "type": "string",
+          "required": true,
+          "help": "Normalized slug for the idea"
+        },
+        "--criteria": {
+          "type": "string",
+          "required": true,
+          "help": "Comma-separated k=v criteria ratings (strong|adequate|weak|unknown)"
+        },
+        "--unshaped": {
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "help": "Mark concept as unshaped (downgrades go -> needs-clarification)"
         }
       },
       "examples": [

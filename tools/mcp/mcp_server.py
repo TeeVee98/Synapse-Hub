@@ -342,6 +342,80 @@ MCP_TOOLS = [
             },
             "required": ["base_url"]
         }
+    },
+    {
+        "name": "sequential_think",
+        "description": "Records a structured sequential thought step with revision, branching, and bounded thought-size validation.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "thought": {"type": "string", "description": "Current reasoning step content."},
+                "thought_number": {"type": "integer", "default": 1},
+                "total_thoughts": {"type": "integer", "default": 1},
+                "session_id": {"type": "string", "default": "default"},
+                "branch_id": {"type": "string"}
+            },
+            "required": ["thought"]
+        }
+    },
+    {
+        "name": "challenge_assumption",
+        "description": "Anti-sycophancy reasoning guard that flags agreement bias and generates counter-hypotheses and evidence prompts.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "claim": {"type": "string", "description": "Claim or proposal to critically challenge."}
+            },
+            "required": ["claim"]
+        }
+    },
+    {
+        "name": "elicitation_pick",
+        "description": "Progressive-disclosure 6-direction elicitation method picker (wrong, missing, premise, future, other-side, simplify).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "direction": {"type": "string", "enum": ["wrong", "missing", "premise", "future", "other-side", "simplify"]},
+                "tier": {"type": "string", "enum": ["core", "more"], "default": "core"},
+                "count": {"type": "integer", "default": 3},
+                "spread": {"type": "boolean", "default": True}
+            }
+        }
+    },
+    {
+        "name": "task_graph_ready",
+        "description": "Queries the persistent SQLite TaskGraphMemory for unblocked open tasks (ready frontier).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "db_path": {"type": "string", "description": "Repo-local path to .synapse/task_graph.db."}
+            }
+        }
+    },
+    {
+        "name": "memory_graph_query",
+        "description": "Queries Synapse Hub's AssociativeMemory knowledge graph for related nodes and failure lessons.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Keyword or node key to search in associative graph memory."},
+                "limit": {"type": "integer", "default": 5}
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "assess_idea_gate",
+        "description": "Evaluates an idea across 6 explicit criteria and returns a go / needs-clarification / kill verdict.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "slug": {"type": "string", "description": "Short kebab-case identifier."},
+                "criteria": {"type": "object", "description": "Map of 6 criteria to strong|adequate|weak|unknown."},
+                "concept_shaped": {"type": "boolean", "default": True}
+            },
+            "required": ["slug", "criteria"]
+        }
     }
 ]
 
@@ -784,6 +858,76 @@ def _handle_synapse_lsp_health(arguments: Dict[str, Any]) -> str:
         return f"[LSP_HEALTH ERROR] {exc}"
 
 
+def _handle_sequential_think(arguments: Dict[str, Any]) -> str:
+    from tools.reasoning.sequential_thinking_engine import SequentialThinkingSession
+
+    sess = SequentialThinkingSession(session_id=str(arguments.get("session_id") or "default"))
+    step = sess.record_thought(
+        thought_number=int(arguments.get("thought_number", 1)),
+        total_thoughts=int(arguments.get("total_thoughts", 1)),
+        content=str(arguments.get("thought", "")),
+        next_thought_needed=int(arguments.get("thought_number", 1)) < int(arguments.get("total_thoughts", 1)),
+        branch_id=arguments.get("branch_id"),
+    )
+    return json.dumps(step.to_dict(), indent=2)
+
+
+def _handle_challenge_assumption(arguments: Dict[str, Any]) -> str:
+    from tools.reasoning.structured_reasoning_engine import StructuredReasoningEngine
+
+    eng = StructuredReasoningEngine()
+    report = eng.challenge_claim(str(arguments.get("claim", "")))
+    return json.dumps(report.to_dict(), indent=2)
+
+
+def _handle_elicitation_pick(arguments: Dict[str, Any]) -> str:
+    from tools.reasoning.structured_reasoning_engine import StructuredReasoningEngine
+
+    eng = StructuredReasoningEngine()
+    methods = eng.pick_elicitation_methods(
+        count=int(arguments.get("count", 3)),
+        direction=arguments.get("direction"),
+        tier=arguments.get("tier", "core"),
+        spread=bool(arguments.get("spread", True)),
+    )
+    return json.dumps({"count": len(methods), "methods": methods}, indent=2)
+
+
+def _handle_task_graph_ready(arguments: Dict[str, Any]) -> str:
+    from tools.core.task_graph_memory import TaskGraphMemory
+
+    raw_db = str(arguments.get("db_path") or os.path.join(os.getcwd(), ".synapse", "task_graph.db"))
+    safe_db = _validate_safe_path(raw_db)
+    with TaskGraphMemory(db_path=safe_db) as mem:
+        ready = mem.get_ready_tasks()
+        return json.dumps({"ready_count": len(ready), "tasks": [t.to_dict() for t in ready]}, indent=2)
+
+
+def _handle_memory_graph_query(arguments: Dict[str, Any]) -> str:
+    from tools.reasoning.associative_memory import AssociativeMemory
+
+    query = str(arguments.get("query", "")).strip()
+    limit = max(1, int(arguments.get("limit", 5)))
+    mem = AssociativeMemory()
+    try:
+        matches = mem.query_associations(query, limit=limit) if query else []
+        stats = mem.get_stats()
+        return json.dumps({"query": query, "matches": matches, "stats": stats}, indent=2, default=str)
+    finally:
+        mem.close()
+
+
+def _handle_assess_idea_gate(arguments: Dict[str, Any]) -> str:
+    from tools.design.super_plan_engine import assess_idea_gate
+
+    verdict = assess_idea_gate(
+        slug=str(arguments.get("slug", "")),
+        criteria=dict(arguments.get("criteria") or {}),
+        concept_shaped=bool(arguments.get("concept_shaped", True)),
+    )
+    return json.dumps(verdict.to_dict(), indent=2)
+
+
 TOOL_DISPATCH_TABLE: Dict[str, Any] = {
     "synapse_lint": _handle_synapse_lint,
     "synapse_verify": _handle_verify_all_gates,
@@ -809,6 +953,12 @@ TOOL_DISPATCH_TABLE: Dict[str, Any] = {
     "resolve_visual_som_coordinates": _handle_resolve_visual_som_coordinates,
     "compile_gherkin_suite": _handle_compile_gherkin_suite,
     "fuzz_api": _handle_fuzz_api,
+    "sequential_think": _handle_sequential_think,
+    "challenge_assumption": _handle_challenge_assumption,
+    "elicitation_pick": _handle_elicitation_pick,
+    "task_graph_ready": _handle_task_graph_ready,
+    "memory_graph_query": _handle_memory_graph_query,
+    "assess_idea_gate": _handle_assess_idea_gate,
 }
 
 

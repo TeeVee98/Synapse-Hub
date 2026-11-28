@@ -38,7 +38,8 @@ import sys
 import json
 import time
 import argparse
-from typing import Dict, Any, List, Optional, Tuple
+from dataclasses import asdict, dataclass
+from typing import Dict, Any, List, Optional, Sequence, Tuple
 
 # Enforce UTF-8 stdout encoding
 if hasattr(sys.stdout, 'reconfigure'):
@@ -226,8 +227,86 @@ class MiproAssertionTuner:
         }
 
 
+@dataclass(frozen=True)
+class ScoreWithFeedbackDTO:
+    candidate_id: str
+    score: float
+    latency_penalty: float
+    trajectory_feedback: str
+    blamed_module: Optional[str] = None
+    actionable_advice: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+class GEPAReflectiveOptimizer:
+    """
+    GEPA Reflective Pareto Prompt Optimizer & Refine Blame-Assignment Loop (DSPy pattern).
+    Maximizes score while minimizing latency_penalty over non-dominated Pareto candidates,
+    and synthesizes targeted instruction mutations from trajectory diagnostic feedback.
+    """
+
+    def select_pareto_frontier(
+        self,
+        candidates: Sequence[ScoreWithFeedbackDTO],
+    ) -> List[ScoreWithFeedbackDTO]:
+        """Returns non-dominated candidates (maximize score, minimize latency_penalty)."""
+        if not candidates:
+            return []
+        frontier: List[ScoreWithFeedbackDTO] = []
+        for idx, cand in enumerate(candidates):
+            dominated = False
+            for jdx, other in enumerate(candidates):
+                if idx == jdx:
+                    continue
+                better_or_equal = (
+                    other.score >= cand.score
+                    and other.latency_penalty <= cand.latency_penalty
+                )
+                strictly_better = (
+                    other.score > cand.score
+                    or other.latency_penalty < cand.latency_penalty
+                )
+                if better_or_equal and strictly_better:
+                    dominated = True
+                    break
+            if not dominated:
+                frontier.append(cand)
+        frontier.sort(key=lambda c: (-c.score, c.latency_penalty, c.candidate_id))
+        return frontier
+
+    def reflective_mutate(
+        self,
+        base_instruction: str,
+        feedback: ScoreWithFeedbackDTO,
+    ) -> Dict[str, Any]:
+        """Produces a targeted instruction mutation incorporating blame and actionable advice."""
+        clean_base = (base_instruction or "").strip()
+        if not clean_base:
+            raise ValueError("base_instruction must be a non-empty string")
+
+        blamed = (feedback.blamed_module or "PromptPolicy").strip()
+        advice = (feedback.actionable_advice or feedback.trajectory_feedback or "").strip()
+        if not advice:
+            advice = "Enforce explicit boundary, negative, and non-tautological assertions."
+
+        mutated = (
+            f"{clean_base.rstrip('.')}. "
+            f"[Reflective Repair for {blamed}]: {advice}"
+        )
+        return {
+            "status": "PASS",
+            "candidate_id": feedback.candidate_id,
+            "blamed_module": blamed,
+            "previous_score": feedback.score,
+            "mutated_instruction": mutated,
+            "applied_feedback": advice,
+        }
+
+
 def main():
-    parser = argparse.ArgumentParser(description="MIPROv2 Prompt Assertion Tuner")
+    parser = argparse.ArgumentParser(description="MIPROv2 + GEPA Reflective Prompt Assertion Tuner")
     subparsers = parser.add_subparsers(dest="subcommand", help="Subcommand to execute")
 
     # compile-module
@@ -240,6 +319,14 @@ def main():
     eval_p = subparsers.add_parser("evaluate", help="Evaluate a compiled prompt module")
     eval_p.add_argument("--module", required=True, help="Path to compiled module JSON")
 
+    # gepa-evolve
+    gepa_p = subparsers.add_parser("gepa-evolve", help="Run GEPA reflective prompt evolution with feedback")
+    gepa_p.add_argument("--instruction", required=True, help="Base prompt instruction")
+    gepa_p.add_argument("--feedback", required=True, help="Trajectory diagnostic feedback")
+    gepa_p.add_argument("--blamed-module", default="AssertionPolicy", help="Optional module blamed in trajectory")
+    gepa_p.add_argument("--score", type=float, default=0.70, help="Previous trajectory score")
+    gepa_p.add_argument("--json", action="store_true", help="Output in JSON format")
+
     args = parser.parse_args()
     tuner = MiproAssertionTuner()
 
@@ -250,6 +337,20 @@ def main():
 
     elif args.subcommand == "evaluate":
         res = tuner.evaluate(module_path=args.module)
+        print(json.dumps(res, indent=2))
+        sys.exit(0 if res["status"] == "PASS" else 1)
+
+    elif args.subcommand == "gepa-evolve":
+        opt = GEPAReflectiveOptimizer()
+        fb = ScoreWithFeedbackDTO(
+            candidate_id="cli-cand-1",
+            score=args.score,
+            latency_penalty=0.1,
+            trajectory_feedback=args.feedback,
+            blamed_module=args.blamed_module,
+            actionable_advice=args.feedback,
+        )
+        res = opt.reflective_mutate(args.instruction, fb)
         print(json.dumps(res, indent=2))
         sys.exit(0 if res["status"] == "PASS" else 1)
 
