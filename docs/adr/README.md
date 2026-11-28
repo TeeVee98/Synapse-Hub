@@ -32,6 +32,7 @@
 | [ADR-0029-manual-qa-pipeline-profile.md](./ADR-0029-manual-qa-pipeline-profile.md) | Manual QA Pipeline Profile (`--profile manual`) for `/super-plan`, `/solo`, and `/review` | Accepted | 2026-11-27 |
 | [ADR-0030-multi-model-orchestration-architecture.md](./ADR-0030-multi-model-orchestration-architecture.md) | Hybrid Multi-Model Orchestration & Cross-Family Adversarial Pairing | Accepted | Unknown |
 | [ADR-0031-release-readiness-evidence.md](./ADR-0031-release-readiness-evidence.md) | ADR-0031-release-readiness-evidence.md | Accepted | Unknown |
+| [ADR-0033-reasoning-architecture-upgrade-from-12-reference-repositories.md](./ADR-0033-reasoning-architecture-upgrade-from-12-reference-repositories.md) | Reasoning Architecture Upgrade from 12 Reference Repositories | Accepted (DoD Certified) | 2026-11-28 |
 
 ---
 *Auto-indexed by `tools/design/plan_harvester.py`.*

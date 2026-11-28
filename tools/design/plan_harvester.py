@@ -546,6 +546,16 @@ def harvest_plan(
 
     if not dry_run:
         update_project_state_calibration(calibration, repo_root=repo_root)
+        try:
+            archive_completed_plan_memory(
+                plan_slug=slugify(parsed.get("title", "plan")),
+                title=parsed.get("title", "plan"),
+                calibration=calibration,
+                repo_root=repo_root,
+            )
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).debug("TaskGraphMemory snapshot archive skipped (non-fatal): %s", exc)
 
     def _maybe_cleanup_ephemeral() -> bool:
         if not dry_run and cleanup_ephemeral and _is_ephemeral_synapse_plan(plan_path):
@@ -597,6 +607,21 @@ def harvest_plan(
         "calibration": calibration,
     }
     return True, f"Harvested ADR-{next_idx:04d} into {filename}", result_data
+
+
+def archive_completed_plan_memory(
+    plan_slug: str,
+    title: str,
+    calibration: Dict[str, Any],
+    repo_root: str = _REPO_ROOT,
+) -> int:
+    """Persists completed plan verification summary into TaskGraphMemory before ephemeral cleanup."""
+    from tools.core.task_graph_memory import TaskGraphMemory
+
+    db_path = os.path.join(os.path.abspath(repo_root), ".synapse", "task_graph.db")
+    summary = f"Harvested plan '{title}' (accuracy={calibration.get('accuracy_score', 1.0)})"
+    with TaskGraphMemory(db_path=db_path) as mem:
+        return mem.archive_plan_snapshot(plan_slug=plan_slug, summary=summary, payload=calibration)
 
 
 def _effective_harvester_root(repo_root_arg: Optional[str] = None) -> str:

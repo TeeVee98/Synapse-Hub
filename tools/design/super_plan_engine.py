@@ -2422,6 +2422,19 @@ def main() -> int:
     pipe_parser.add_argument("--non-interactive", action="store_true", help="Headless CI mode: fail closed on unresolved architectural forks")
     pipe_parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
+    # assess-idea sub-command (Spec-Kit go / needs-clarification / kill gate)
+    assess_parser = subparsers.add_parser("assess-idea", help="Evaluate an idea across 6 criteria (go / needs-clarification / kill)")
+    assess_parser.add_argument("--slug", required=True, help="Normalized slug for the idea")
+    assess_parser.add_argument("--criteria", required=True, help="Comma-separated k=v criteria ratings (strong|adequate|weak|unknown)")
+    assess_parser.add_argument("--unshaped", action="store_true", help="Mark concept as unshaped (downgrades go -> needs-clarification)")
+    assess_parser.add_argument("--json", action="store_true", help="Output in JSON format")
+
+    # converge sub-command (Spec-Kit spec-vs-code delta reconciler)
+    conv_parser = subparsers.add_parser("converge", help="Reconcile a plan's milestones against live workspace files")
+    conv_parser.add_argument("--file", required=True, help="Path to markdown plan")
+    conv_parser.add_argument("--repo-root", help="Optional target repository/worktree root")
+    conv_parser.add_argument("--json", action="store_true", help="Output in JSON format")
+
     args = parser.parse_args()
     dispatch = {
         "route": _cli_handle_route,
@@ -2431,6 +2444,8 @@ def main() -> int:
         "mutate": _cli_handle_mutate,
         "calibrate": _cli_handle_calibrate,
         "run-pipeline": _cli_handle_run_pipeline,
+        "assess-idea": _cli_handle_assess_idea,
+        "converge": _cli_handle_converge,
     }
     handler = dispatch.get(args.command)
     if handler is None:
@@ -2693,6 +2708,241 @@ def _cli_handle_run_pipeline(args: argparse.Namespace) -> int:
             f"stages={len(pipe_res['stages'])} manifest={pipe_res['manifest_path']}"
         )
     return 0 if pipe_res.get("passed", False) else 1
+
+
+IDEA_ASSESSMENT_CRITERIA: Tuple[str, ...] = (
+    "problem_validity",
+    "evidence_strength",
+    "value_vs_inaction",
+    "feasibility_fit",
+    "strategic_fit",
+    "risk_posture",
+)
+VALID_CRITERION_RATINGS: Tuple[str, ...] = ("strong", "adequate", "weak", "unknown")
+
+
+@dataclass(frozen=True)
+class IdeaAssessmentDTO:
+    slug: str
+    criteria: Dict[str, str]
+    verdict: str
+    downgraded_from_go: bool
+    decisive_reason: str
+    required_clarifications: Tuple[str, ...] = ()
+
+    def to_dict(self) -> Dict[str, Any]:
+        payload = asdict(self)
+        payload["required_clarifications"] = list(self.required_clarifications)
+        return payload
+
+
+def _normalize_strict_slug(raw_slug: str) -> str:
+    cleaned = re.sub(r"[\s_]+", "-", (raw_slug or "").strip().lower())
+    cleaned = re.sub(r"[^a-z0-9-]", "", cleaned)
+    cleaned = re.sub(r"-{2,}", "-", cleaned).strip("-")
+    if not cleaned:
+        raise ValueError(f"Invalid empty normalized slug from input: {raw_slug!r}")
+    return cleaned
+
+
+def resolve_safe_plan_path(slug: str, repo_root: str = _REPO_ROOT) -> str:
+    """Normalizes slug and blocks any symlink or directory-traversal escape outside repo_root."""
+    norm_slug = _normalize_strict_slug(slug)
+    root_real = os.path.realpath(os.path.abspath(repo_root))
+    synapse_dir = os.path.join(root_real, ".synapse")
+    plans_dir = os.path.join(synapse_dir, "plans")
+
+    for ancestor in (synapse_dir, plans_dir):
+        if os.path.islink(ancestor):
+            raise ValueError(f"Symlink escape blocked on ancestor path: {ancestor}")
+        if os.path.exists(ancestor):
+            anc_real = os.path.realpath(ancestor)
+            if anc_real != root_real and not anc_real.startswith(root_real + os.sep):
+                raise ValueError(f"Path traversal escape blocked outside repo root: {ancestor}")
+
+    target_path = os.path.join(plans_dir, f"{norm_slug}.md")
+    if os.path.islink(target_path):
+        raise ValueError(f"Symlink escape blocked on target plan path: {target_path}")
+    target_real = os.path.realpath(target_path)
+    if not target_real.startswith(root_real + os.sep):
+        raise ValueError(f"Path traversal escape blocked for slug '{slug}'")
+    return target_path
+
+
+def assess_idea_gate(slug: str, criteria: Dict[str, str], concept_shaped: bool = True) -> IdeaAssessmentDTO:
+    """Spec-Kit evidence-gated verdict (go / needs-clarification / kill) across 6 explicit criteria."""
+    norm_slug = _normalize_strict_slug(slug)
+    normalized: Dict[str, str] = {}
+    for key in IDEA_ASSESSMENT_CRITERIA:
+        val = str(criteria.get(key, "unknown")).strip().lower()
+        if val not in VALID_CRITERION_RATINGS:
+            raise ValueError(f"Invalid rating '{val}' for criterion '{key}'")
+        normalized[key] = val
+
+    weak_keys = [k for k, v in normalized.items() if v == "weak"]
+    unknown_keys = [k for k, v in normalized.items() if v == "unknown"]
+
+    # Kill condition: invalid problem or >= 3 weak dimensions.
+    if normalized["problem_validity"] == "weak" or len(weak_keys) >= 3:
+        return IdeaAssessmentDTO(
+            slug=norm_slug,
+            criteria=normalized,
+            verdict="kill",
+            downgraded_from_go=False,
+            decisive_reason=f"Killed: weak criteria detected ({', '.join(weak_keys)}).",
+            required_clarifications=(),
+        )
+
+    clarifications: List[str] = []
+    downgraded = False
+    if normalized["evidence_strength"] in ("weak", "unknown"):
+        downgraded = True
+        clarifications.append("Gather empirical evidence (evidence_strength must be adequate or strong before go).")
+    if not concept_shaped:
+        downgraded = True
+        clarifications.append("Shape a concrete concept option before handing off to /super-plan scaffold.")
+    for k in unknown_keys:
+        if k != "evidence_strength":
+            clarifications.append(f"Clarify unknown criterion '{k}'.")
+    if normalized["problem_validity"] == "unknown" or normalized["risk_posture"] == "weak":
+        clarifications.append("Resolve problem validity and high unmitigated risks before specifying.")
+
+    if clarifications:
+        return IdeaAssessmentDTO(
+            slug=norm_slug,
+            criteria=normalized,
+            verdict="needs-clarification",
+            downgraded_from_go=downgraded,
+            decisive_reason="; ".join(clarifications),
+            required_clarifications=tuple(clarifications),
+        )
+
+    return IdeaAssessmentDTO(
+        slug=norm_slug,
+        criteria=normalized,
+        verdict="go",
+        downgraded_from_go=False,
+        decisive_reason="All mandatory criteria meet adequate/strong bar with shaped concept.",
+        required_clarifications=(),
+    )
+
+
+def converge_plan_delta(plan_content: str, repo_root: str = _REPO_ROOT) -> Dict[str, Any]:
+    """Reconciles plan milestone Write Sets against live workspace files to emit unbuilt delta."""
+    root_abs = os.path.abspath(repo_root)
+    completed: List[str] = []
+    remaining: List[str] = []
+    existing_files: List[str] = []
+    missing_files: List[str] = []
+
+    current_node: Optional[str] = None
+    milestones: Dict[str, List[str]] = {}
+    for line in plan_content.splitlines():
+        m_node = re.search(r"Node\s+ID\*{0,2}:\*{0,2}\s*`?([A-Za-z0-9_-]+)`?", line, re.IGNORECASE)
+        if m_node:
+            current_node = m_node.group(1)
+            milestones.setdefault(current_node, [])
+            continue
+        m_ws = re.search(r"Write\s+Set\*{0,2}:\*{0,2}\s*`?(\[[^\]]*\])`?", line, re.IGNORECASE)
+        if m_ws and current_node is not None:
+            raw_items = re.findall(r"['\"]([^'\"]+)['\"]", m_ws.group(1))
+            milestones[current_node].extend(raw_items)
+
+    for node_id, files in milestones.items():
+        node_missing = []
+        for rel in files:
+            full = os.path.join(root_abs, rel)
+            if os.path.exists(full):
+                if rel not in existing_files:
+                    existing_files.append(rel)
+            else:
+                node_missing.append(rel)
+                if rel not in missing_files:
+                    missing_files.append(rel)
+        if files and not node_missing:
+            completed.append(node_id)
+        else:
+            remaining.append(node_id)
+
+    total_m = len(milestones)
+    ratio = round(len(completed) / total_m, 4) if total_m > 0 else 1.0
+    return {
+        "total_milestones": total_m,
+        "completed_milestones": completed,
+        "remaining_milestones": remaining,
+        "existing_files": existing_files,
+        "missing_files": missing_files,
+        "convergence_ratio": ratio,
+    }
+
+
+def score_milestone_complexity(
+    files: List[str],
+    has_state_mutation: bool = False,
+    cross_boundary: bool = False,
+    fan_in: int = 0,
+) -> Dict[str, Any]:
+    """Quantitative milestone complexity scorer (1..10) inspired by claude-task-master & shrimp reflect."""
+    score = 1 + min(3, len(files))
+    if has_state_mutation:
+        score += 2
+    if cross_boundary:
+        score += 2
+    if fan_in >= 25:
+        score += 2
+    elif fan_in >= 10:
+        score += 1
+    bounded = max(1, min(10, score))
+    expand = bounded >= 7
+    reflect_notes: List[str] = []
+    if expand:
+        reflect_notes.append("Complexity >= 7: consider splitting milestone into smaller <=2-file TDD nodes.")
+    if has_state_mutation:
+        reflect_notes.append("Reflect check: ensure atomic write locking and rollback hook cover state schema.")
+    return {
+        "complexity_score": bounded,
+        "expand_recommended": expand,
+        "reflect_notes": reflect_notes,
+    }
+
+
+def _cli_handle_assess_idea(args: argparse.Namespace) -> int:
+    parsed_criteria = _parse_decisions_arg(args.criteria)
+    try:
+        res = assess_idea_gate(
+            slug=args.slug,
+            criteria=parsed_criteria,
+            concept_shaped=not getattr(args, "unshaped", False),
+        )
+    except ValueError as exc:
+        if args.json:
+            print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        else:
+            print(f"Error: {exc}")
+        return 1
+    if args.json:
+        print(json.dumps(res.to_dict(), indent=2))
+    else:
+        print(f"[ASSESS-IDEA:{res.verdict.upper()}] {res.slug} — {res.decisive_reason}")
+    return 0
+
+
+def _cli_handle_converge(args: argparse.Namespace) -> int:
+    if not os.path.isfile(args.file):
+        print(f"Error: File not found: {args.file}")
+        return 1
+    target_root = _effective_cli_repo_root(getattr(args, "repo_root", None))
+    with open(args.file, "r", encoding="utf-8", errors="replace") as fh:
+        content = fh.read()
+    delta = converge_plan_delta(content, repo_root=target_root)
+    if args.json:
+        print(json.dumps(delta, indent=2))
+    else:
+        print(
+            f"[CONVERGE] completed={delta['completed_milestones']} "
+            f"remaining={delta['remaining_milestones']} ratio={delta['convergence_ratio']}"
+        )
+    return 0
 
 
 if __name__ == "__main__":

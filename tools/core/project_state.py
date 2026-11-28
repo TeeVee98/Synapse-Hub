@@ -555,6 +555,21 @@ def export_stateless_working_block(target_dir):
         f"- Next Task: {pending[0] if pending else 'All Complete'}",
         f"- Active Watchpoints: {', '.join(watchpoints) if watchpoints else 'None'}"
     ]
+    graph_db = os.path.join(os.path.abspath(target_dir), ".synapse", "task_graph.db")
+    if os.path.isfile(graph_db):
+        try:
+            from tools.core.task_graph_memory import TaskGraphMemory
+
+            with TaskGraphMemory(db_path=graph_db) as tgm:
+                ready_nodes = tgm.get_ready_tasks()
+                all_nodes = tgm.list_tasks()
+                blocked_count = sum(1 for n in all_nodes if n.is_blocked and n.status not in ("done", "cancelled"))
+                ready_labels = [f"{n.task_id}:{n.title}" for n in ready_nodes[:3]]
+                lines.append(
+                    f"- Graph Ready ({len(ready_nodes)}): {', '.join(ready_labels) if ready_labels else 'None'} | Blocked: {blocked_count}"
+                )
+        except Exception as exc:
+            logging.getLogger(__name__).debug("TaskGraphMemory summary skipped (non-fatal): %s", exc)
     block = "\n".join(lines)
     if len(block) >= 950:
         block = block[:940] + "... [CAP]"

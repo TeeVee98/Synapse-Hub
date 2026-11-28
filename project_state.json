@@ -47,5 +47,111 @@
     "state_anchor_version": "1.1.0",
     "rolling_window_limit": 8,
     "machine_legible": true
-  }
+  },
+  "plan_calibration_history": [
+    {
+      "accuracy_score": 1.0,
+      "drift_ratio": 0.0,
+      "semantic_accuracy_score": 1.0,
+      "semantic_drift_ratio": 0.0,
+      "calibrated_at": "2026-11-28T17:20:12.823547"
+    }
+  ],
+  "plan_calibration": {
+    "last_accuracy_score": 1.0,
+    "last_drift_ratio": 0.0,
+    "semantic_accuracy_score": 1.0,
+    "semantic_drift_ratio": 0.0,
+    "composite_accuracy_score": 1.0,
+    "composite_drift_ratio": 0.0,
+    "unplanned_files": [],
+    "drifted_symbols": [],
+    "milestone_drift": {
+      "M1": {
+        "declared_files": [
+          "tools/core/task_graph_memory.py",
+          "tools/core/project_state.py",
+          "tests/test_task_graph_memory.py"
+        ],
+        "touched_files": [
+          "tools/core/task_graph_memory.py",
+          "tools/core/project_state.py",
+          "tests/test_task_graph_memory.py"
+        ],
+        "touched_ratio": 1.0
+      },
+      "M2": {
+        "declared_files": [
+          "tools/reasoning/sequential_thinking_engine.py",
+          "tests/test_sequential_thinking_engine.py"
+        ],
+        "touched_files": [
+          "tools/reasoning/sequential_thinking_engine.py",
+          "tests/test_sequential_thinking_engine.py"
+        ],
+        "touched_ratio": 1.0
+      },
+      "M3": {
+        "declared_files": [
+          "tools/catalogs/elicitation_methods.json",
+          "tools/reasoning/structured_reasoning_engine.py",
+          "tests/test_structured_reasoning_engine.py"
+        ],
+        "touched_files": [
+          "tools/catalogs/elicitation_methods.json",
+          "tools/reasoning/structured_reasoning_engine.py",
+          "tests/test_structured_reasoning_engine.py"
+        ],
+        "touched_ratio": 1.0
+      },
+      "M4": {
+        "declared_files": [
+          "tools/orchestration/llm_council_engine.py",
+          "tests/test_llm_council_engine.py"
+        ],
+        "touched_files": [
+          "tools/orchestration/llm_council_engine.py",
+          "tests/test_llm_council_engine.py"
+        ],
+        "touched_ratio": 1.0
+      },
+      "M5": {
+        "declared_files": [
+          "tools/design/super_plan_engine.py",
+          "tools/design/plan_harvester.py",
+          "tests/test_super_plan_reasoning_upgrades.py"
+        ],
+        "touched_files": [
+          "tools/design/super_plan_engine.py",
+          "tools/design/plan_harvester.py",
+          "tests/test_super_plan_reasoning_upgrades.py"
+        ],
+        "touched_ratio": 1.0
+      },
+      "M6": {
+        "declared_files": [
+          "tools/lint/mipro_assertion_tuner.py",
+          "tools/mcp/mcp_server.py",
+          "tests/test_gepa_and_mcp_reasoning.py"
+        ],
+        "touched_files": [
+          "tools/lint/mipro_assertion_tuner.py",
+          "tools/mcp/mcp_server.py",
+          "tests/test_gepa_and_mcp_reasoning.py"
+        ],
+        "touched_ratio": 1.0
+      },
+      "M7": {
+        "declared_files": [
+          "tools/tools_schema.json"
+        ],
+        "touched_files": [
+          "tools/tools_schema.json"
+        ],
+        "touched_ratio": 1.0
+      }
+    },
+    "last_calibrated_at": "2026-11-28T17:20:12.823555"
+  },
+  "coupling_memory": {}
 }
