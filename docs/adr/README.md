@@ -33,6 +33,7 @@
 | [ADR-0030-multi-model-orchestration-architecture.md](./ADR-0030-multi-model-orchestration-architecture.md) | Hybrid Multi-Model Orchestration & Cross-Family Adversarial Pairing | Accepted | Unknown |
 | [ADR-0031-release-readiness-evidence.md](./ADR-0031-release-readiness-evidence.md) | ADR-0031-release-readiness-evidence.md | Accepted | Unknown |
 | [ADR-0033-reasoning-architecture-upgrade-from-12-reference-repositories.md](./ADR-0033-reasoning-architecture-upgrade-from-12-reference-repositories.md) | Reasoning Architecture Upgrade from 12 Reference Repositories | Accepted (DoD Certified) | 2026-11-28 |
+| [ADR-0034-deep-research-rlvr-evaluation-aci-history-compression-calibrated-peer-review-upgrade-from-10-ai-research-repositories.md](./ADR-0034-deep-research-rlvr-evaluation-aci-history-compression-calibrated-peer-review-upgrade-from-10-ai-research-repositories.md) | Deep Research, RLVR Evaluation, ACI History Compression & Calibrated Peer Review Upgrade from 10 AI Research Repositories | Accepted (DoD Certified) | 2026-11-28 |
 
 ---
 *Auto-indexed by `tools/design/plan_harvester.py`.*
