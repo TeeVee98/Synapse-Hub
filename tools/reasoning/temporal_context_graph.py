@@ -194,6 +194,81 @@ class TemporalContextGraph:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
 
+    def _upsert_fact_edge(
+        self,
+        src_id: str,
+        rel: str,
+        tgt_id: str,
+        fact_text: str,
+        ref_dt: datetime,
+        ref_iso: str,
+        created_iso: str,
+        episode_id: str,
+    ) -> None:
+        """Records a fact edge with order-safe bi-temporal invalidation."""
+        cur = self.conn.execute(
+            """
+            SELECT edge_id, target_id, episode_ids_json, valid_at, invalid_at
+            FROM temporal_edges
+            WHERE source_id = ? AND relation = ?
+            ORDER BY valid_at ASC;
+            """,
+            (src_id, rel),
+        )
+        rows = cur.fetchall()
+        same_target_row = None
+        earliest_future_iso: Optional[str] = None
+        earliest_future_dt: Optional[datetime] = None
+
+        for row in rows:
+            row_valid_dt = _parse_iso_strict(row["valid_at"])
+            row_inv_dt = _parse_iso_strict(row["invalid_at"]) if row["invalid_at"] is not None else None
+            overlaps_now = row_valid_dt <= ref_dt and (row_inv_dt is None or ref_dt < row_inv_dt)
+            if row["target_id"] == tgt_id and overlaps_now:
+                same_target_row = row
+                continue
+            if row["target_id"] != tgt_id and overlaps_now:
+                self.conn.execute(
+                    "UPDATE temporal_edges SET invalid_at = ?, expired_at = ? WHERE edge_id = ?;",
+                    (ref_iso, created_iso, row["edge_id"]),
+                )
+            elif row_valid_dt > ref_dt and (earliest_future_dt is None or row_valid_dt < earliest_future_dt):
+                earliest_future_dt = row_valid_dt
+                earliest_future_iso = row["valid_at"]
+
+        if same_target_row is not None:
+            existing_eps = list(json.loads(same_target_row["episode_ids_json"]))
+            if episode_id not in existing_eps:
+                existing_eps.append(episode_id)
+            self.conn.execute(
+                "UPDATE temporal_edges SET episode_ids_json = ?, fact = ? WHERE edge_id = ?;",
+                (json.dumps(existing_eps), fact_text, same_target_row["edge_id"]),
+            )
+            return
+
+        edge_id = f"edge_{uuid.uuid4().hex[:12]}"
+        new_expired = created_iso if earliest_future_iso is not None else None
+        self.conn.execute(
+            """
+            INSERT INTO temporal_edges (
+                edge_id, source_id, target_id, relation, fact,
+                valid_at, invalid_at, created_at, expired_at, episode_ids_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """,
+            (
+                edge_id,
+                src_id,
+                tgt_id,
+                rel,
+                fact_text,
+                ref_iso,
+                earliest_future_iso,
+                created_iso,
+                new_expired,
+                json.dumps([episode_id]),
+            ),
+        )
+
     def add_episode(
         self,
         source: str,
@@ -235,53 +310,7 @@ class TemporalContextGraph:
                     (episode_id, source.strip(), str(content), ref_iso, created_iso, json.dumps(entities)),
                 )
                 for src_id, rel, tgt_id, fact_text in validated_facts:
-                    cur = self.conn.execute(
-                        """
-                        SELECT edge_id, target_id, episode_ids_json, valid_at
-                        FROM temporal_edges
-                        WHERE source_id = ? AND relation = ? AND invalid_at IS NULL;
-                        """,
-                        (src_id, rel),
-                    )
-                    active_rows = cur.fetchall()
-                    same_target_row = None
-                    for row in active_rows:
-                        if row["target_id"] == tgt_id:
-                            same_target_row = row
-                        else:
-                            # Automatic non-destructive contradiction invalidation
-                            self.conn.execute(
-                                """
-                                UPDATE temporal_edges
-                                SET invalid_at = ?, expired_at = ?
-                                WHERE edge_id = ?;
-                                """,
-                                (ref_iso, created_iso, row["edge_id"]),
-                            )
-
-                    if same_target_row is not None:
-                        existing_eps = list(json.loads(same_target_row["episode_ids_json"]))
-                        if episode_id not in existing_eps:
-                            existing_eps.append(episode_id)
-                        self.conn.execute(
-                            """
-                            UPDATE temporal_edges
-                            SET episode_ids_json = ?, fact = ?
-                            WHERE edge_id = ?;
-                            """,
-                            (json.dumps(existing_eps), fact_text, same_target_row["edge_id"]),
-                        )
-                    else:
-                        edge_id = f"edge_{uuid.uuid4().hex[:12]}"
-                        self.conn.execute(
-                            """
-                            INSERT INTO temporal_edges (
-                                edge_id, source_id, target_id, relation, fact,
-                                valid_at, invalid_at, created_at, expired_at, episode_ids_json
-                            ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?);
-                            """,
-                            (edge_id, src_id, tgt_id, rel, fact_text, ref_iso, created_iso, json.dumps([episode_id])),
-                        )
+                    self._upsert_fact_edge(src_id, rel, tgt_id, fact_text, ref_dt, ref_iso, created_iso, episode_id)
 
         return EpisodeRecordDTO(
             episode_id=episode_id,
@@ -331,23 +360,17 @@ class TemporalContextGraph:
             return [e for e in edges if e.invalid_at is None]
         return edges
 
-    def rebuild_communities(self, as_of: Optional[str] = None) -> List[CommunitySummaryDTO]:
-        """Deterministic label-propagation / connected community clustering with summary reports."""
-        as_of_iso = _format_utc(_parse_iso_strict(as_of)) if as_of is not None else _format_utc()
+    def _compute_communities_at(self, as_of_iso: str) -> List[CommunitySummaryDTO]:
+        """Pure-Python deterministic label-propagation community clustering at exact timestamp."""
         active_edges = self.list_edges(as_of=as_of_iso)
         if not active_edges:
-            with self._lock_ctx():
-                with self.conn:
-                    self.conn.execute("DELETE FROM communities;")
             return []
 
         adjacency: Dict[str, Set[str]] = {}
-        edge_lookup: List[BiTemporalEdgeDTO] = active_edges
         for e in active_edges:
             adjacency.setdefault(e.source_id, set()).add(e.target_id)
             adjacency.setdefault(e.target_id, set()).add(e.source_id)
 
-        # Deterministic label propagation (stabilizes to connected modularity clusters)
         nodes = sorted(adjacency.keys())
         labels: Dict[str, str] = {n: n for n in nodes}
         for _ in range(max(10, len(nodes))):
@@ -360,46 +383,28 @@ class TemporalContextGraph:
                 for nb in nbrs:
                     lbl = labels[nb]
                     counts[lbl] = counts.get(lbl, 0) + 1
-                # Deterministic tie-break: highest count, then lexicographically smallest label
                 best_lbl = min(counts.keys(), key=lambda k: (-counts[k], k))
-                if best_lbl < labels[n] or counts.get(best_lbl, 0) > counts.get(labels[n], 0):
-                    if best_lbl != labels[n]:
-                        labels[n] = best_lbl
-                        changed = True
+                if best_lbl != labels[n]:
+                    labels[n] = best_lbl
+                    changed = True
             if not changed:
                 break
 
-        # Merge any remaining connected neighbors so disjoint components map cleanly
-        parent: Dict[str, str] = {n: n for n in nodes}
-
-        def _find(x: str) -> str:
-            while parent[x] != x:
-                parent[x] = parent[parent[x]]
-                x = parent[x]
-            return x
-
-        for e in active_edges:
-            ra, rb = _find(e.source_id), _find(e.target_id)
-            if ra != rb:
-                if ra < rb:
-                    parent[rb] = ra
-                else:
-                    parent[ra] = rb
-
         groups: Dict[str, List[str]] = {}
         for n in nodes:
-            root = _find(n)
-            groups.setdefault(root, []).append(n)
+            groups.setdefault(labels[n], []).append(n)
 
-        total_edges = max(1, len(edge_lookup))
+        total_edges = max(1, len(active_edges))
         summaries: List[CommunitySummaryDTO] = []
         for root_key in sorted(groups.keys()):
             members = tuple(sorted(groups[root_key]))
             member_set = set(members)
             internal_edges = [
-                e for e in edge_lookup if e.source_id in member_set and e.target_id in member_set
+                e for e in active_edges if e.source_id in member_set and e.target_id in member_set
             ]
-            facts_preview = "; ".join(f"{e.source_id} -{e.relation}-> {e.target_id} ({e.fact})" for e in internal_edges[:8])
+            facts_preview = "; ".join(
+                f"{e.source_id} -{e.relation}-> {e.target_id} ({e.fact})" for e in internal_edges[:8]
+            )
             summary_text = (
                 f"Community [{', '.join(members)}] ({len(members)} entities, "
                 f"{len(internal_edges)} active relations): {facts_preview}"
@@ -415,7 +420,12 @@ class TemporalContextGraph:
                     modularity_weight=modularity_weight,
                 )
             )
+        return summaries
 
+    def rebuild_communities(self, as_of: Optional[str] = None) -> List[CommunitySummaryDTO]:
+        """Rebuilds and persists community summary reports for the given timestamp."""
+        as_of_iso = _format_utc(_parse_iso_strict(as_of)) if as_of is not None else _format_utc()
+        summaries = self._compute_communities_at(as_of_iso)
         with self._lock_ctx():
             with self.conn:
                 self.conn.execute("DELETE FROM communities;")
@@ -428,7 +438,6 @@ class TemporalContextGraph:
                         """,
                         (c.community_id, c.level, json.dumps(list(c.member_ids)), c.summary_text, c.modularity_weight, as_of_iso),
                     )
-
         return summaries
 
     def query_as_of(
@@ -456,11 +465,13 @@ class TemporalContextGraph:
 
         matched_comms: List[Dict[str, Any]] = []
         if mode in ("global", "hybrid"):
-            cur = self.conn.execute("SELECT * FROM communities ORDER BY modularity_weight DESC, community_id ASC;")
+            cur = self.conn.execute(
+                "SELECT * FROM communities WHERE as_of = ? ORDER BY modularity_weight DESC, community_id ASC;",
+                (as_of_iso,),
+            )
             rows = cur.fetchall()
             if not rows:
-                built = self.rebuild_communities(as_of=as_of_iso)
-                comm_dicts = [c.to_dict() for c in built]
+                comm_dicts = [c.to_dict() for c in self._compute_communities_at(as_of_iso)]
             else:
                 comm_dicts = [
                     CommunitySummaryDTO(

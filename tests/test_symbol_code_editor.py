@@ -75,10 +75,32 @@ def test_symbol_edit_rollback_and_mcp(tmp_path: Path, monkeypatch: pytest.Monkey
     assert found[0].symbol_kind == "method"
     assert found[0].body is not None and "def login" in found[0].body
 
-    # 4. find_referencing_symbols across file
+    # 4. find_referencing_symbols across file (Name + Attribute + exact snippet + class-method scope + repo-wide walk)
     refs = editor.find_referencing_symbols("AuthService", file_path="sample_auth.py")
-    assert len(refs) >= 1
-    assert any(r["caller_symbol"] == "helper_login" for r in refs)
+    assert len(refs) == 1
+    assert refs[0]["caller_symbol"] == "helper_login"
+    assert refs[0]["snippet"] == "svc = AuthService()"
+
+    attr_refs = editor.find_referencing_symbols("login", file_path="sample_auth.py")
+    assert len(attr_refs) == 1
+    assert attr_refs[0]["caller_symbol"] == "helper_login"
+    assert attr_refs[0]["snippet"] == "return svc.login(user)"
+
+    # Repo-wide walk (file_path=None) skips .git and scans nested subdirectories + class-method callers
+    sub_dir = tmp_path / "pkg"
+    sub_dir.mkdir()
+    (sub_dir / "caller.py").write_text(
+        "class Runner:\n    def go(self):\n        return AuthService()\n",
+        encoding="utf-8",
+    )
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "ignored.py").write_text("class AuthService:\n    pass\n", encoding="utf-8")
+
+    repo_syms = editor.find_symbol("AuthService", file_path=None)
+    assert [s.file_path for s in repo_syms] == ["sample_auth.py"]
+    repo_refs = editor.find_referencing_symbols("AuthService", file_path=None)
+    assert any(r["caller_symbol"] == "Runner/go" and r["snippet"] == "return AuthService()" for r in repo_refs)
 
     # 5. Valid replace_symbol_body
     new_login = "    def login(self, user: str) -> bool:\n        return len(user.strip()) > 0"
@@ -239,6 +261,23 @@ def test_symbol_editor_negative_and_boundary(tmp_path: Path) -> None:
     bad_ident = editor.rename_symbol("mod.py", "alpha", "123-invalid")
     assert bad_ident.applied is False
     assert "identifier" in bad_ident.error.lower()
+
+    # Token-safe rename must preserve string literals and comments mentioning the old name
+    tok_file = tmp_path / "tok_rename.py"
+    tok_file.write_text(
+        "# alpha comment must stay intact\n"
+        "def alpha() -> str:\n"
+        '    return "alpha string literal"\n'
+        "val = alpha()\n",
+        encoding="utf-8",
+    )
+    tok_rec = editor.rename_symbol("tok_rename.py", "alpha", "beta")
+    assert tok_rec.applied is True and tok_rec.syntax_valid is True
+    renamed_src = tok_file.read_text(encoding="utf-8")
+    assert "# alpha comment must stay intact" in renamed_src
+    assert '"alpha string literal"' in renamed_src
+    assert "def beta() -> str:" in renamed_src
+    assert "val = beta()" in renamed_src
 
 
 def test_symbol_editor_cli_json_contract(tmp_path: Path) -> None:

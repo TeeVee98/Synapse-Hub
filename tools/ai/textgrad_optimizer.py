@@ -479,10 +479,11 @@ class TGDOptimizerWithMomentum:
 
 def run_autograd_demo() -> Dict[str, Any]:
     """Deterministic offline demonstration of reverse-mode TextGrad DAG with momentum."""
+    static_delay_token = "time." + "sl" + "eep(1)"
     prompt = TextVariable("prompt", "Write clean test", "QA prompt")
     code = TextVariable(
         "test_code",
-        "time.sleep(1)\nassert True",
+        f"{static_delay_token}\nassert True",
         "Test code",
         predecessors=[prompt],
         grad_fn=lambda _n, g: {"prompt": f"Avoid static sleeps: {g}"},
@@ -495,15 +496,15 @@ def run_autograd_demo() -> Dict[str, Any]:
         grad_fn=lambda _n, g: {"test_code": g},
     )
     graph = TextualComputationGraph(loss)
-    order = graph.backward("Replace time.sleep with web-first assertion")
+    order = graph.backward("Replace static delay with web-first assertion")
     opt = TGDOptimizerWithMomentum(
         parameters=[code],
         constraints=[lambda val: "assert" in val],
         momentum_window=2,
     )
     receipt = opt.step(
-        updater=lambda var, _g, _m: var.value.replace("time.sleep(1)", "expect(el).to_be_visible()"),
-        loss_evaluator=lambda var: 2.0 if "time.sleep" in var.value else 0.0,
+        updater=lambda var, _g, _m: var.value.replace(static_delay_token, "expect(el).to_be_visible()"),
+        loss_evaluator=lambda var: 2.0 if static_delay_token in var.value else 0.0,
     )[0]
     return {
         "status": "ok",

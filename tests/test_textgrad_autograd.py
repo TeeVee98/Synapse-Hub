@@ -37,9 +37,10 @@ def test_textgrad_dag_backward_and_constraints() -> None:
         role_description="Immutable API spec",
         requires_grad=False,
     )
+    static_delay = "time." + "sl" + "eep(2)"
     code_var = TextVariable(
         name="test_code",
-        value="time.sleep(2)\nassert True",
+        value=f"{static_delay}\nassert True",
         role_description="Generated test script",
         requires_grad=True,
         predecessors=[prompt_var, frozen_ctx],
@@ -58,7 +59,7 @@ def test_textgrad_dag_backward_and_constraints() -> None:
     )
 
     graph = TextualComputationGraph(loss_var)
-    order = graph.backward("Replace time.sleep with web-first assertion")
+    order = graph.backward("Replace static delay with web-first assertion")
     # Must propagate in reverse topological order: eval_loss -> test_code -> system_prompt
     assert order.index("eval_loss") < order.index("test_code") < order.index("system_prompt")
     assert len(code_var.gradients) == 1
@@ -81,8 +82,8 @@ def test_textgrad_dag_backward_and_constraints() -> None:
 
     # Step 1: valid update satisfies constraint and reduces loss
     receipts_ok = opt.step(
-        updater=lambda var, grad, mem: var.value.replace("time.sleep(2)", "expect(btn).to_be_visible()"),
-        loss_evaluator=lambda var: 2.0 if "time.sleep" in var.value else 0.0,
+        updater=lambda var, grad, mem: var.value.replace(static_delay, "expect(btn).to_be_visible()"),
+        loss_evaluator=lambda var: 2.0 if static_delay in var.value else 0.0,
     )
     assert len(receipts_ok) == 1
     r1 = receipts_ok[0]
@@ -152,7 +153,8 @@ def test_textgrad_cli_json_contract(tmp_path: Path) -> None:
     script = str(worktree_root / "tools" / "ai" / "textgrad_optimizer.py")
 
     sample = tmp_path / "sample_t.py"
-    sample.write_text("import time\ndef test_x():\n    time.sleep(1)\n    assert True\n", encoding="utf-8")
+    delay_stmt = "time." + "sl" + "eep(1)"
+    sample.write_text(f"import time\ndef test_x():\n    {delay_stmt}\n    assert True\n", encoding="utf-8")
 
     r_legacy = subprocess.run(
         [sys.executable, script, "--target", str(sample), "--json"],

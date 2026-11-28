@@ -316,3 +316,43 @@ def test_bitemporal_pragmas_timezones_and_dto_immutability(tmp_path: Path) -> No
     no_wal_file = str(tmp_path / "nowal.db")
     with TemporalContextGraph(db_path=no_wal_file, auto_wal=False) as nw_g:
         assert nw_g.conn.execute("PRAGMA journal_mode;").fetchone()[0].lower() != "wal"
+
+
+def test_bitemporal_out_of_order_and_as_of_community_isolation(tmp_path: Path) -> None:
+    """Regression suite for Must fix #1 (stale community cache) and Must fix #2 (out-of-order ingestion)."""
+    with TemporalContextGraph(db_path=str(tmp_path / "ooo.db")) as g:
+        # Ingest newer Feb episode FIRST, then late-arriving Jan episode SECOND
+        g.add_episode(
+            source="feb_log",
+            content="svc uses v2 in Feb",
+            reference_time="2026-02-01T00:00:00Z",
+            facts=[("svc", "uses", "v2", "Feb protocol v2")],
+        )
+        g.add_episode(
+            source="jan_backfill",
+            content="svc used v1 in Jan",
+            reference_time="2026-01-01T00:00:00Z",
+            facts=[("svc", "uses", "v1", "Jan protocol v1")],
+        )
+
+        # Must NOT create inverted [Feb, Jan) interval; Jan edge ends at Feb valid_at, Feb edge stays active
+        all_edges = g.list_edges(include_invalid=True)
+        e_v1 = next(e for e in all_edges if e.target_id == "v1")
+        e_v2 = next(e for e in all_edges if e.target_id == "v2")
+        assert e_v1.valid_at == "2026-01-01T00:00:00+00:00"
+        assert e_v1.invalid_at == "2026-02-01T00:00:00+00:00"
+        assert e_v2.valid_at == "2026-02-01T00:00:00+00:00"
+        assert e_v2.invalid_at is None
+
+        # Rebuild communities at Feb (T2), then query Global mode at Jan (T1) -> must NOT leak v2!
+        g.rebuild_communities(as_of="2026-02-15T00:00:00Z")
+        jan_global = g.query_as_of(query="svc", as_of="2026-01-15T00:00:00Z", mode="global")
+        assert len(jan_global["communities"]) == 1
+        assert "v1" in jan_global["communities"][0]["summary_text"]
+        assert "v2" not in jan_global["communities"][0]["summary_text"]
+
+        feb_global = g.query_as_of(query="svc", as_of="2026-02-15T00:00:00Z", mode="global")
+        assert len(feb_global["communities"]) == 1
+        assert "v2" in feb_global["communities"][0]["summary_text"]
+        assert "v1" not in feb_global["communities"][0]["summary_text"]
+

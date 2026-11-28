@@ -147,6 +147,32 @@ final_answer(str(res))
     assert len(b_res.stdout) == 10
     assert b_res.final_answer == "3.14"
 
+    # Regression tests for DoS bombs (Pow, sequence Mult, range) & C-builtin module filtering
+    safe_pow = executor.execute("a = 2 ** 3\nb = 2000000 ** 2\nfinal_answer(f'{a}:{b}')")
+    assert safe_pow.final_answer == "8:4000000000000"
+    with pytest.raises(OperationLimitError):
+        executor.execute("2 ** 5000")
+    with pytest.raises(OperationLimitError):
+        executor.execute("2000000 ** 4")
+    with pytest.raises(OperationLimitError):
+        executor.execute("'a' * 200000")
+    with pytest.raises(OperationLimitError):
+        executor.execute("200000 * ['x']")
+    with pytest.raises(OperationLimitError):
+        executor.execute("range(1000000)")
+
+    zero_mult = SafeASTPythonExecutor().execute(
+        "big = ('a' * 60000) + ('b' * 60000)\nz1 = big * 0\nz2 = 0 * big\nfinal_answer(f'{len(z1)}:{len(z2)}')"
+    )
+    assert zero_mult.final_answer == "0:0"
+
+    c_mod_state: dict[str, object] = {}
+    c_mod_res = SafeASTPythonExecutor().execute("import itertools\nitems = list(itertools.islice([1, 2, 3], 2))", state=c_mod_state)
+    assert c_mod_res.success is True
+    assert "itertools" not in c_mod_state
+    assert "itertools" not in c_mod_res.exported_vars
+    assert c_mod_state["items"] == [1, 2]
+
 
 def test_ast_sandbox_cli_json_contract() -> None:
     """CLI scenario: execute safe Python snippet via --code --json."""

@@ -16,10 +16,11 @@ from __future__ import annotations
 import argparse
 import ast
 from dataclasses import asdict, dataclass
+import io
 import json
 import os
-import re
 import sys
+import tokenize
 from typing import Any, Dict, List, Literal, Optional, Sequence
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -154,9 +155,24 @@ class SymbolCodeEditor:
         _visit(tree.body, [], 1)
         return results
 
+    def _read_text(self, abs_path: str, errors: str = "strict") -> str:
+        with open(abs_path, "r", encoding="utf-8", errors=errors) as fh:
+            return fh.read()
+
+    def _iter_target_python_files(self, file_path: Optional[str]) -> List[str]:
+        if file_path:
+            return [self._resolve_safe_file(file_path)]
+        targets: List[str] = []
+        for root_dir, dirs, files in os.walk(self.repo_root):
+            dirs[:] = [d for d in dirs if d not in (".git", "__pycache__", ".venv", "node_modules", ".synapse")]
+            for fn in sorted(files):
+                if fn.endswith(".py"):
+                    targets.append(os.path.join(root_dir, fn))
+        return targets
+
     def get_symbols_overview(self, file_path: str, depth: int = 2) -> List[SymbolMatchDTO]:
         resolved = self._resolve_safe_file(file_path)
-        source = open(resolved, "r", encoding="utf-8").read()
+        source = self._read_text(resolved)
         return self._collect_python_symbols(source, self._rel_path(resolved), max_depth=max(1, int(depth)), include_body=False)
 
     def find_symbol(
@@ -166,27 +182,66 @@ class SymbolCodeEditor:
         include_body: bool = False,
     ) -> List[SymbolMatchDTO]:
         matcher = NamePathMatcher(name_path)
-        targets: List[str] = []
-        if file_path:
-            targets.append(self._resolve_safe_file(file_path))
-        else:
-            for root_dir, dirs, files in os.walk(self.repo_root):
-                dirs[:] = [d for d in dirs if d not in (".git", "__pycache__", ".venv", "node_modules", ".synapse")]
-                for fn in sorted(files):
-                    if fn.endswith(".py"):
-                        targets.append(os.path.join(root_dir, fn))
-
         matches: List[SymbolMatchDTO] = []
-        for path in targets:
-            source = open(path, "r", encoding="utf-8", errors="replace").read()
+        for path in self._iter_target_python_files(file_path):
+            source = self._read_text(path, errors="replace")
             try:
                 syms = self._collect_python_symbols(source, self._rel_path(path), max_depth=6, include_body=include_body)
             except SyntaxError:
                 continue
-            for sym in syms:
-                if matcher.matches(sym.name_path):
-                    matches.append(sym)
+            matches.extend(sym for sym in syms if matcher.matches(sym.name_path))
         return matches
+
+    def _collect_scope_references(
+        self,
+        node: ast.AST,
+        scope: str,
+        target_name: str,
+        rel_path: str,
+        lines: Sequence[str],
+    ) -> List[Dict[str, Any]]:
+        hits: List[Dict[str, Any]] = []
+        for child in ast.walk(node):
+            matched = (isinstance(child, ast.Name) and child.id == target_name) or (
+                isinstance(child, ast.Attribute) and child.attr == target_name
+            )
+            if not matched:
+                continue
+            ln = int(getattr(child, "lineno", 1))
+            hits.append(
+                {
+                    "file_path": rel_path,
+                    "caller_symbol": scope,
+                    "line": ln,
+                    "snippet": lines[ln - 1].strip() if 0 < ln <= len(lines) else "",
+                }
+            )
+        return hits
+
+    def _iter_scope_nodes(self, tree: ast.Module) -> List[tuple[ast.AST, str]]:
+        scopes: List[tuple[ast.AST, str]] = []
+        fn_types = (ast.FunctionDef, ast.AsyncFunctionDef)
+        for top in tree.body:
+            if isinstance(top, fn_types):
+                scopes.append((top, top.name))
+            elif isinstance(top, ast.ClassDef):
+                scopes.extend((sub, f"{top.name}/{sub.name}") for sub in top.body if isinstance(sub, fn_types))
+        return scopes
+
+    def _collect_file_references(self, path: str, target_name: str) -> List[Dict[str, Any]]:
+        source = self._read_text(path, errors="replace")
+        if not source.strip():
+            return []
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        rel = self._rel_path(path)
+        lines = source.splitlines()
+        refs: List[Dict[str, Any]] = []
+        for node, scope in self._iter_scope_nodes(tree):
+            refs.extend(self._collect_scope_references(node, scope, target_name, rel, lines))
+        return refs
 
     def find_referencing_symbols(
         self,
@@ -196,58 +251,9 @@ class SymbolCodeEditor:
         if not isinstance(symbol_name, str) or not symbol_name.strip():
             raise ValueError("symbol_name must be a non-empty string.")
         target_name = symbol_name.strip().split("/")[-1]
-        targets: List[str] = []
-        if file_path:
-            targets.append(self._resolve_safe_file(file_path))
-        else:
-            for root_dir, dirs, files in os.walk(self.repo_root):
-                dirs[:] = [d for d in dirs if d not in (".git", "__pycache__", ".venv", "node_modules", ".synapse")]
-                for fn in sorted(files):
-                    if fn.endswith(".py"):
-                        targets.append(os.path.join(root_dir, fn))
-
         refs: List[Dict[str, Any]] = []
-        for path in targets:
-            source = open(path, "r", encoding="utf-8", errors="replace").read()
-            if not source.strip():
-                continue
-            try:
-                tree = ast.parse(source)
-            except SyntaxError:
-                continue
-            rel = self._rel_path(path)
-            lines = source.splitlines()
-
-            def _scan_body(node: ast.AST, scope: str) -> None:
-                for child in ast.walk(node):
-                    if isinstance(child, ast.Name) and child.id == target_name:
-                        ln = int(getattr(child, "lineno", 1))
-                        refs.append(
-                            {
-                                "file_path": rel,
-                                "caller_symbol": scope,
-                                "line": ln,
-                                "snippet": lines[ln - 1].strip() if 0 < ln <= len(lines) else "",
-                            }
-                        )
-                    elif isinstance(child, ast.Attribute) and child.attr == target_name:
-                        ln = int(getattr(child, "lineno", 1))
-                        refs.append(
-                            {
-                                "file_path": rel,
-                                "caller_symbol": scope,
-                                "line": ln,
-                                "snippet": lines[ln - 1].strip() if 0 < ln <= len(lines) else "",
-                            }
-                        )
-
-            for top in tree.body:
-                if isinstance(top, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    _scan_body(top, top.name)
-                elif isinstance(top, ast.ClassDef):
-                    for sub in top.body:
-                        if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                            _scan_body(sub, f"{top.name}/{sub.name}")
+        for path in self._iter_target_python_files(file_path):
+            refs.extend(self._collect_file_references(path, target_name))
         return refs
 
     def _apply_atomic_edit(
@@ -287,7 +293,7 @@ class SymbolCodeEditor:
     def replace_symbol_body(self, file_path: str, name_path: str, new_body: str) -> SymbolEditReceiptDTO:
         resolved = self._resolve_safe_file(file_path)
         rel_path = self._rel_path(resolved)
-        original = open(resolved, "r", encoding="utf-8").read()
+        original = self._read_text(resolved)
         matches = self.find_symbol(name_path, file_path=resolved, include_body=False)
         if not matches:
             return SymbolEditReceiptDTO(
@@ -308,7 +314,7 @@ class SymbolCodeEditor:
     def insert_before_symbol(self, file_path: str, name_path: str, snippet: str) -> SymbolEditReceiptDTO:
         resolved = self._resolve_safe_file(file_path)
         rel_path = self._rel_path(resolved)
-        original = open(resolved, "r", encoding="utf-8").read()
+        original = self._read_text(resolved)
         matches = self.find_symbol(name_path, file_path=resolved, include_body=False)
         if not matches:
             return SymbolEditReceiptDTO(
@@ -329,7 +335,7 @@ class SymbolCodeEditor:
     def insert_after_symbol(self, file_path: str, name_path: str, snippet: str) -> SymbolEditReceiptDTO:
         resolved = self._resolve_safe_file(file_path)
         rel_path = self._rel_path(resolved)
-        original = open(resolved, "r", encoding="utf-8").read()
+        original = self._read_text(resolved)
         matches = self.find_symbol(name_path, file_path=resolved, include_body=False)
         if not matches:
             return SymbolEditReceiptDTO(
@@ -347,6 +353,25 @@ class SymbolCodeEditor:
         updated = "\n".join(new_lines) + ("\n" if original.endswith("\n") else "")
         return self._apply_atomic_edit(resolved, rel_path, name_path, "insert_after", original, updated)
 
+    def _replace_identifier_tokens(self, source: str, old_name: str, new_name: str) -> str:
+        """Replaces only Python NAME tokens matching old_name, preserving strings and comments."""
+        lines = source.splitlines(keepends=True)
+        offsets: List[int] = []
+        pos = 0
+        for ln in lines:
+            offsets.append(pos)
+            pos += len(ln)
+        spans: List[tuple[int, int]] = []
+        for tok in tokenize.generate_tokens(io.StringIO(source).readline):
+            if tok.type == tokenize.NAME and tok.string == old_name:
+                start_abs = offsets[tok.start[0] - 1] + tok.start[1]
+                end_abs = offsets[tok.end[0] - 1] + tok.end[1]
+                spans.append((start_abs, end_abs))
+        out = source
+        for start_abs, end_abs in reversed(spans):
+            out = out[:start_abs] + new_name + out[end_abs:]
+        return out
+
     def rename_symbol(self, file_path: str, name_path: str, new_name: str) -> SymbolEditReceiptDTO:
         resolved = self._resolve_safe_file(file_path)
         rel_path = self._rel_path(resolved)
@@ -360,7 +385,7 @@ class SymbolCodeEditor:
                 rolled_back=False,
                 error=f"Invalid Python identifier for rename: '{new_name}'.",
             )
-        original = open(resolved, "r", encoding="utf-8").read()
+        original = self._read_text(resolved)
         matches = self.find_symbol(name_path, file_path=resolved, include_body=False)
         if not matches:
             return SymbolEditReceiptDTO(
@@ -373,7 +398,7 @@ class SymbolCodeEditor:
                 error=f"Symbol '{name_path}' not found in '{rel_path}'.",
             )
         old_name = matches[0].name_path.split("/")[-1]
-        updated = re.sub(rf"\b{re.escape(old_name)}\b", new_name, original)
+        updated = self._replace_identifier_tokens(original, old_name, new_name)
         return self._apply_atomic_edit(resolved, rel_path, name_path, "rename", original, updated)
 
 

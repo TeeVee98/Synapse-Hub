@@ -22,6 +22,7 @@ import operator
 import os
 import sys
 import time
+import types
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 _TOOLS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -158,13 +159,19 @@ class SafeASTPythonExecutor:
         def _final_answer(val: Any) -> None:
             raise _FinalAnswerSignal(val)
 
+        def _safe_range(*args: Any) -> range:
+            r = range(*args)
+            if len(r) > self.max_operations:
+                raise OperationLimitError(f"range() size {len(r)} exceeds max_operations ({self.max_operations}).")
+            return r
+
         builtins_map: Dict[str, Any] = {
             "len": len,
             "sum": sum,
             "min": min,
             "max": max,
             "sorted": sorted,
-            "range": range,
+            "range": _safe_range,
             "int": int,
             "float": float,
             "str": str,
@@ -187,6 +194,20 @@ class SafeASTPythonExecutor:
         env.update(self.tools)
         env.update(state)
         return env
+
+    def _guard_binop_limits(self, op: ast.operator, left_val: Any, right_val: Any) -> None:
+        if isinstance(op, ast.Pow):
+            if isinstance(right_val, (int, float)) and abs(right_val) > 1000:
+                raise OperationLimitError("Exponent exceeds safe sandbox bound (1000).")
+            if isinstance(left_val, (int, float)) and isinstance(right_val, (int, float)) and abs(left_val) > 1_000_000 and right_val > 3:
+                raise OperationLimitError("Power base/exponent combination exceeds safe sandbox bound.")
+            return
+        if isinstance(op, ast.Mult):
+            seq_types = (str, bytes, list, tuple)
+            if isinstance(left_val, seq_types) and isinstance(right_val, int) and len(left_val) * max(0, right_val) > 100_000:
+                raise OperationLimitError("Sequence repetition exceeds safe sandbox allocation limit.")
+            if isinstance(right_val, seq_types) and isinstance(left_val, int) and len(right_val) * max(0, left_val) > 100_000:
+                raise OperationLimitError("Sequence repetition exceeds safe sandbox allocation limit.")
 
     def _eval(
         self,
@@ -241,10 +262,10 @@ class SafeASTPythonExecutor:
             op_fn = _BIN_OPS.get(type(node.op))
             if op_fn is None:
                 raise SandboxSecurityError(f"Binary operator '{type(node.op).__name__}' is not allowed.")
-            return op_fn(
-                self._eval(node.left, env, counter, deadline),
-                self._eval(node.right, env, counter, deadline),
-            )
+            left_val = self._eval(node.left, env, counter, deadline)
+            right_val = self._eval(node.right, env, counter, deadline)
+            self._guard_binop_limits(node.op, left_val, right_val)
+            return op_fn(left_val, right_val)
 
         if isinstance(node, ast.UnaryOp):
             op_fn = _UNARY_OPS.get(type(node.op))
@@ -465,7 +486,7 @@ class SafeASTPythonExecutor:
 
         exported: Dict[str, str] = {}
         for k, v in env.items():
-            if k not in initial_keys and not callable(v) and not hasattr(v, "__file__"):
+            if k not in initial_keys and not callable(v) and not isinstance(v, types.ModuleType):
                 session_state[k] = v
                 exported[k] = repr(v)[:200]
 
