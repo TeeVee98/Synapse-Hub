@@ -169,6 +169,13 @@ def _resolve_target_file(repo_root: str, raw_file: str) -> str:
     return raw_file
 
 
+def _is_passing_test_line(line: str) -> bool:
+    """Returns True for Playwright/Pytest/TAP passing summary lines that should never be treated as failures."""
+    if "\u2713" in line:
+        return True
+    return bool(re.search(r"(?:\bPASSED\s*\[\s*\d+%\s*\]|::\S+\s+PASSED\b|^\s*ok\s+\d+\b)", line))
+
+
 def _parse_log_failures(log_path: str, repo_root: str) -> List[Dict[str, Any]]:
     """Extracts structured failure candidates from a raw CI failure log file."""
     try:
@@ -180,11 +187,13 @@ def _parse_log_failures(log_path: str, repo_root: str) -> List[Dict[str, Any]]:
     patcher = AgentlessPatcher(repo_root=repo_root)
     failures: List[Dict[str, Any]] = []
     seen = set()
+    non_passing_lines = [
+        line.strip()
+        for line in content.splitlines()
+        if line.strip() and not _is_passing_test_line(line)
+    ]
 
-    for line in content.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
+    for stripped in non_passing_lines:
         has_signal = any(
             re.search(pat, stripped, re.IGNORECASE)
             for pat in (_LINT_SIGNAL_PATTERNS + _CI_ENV_DEFECT_PATTERNS + _LOCATOR_SIGNAL_PATTERNS + _AUT_DEFECT_PATTERNS)
@@ -214,16 +223,17 @@ def _parse_log_failures(log_path: str, repo_root: str) -> List[Dict[str, Any]]:
                     }
                 )
 
-    if not failures:
-        loc = patcher.parse_stacktrace(content)
+    if not failures and non_passing_lines:
+        filtered_text = "\n".join(non_passing_lines)
+        loc = patcher.parse_stacktrace(filtered_text)
         if loc:
             failures.append(
                 {
                     "tc": os.path.basename(loc["file"]),
-                    "reason": content.splitlines()[-1][:240] if content.splitlines() else "CI log failure",
+                    "reason": non_passing_lines[-1][:240],
                     "file": loc["file"],
                     "line": str(loc["line"]),
-                    "trace": content[-600:],
+                    "trace": filtered_text[-600:],
                     "source": log_path,
                 }
             )
@@ -900,10 +910,22 @@ def _apply_patches_for_file(
     )
 
 
+def _split_command_portable(cmd_str: str) -> List[str]:
+    """Tokenizes command strings while preserving Windows backslash executable paths."""
+    is_win = os.name == "nt" or bool(re.match(r'^"?[A-Za-z]:\\', cmd_str.lstrip()))
+    if not is_win:
+        return shlex.split(cmd_str, posix=True)
+    raw_tokens = shlex.split(cmd_str, posix=False)
+    return [
+        tok[1:-1] if len(tok) >= 2 and tok[0] == tok[-1] and tok[0] in ('"', "'") else tok
+        for tok in raw_tokens
+    ]
+
+
 def _run_verify_command(verify_cmd: str, repo_root: str) -> Tuple[bool, str]:
     """Executes verification command safely, catching parse, OS, and timeout errors."""
     try:
-        argv = shlex.split(verify_cmd)
+        argv = _split_command_portable(verify_cmd)
         if not argv:
             return False, "Empty verification command."
         proc = subprocess.run(

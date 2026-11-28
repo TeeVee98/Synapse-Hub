@@ -915,6 +915,80 @@ class TestCIAutoHealerEnvDefects:
         assert "Skipped Env: 1" in out
         assert "## Skipped CI / Environment Defects" in copilot_out.read_text(encoding="utf-8")
 
+    def test_collect_ci_failures_ignores_passing_playwright_lines(self, tmp_path):
+        artifacts = tmp_path / "artifacts"
+        artifacts.mkdir()
+        log_file = artifacts / "ci_failed.log"
+        log_file.write_text(
+            "2026-11-28T01:23:25Z ✓ 4 [firefox] › tests/security.spec.ts:95:3 › "
+            "TC-SEC-04: Request with tampered CSRF token is rejected with HTTP 403 or 419 (4.1s)\n"
+            "ok 1 - tests/auth.spec.ts:20:3 HTTP 403 test passed\n"
+            "tests/test_app.py::test_ok PASSED [100%]\n",
+            encoding="utf-8",
+        )
+
+        collected = collect_ci_failures(
+            artifacts_dir=str(artifacts),
+            error_log=str(log_file),
+            repo_root=str(tmp_path),
+        )
+        assert collected["failures"] == []
+
+        mixed_log = tmp_path / "mixed.log"
+        mixed_log.write_text(
+            "✓ 1 [chromium] › tests/ok.spec.ts:10:1 HTTP 403\n"
+            "TimeoutError: waiting for locator('#btn') at pages/LoginPage.ts:12:5\n",
+            encoding="utf-8",
+        )
+        mixed_res = collect_ci_failures(artifacts_dir="", error_log=str(mixed_log), repo_root=str(tmp_path))
+        assert len(mixed_res["failures"]) == 1
+
+        fallback_log = tmp_path / "fallback.log"
+        fallback_log.write_text(
+            "Running suite header line\n"
+            "at LoginPage.submit (pages/LoginPage.ts:15:3)\n",
+            encoding="utf-8",
+        )
+        fb_res = collect_ci_failures(artifacts_dir="", error_log=str(fallback_log), repo_root=str(tmp_path))
+        assert len(fb_res["failures"]) == 1
+        assert fb_res["failures"][0]["reason"].startswith("at LoginPage.submit")
+
+    def test_verify_cmd_preserves_windows_backslash_executable_path(self, tmp_path):
+        page_file = tmp_path / "pages" / "WinPage.ts"
+        page_file.parent.mkdir(parents=True)
+        page_file.write_text(
+            "export class WinPage {\n  async go() {\n    await page.click('#win-old');\n  }\n}\n",
+            encoding="utf-8",
+        )
+        artifacts = tmp_path / "artifacts"
+        artifacts.mkdir()
+        _write_junit_xml(
+            artifacts / "win_junit.xml",
+            "test_win_go",
+            "TimeoutError: waiting for locator('#win-old')",
+            f"TimeoutError: locator('#win-old')\n    at WinPage.go ({page_file}:3:11)",
+        )
+
+        captured_cmds = []
+
+        def _fake_verify(cmd, **kwargs):
+            captured_cmds.append(cmd)
+            return MagicMock(returncode=0, stdout="ok", stderr="")
+
+        win_exe = r"C:\hostedtoolcache\windows\Python\3.11.9\x64\python.exe"
+        with patch("tools.heal.ci_auto_healer.subprocess.run", side_effect=_fake_verify):
+            res = run_ci_auto_heal(
+                repo_root=str(tmp_path),
+                artifacts_dir=str(artifacts),
+                apply_patches=True,
+                verify_cmd=f'{win_exe} -c "import sys; sys.exit(0)"',
+            )
+
+        assert res["status"] == "HEALED_AND_VERIFIED"
+        assert captured_cmds == [[win_exe, "-c", "import sys; sys.exit(0)"]]
+
+
+
 
 
 

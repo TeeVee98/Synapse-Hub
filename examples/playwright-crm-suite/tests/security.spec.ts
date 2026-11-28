@@ -154,7 +154,7 @@ test.describe('CRM Security, Concurrency & DAST Probes Suite — Phase 3 Specifi
     await loginPage.btnSubmit.dblclick();
 
     // System must navigate to Dashboard smoothly without error 500 or duplicate session crash
-    await page.waitForURL(/.*admin(\/)?$/, { timeout: 15000 });
+    await expect(page).toHaveURL(/.*admin(\/)?$/, { timeout: 15000 });
     expect(page.url()).toContain('/admin');
     await expect(loginPage.menuItemDashboard).toBeVisible();
     await expect(page).toHaveTitle(/.*(Dashboard|Bảng tin).*/i);
