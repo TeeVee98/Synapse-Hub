@@ -256,3 +256,27 @@ def test_cli_json_and_gate_flags_across_sensors(tmp_path: Path):
         text=True,
     )
     assert ae.returncode == 1
+
+
+def test_canary_cache_defaults_to_worktree():
+    assert Path(agent_canary.CACHE_DB).parent == ROOT_DIR / ".synapse"
+
+
+def test_canary_uses_seeded_temp_cache_when_existing_cache_is_unreadable(tmp_path: Path):
+    stale_cache = tmp_path / "canary.db"
+    original_data = b"invalid sqlite database"
+    stale_cache.write_bytes(original_data)
+    resolved, cleanup = agent_canary._ensure_cache_db(str(stale_cache))
+    try:
+        assert resolved != str(stale_cache)
+        assert cleanup == resolved
+        import sqlite3
+        from contextlib import closing
+
+        with closing(sqlite3.connect(resolved)) as database:
+            records = database.execute("SELECT count(*) FROM healing_cache").fetchone()
+        assert records[0] >= 2
+        assert stale_cache.read_bytes() == original_data
+    finally:
+        if cleanup:
+            Path(cleanup).unlink()
