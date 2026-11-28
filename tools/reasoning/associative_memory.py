@@ -713,6 +713,46 @@ class AssociativeMemory:
             if src and tgt:
                 self.record_association(src, tgt, rel, weight=w, timestamp=ts)
 
+    def sync_to_temporal_graph(
+        self,
+        temporal_graph: Any,
+        reference_time: Optional[str] = None,
+        source: str = "associative_memory_sync",
+        min_weight: float = 0.0,
+    ) -> Dict[str, Any]:
+        """Exports active associative edges into a TemporalContextGraph episode."""
+        ref_iso = reference_time or _format_iso_datetime()
+        cur = self.conn.execute(
+            """
+            SELECT source_id, relation, target_id, weight
+            FROM edges
+            WHERE weight >= ?
+            ORDER BY source_id ASC, relation ASC, target_id ASC;
+            """,
+            (float(min_weight),),
+        )
+        facts = [
+            (
+                str(r["source_id"]),
+                str(r["relation"]),
+                str(r["target_id"]),
+                f"Associative relation weight={float(r['weight']):.2f}",
+            )
+            for r in cur.fetchall()
+        ]
+        episode = temporal_graph.add_episode(
+            source=source,
+            content=f"Synced {len(facts)} associative edges",
+            reference_time=ref_iso,
+            facts=facts,
+        )
+        return {
+            "status": "ok",
+            "episode_id": episode.episode_id,
+            "synced_edges": len(facts),
+            "reference_time": episode.reference_time,
+        }
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     """Builds the CLI argument parser with subcommands and shared flags."""

@@ -34,6 +34,7 @@ import sqlite3
 import hashlib
 import tarfile
 import argparse
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Union
 
@@ -75,6 +76,19 @@ def scrub_data_dict(data: Any, key_name: Optional[str] = None) -> Any:
     elif isinstance(data, str):
         return scrub_secrets(data)
     return data
+
+
+@dataclass(frozen=True)
+class CoreCompactionReceiptDTO:
+    block_name: str
+    bytes_before: int
+    bytes_after: int
+    budget_bytes: int
+    archived_entry_id: Optional[str]
+    compacted: bool
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 
 class QAMemoryOS:
@@ -190,6 +204,76 @@ class QAMemoryOS:
         cursor = self._conn.cursor()
         cursor.execute("SELECT block_name FROM core_memory ORDER BY block_name ASC;")
         return [r[0] for r in cursor.fetchall()]
+
+    def edit_core_block(
+        self,
+        block_name: str,
+        field: str,
+        old_text: str,
+        new_text: str,
+    ) -> Dict[str, Any]:
+        """Letta-inspired self-editing core memory helper replacing a targeted substring in a block field."""
+        existing = self.get_core(block_name)
+        if existing is None:
+            raise KeyError(f"Core memory block '{block_name}' does not exist.")
+        if field not in existing:
+            raise KeyError(f"Field '{field}' not found in core memory block '{block_name}'.")
+        current_val = str(existing[field])
+        if old_text not in current_val:
+            raise ValueError(f"Substring '{old_text}' not found in core block '{block_name}.{field}'.")
+        updated = dict(existing)
+        updated[field] = current_val.replace(old_text, new_text, 1)
+        self.set_core(block_name, updated)
+        return self.get_core(block_name) or updated
+
+    def compact_core_block(
+        self,
+        block_name: str,
+        budget_bytes: int = 2048,
+        project_hash: str = "global",
+    ) -> "CoreCompactionReceiptDTO":
+        """Enforces byte budget on a core memory block with lossless spillover into archival tier."""
+        if int(budget_bytes) < 32:
+            raise ValueError("budget_bytes must be at least 32 bytes.")
+        existing = self.get_core(block_name)
+        if existing is None:
+            raise KeyError(f"Core memory block '{block_name}' does not exist.")
+        raw_bytes = len(json.dumps(existing).encode("utf-8"))
+        if raw_bytes <= int(budget_bytes):
+            return CoreCompactionReceiptDTO(
+                block_name=block_name,
+                bytes_before=raw_bytes,
+                bytes_after=raw_bytes,
+                budget_bytes=int(budget_bytes),
+                archived_entry_id=None,
+                compacted=False,
+            )
+
+        archived_id = self.save_archival(
+            domain="core_compaction",
+            trigger=f"core_compaction:{block_name}",
+            action=existing,
+            project_hash=project_hash,
+            confidence=1.0,
+        )
+        # Compact payload deterministically to fit strictly within budget_bytes
+        envelope = {"_archived_ref": archived_id, "summary": ""}
+        overhead = len(json.dumps(envelope).encode("utf-8"))
+        avail = max(0, int(budget_bytes) - overhead)
+        flat_summary = "; ".join(f"{k}={str(v)}" for k, v in existing.items())
+        compacted_payload = {"_archived_ref": archived_id, "summary": flat_summary[:avail]}
+        while len(json.dumps(compacted_payload).encode("utf-8")) > int(budget_bytes) and compacted_payload["summary"]:
+            compacted_payload["summary"] = compacted_payload["summary"][:-1]
+        self.set_core(block_name, compacted_payload)
+        bytes_after = len(json.dumps(self.get_core(block_name) or compacted_payload).encode("utf-8"))
+        return CoreCompactionReceiptDTO(
+            block_name=block_name,
+            bytes_before=raw_bytes,
+            bytes_after=bytes_after,
+            budget_bytes=int(budget_bytes),
+            archived_entry_id=archived_id,
+            compacted=True,
+        )
 
     # =========================================================================
     # Tier 2: Recall Memory Methods

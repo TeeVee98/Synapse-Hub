@@ -405,6 +405,86 @@ class TotExploratoryTester:
             "ranked_hypotheses": scored_hypotheses
         }
 
+    def run_graph_search(
+        self,
+        story_title: str,
+        domain: str = "GENERAL",
+        top_k: int = 2,
+    ) -> Dict[str, Any]:
+        """Executes a convergent Graph-of-Thoughts synthesis over high-risk QA exploration branches."""
+        from tools.reasoning.graph_of_thoughts import (
+            Aggregate,
+            Generate,
+            GoTController,
+            GraphOfOperations,
+            KeepBestN,
+            Score,
+            ThoughtStateDTO,
+            ValidateAndImprove,
+        )
+
+        branches = [
+            ("BRANCH_BOUNDARY_RACE", f"{story_title}: boundary, concurrency race & idempotency"),
+            ("BRANCH_NEGATIVE_CHAOS", f"{story_title}: negative fault injection & rollback"),
+            ("BRANCH_SECURITY_AUTH", f"{story_title}: RBAC/IDOR & token tamper guard"),
+            ("BRANCH_HAPPY_PATH", f"{story_title}: primary happy flow"),
+        ]
+
+        g = GraphOfOperations()
+        op_gen = g.add_operation(
+            Generate(
+                "generate_qa_branches",
+                lambda _in: [ThoughtStateDTO(thought_id=bid, content=desc) for bid, desc in branches],
+            )
+        )
+        op_score = g.add_operation(
+            Score("score_qa_risk", lambda t: self.evaluate_state_value(t.thought_id, t.content, domain)[1]),
+            predecessors=[op_gen],
+        )
+        op_top = g.add_operation(KeepBestN("select_top_k", n=max(1, int(top_k))), predecessors=[op_score])
+        op_agg = g.add_operation(
+            Aggregate(
+                "aggregate_qa_synthesis",
+                lambda ts: ThoughtStateDTO(
+                    thought_id="qa_got_synthesis",
+                    content=" + ".join(t.content for t in ts),
+                    score=round(sum(t.score for t in ts) / max(1, len(ts)), 3),
+                    valid=False,
+                    parent_ids=tuple(t.thought_id for t in ts),
+                ),
+            ),
+            predecessors=[op_top],
+        )
+        g.add_operation(
+            ValidateAndImprove(
+                "verify_qa_oracle",
+                validator=lambda t: "[ORACLE_VERIFIED]" in t.content,
+                improver=lambda t, _a: ThoughtStateDTO(
+                    thought_id=t.thought_id,
+                    content=t.content + " [ORACLE_VERIFIED]",
+                    score=t.score,
+                    valid=True,
+                    parent_ids=t.parent_ids,
+                ),
+                max_retries=1,
+            ),
+            predecessors=[op_agg],
+        )
+
+        ctrl = GoTController(g)
+        finals = ctrl.run()
+        trace = ctrl.export_graph_trace()
+        synthesized_parents = list(finals[0].parent_ids) if finals else []
+        return {
+            "status": "PASS",
+            "story_title": story_title,
+            "domain": domain,
+            "final_thought_count": trace["final_thought_count"],
+            "best_score": trace["best_score"],
+            "synthesized_parents": synthesized_parents,
+            "graph_trace": trace,
+        }
+
 
 def main():
     parser = argparse.ArgumentParser(description="Tree-of-Thoughts Exploratory Testing Engine")

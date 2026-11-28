@@ -40,6 +40,9 @@ class SOPStageDefinition:
     required_evidence_fields: List[str] = field(default_factory=list)
     transitions: List[str] = field(default_factory=list)
     circuit_breaker: str = "Max attempts: 2; revert to previous stage"
+    approval_required: bool = False
+    max_retries: int = 2
+    watch_events: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -195,5 +198,26 @@ def validate_sop_workflow(workflow: QASOPWorkflow) -> Tuple[bool, List[str]]:
         for target in s_def.transitions:
             if target not in workflow.stages:
                 errors.append(f"Stage '{s_id}' has transition pointing to unknown stage '{target}'.")
+
+    # Verify reachability of final_stage from initial_stage when both exist
+    if (
+        workflow.initial_stage in workflow.stages
+        and workflow.final_stage
+        and workflow.final_stage in workflow.stages
+    ):
+        visited = set()
+        queue = [workflow.initial_stage]
+        while queue:
+            cur = queue.pop(0)
+            if cur in visited:
+                continue
+            visited.add(cur)
+            for nxt in workflow.stages[cur].transitions:
+                if nxt in workflow.stages and nxt not in visited:
+                    queue.append(nxt)
+        if workflow.final_stage not in visited:
+            errors.append(
+                f"final_stage '{workflow.final_stage}' is not reachable from initial_stage '{workflow.initial_stage}'."
+            )
 
     return len(errors) == 0, errors

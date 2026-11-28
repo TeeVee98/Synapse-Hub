@@ -30,8 +30,8 @@
 | [ADR-0027-review-v21-closed-loop-hardening.md](./ADR-0027-review-v21-closed-loop-hardening.md) | Closed-Loop `/review` v2.1 Hardening (Untracked Diff, True-Tautology Guard, Strict Solo & Multi-Line AST) | Accepted (DoD Certified) | 2026-11-26 |
 | [ADR-0028-stdlib-vietnamese-nlp-and-calibrated-utterance-routing.md](./ADR-0028-stdlib-vietnamese-nlp-and-calibrated-utterance-routing.md) | Pure-Stdlib Vietnamese NLP Core & Calibrated Utterance Routing (v2.2) | Accepted (DoD Certified) | 2026-11-26 |
 | [ADR-0029-manual-qa-pipeline-profile.md](./ADR-0029-manual-qa-pipeline-profile.md) | Manual QA Pipeline Profile (`--profile manual`) for `/super-plan`, `/solo`, and `/review` | Accepted | 2026-11-27 |
-| [ADR-0030-multi-model-orchestration-architecture.md](./ADR-0030-multi-model-orchestration-architecture.md) | Hybrid Multi-Model Orchestration & Cross-Family Adversarial Pairing | Accepted | 2026-11-27 |
-| [ADR-0031-release-readiness-evidence.md](./ADR-0031-release-readiness-evidence.md) | Release Readiness Verification Evidence | Accepted | 2026-11-27 |
+| [ADR-0030-multi-model-orchestration-architecture.md](./ADR-0030-multi-model-orchestration-architecture.md) | Hybrid Multi-Model Orchestration & Cross-Family Adversarial Pairing | Accepted | Unknown |
+| [ADR-0031-release-readiness-evidence.md](./ADR-0031-release-readiness-evidence.md) | ADR-0031-release-readiness-evidence.md | Accepted | Unknown |
 
 ---
 *Auto-indexed by `tools/design/plan_harvester.py`.*

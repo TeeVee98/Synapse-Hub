@@ -342,6 +342,90 @@ MCP_TOOLS = [
             },
             "required": ["base_url"]
         }
+    },
+    {
+        "name": "symbol_overview",
+        "description": "Returns hierarchical AST symbol overview (classes, methods, functions) for a repository file.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repo_path": {"type": "string", "description": "Repository root path."},
+                "file_path": {"type": "string", "description": "Target file path."},
+                "depth": {"type": "integer", "default": 2, "description": "Maximum nesting depth."}
+            },
+            "required": ["file_path"]
+        }
+    },
+    {
+        "name": "find_symbol",
+        "description": "Finds matching symbols by Serena-style name path (e.g., ClassName/method_name).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repo_path": {"type": "string", "description": "Repository root path."},
+                "name_path": {"type": "string", "description": "Symbol name path pattern."},
+                "file_path": {"type": "string", "description": "Optional target file filter."},
+                "include_body": {"type": "boolean", "default": False}
+            },
+            "required": ["name_path"]
+        }
+    },
+    {
+        "name": "find_referencing_symbols",
+        "description": "Finds AST symbol references across a file or repository.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repo_path": {"type": "string", "description": "Repository root path."},
+                "symbol_name": {"type": "string", "description": "Target symbol name."},
+                "file_path": {"type": "string", "description": "Optional target file filter."}
+            },
+            "required": ["symbol_name"]
+        }
+    },
+    {
+        "name": "replace_symbol_body",
+        "description": "Atomically replaces a target symbol body with AST syntax verification and automatic rollback on failure.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repo_path": {"type": "string", "description": "Repository root path."},
+                "file_path": {"type": "string", "description": "Target file path."},
+                "name_path": {"type": "string", "description": "Target symbol name path."},
+                "new_body": {"type": "string", "description": "Replacement symbol body."}
+            },
+            "required": ["file_path", "name_path", "new_body"]
+        }
+    },
+    {
+        "name": "temporal_graph_add_episode",
+        "description": "Ingests a bi-temporal episode with facts into TemporalContextGraph and invalidates conflicting edges.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "db_path": {"type": "string", "description": "SQLite DB path."},
+                "source": {"type": "string", "description": "Episode source label."},
+                "content": {"type": "string", "description": "Episode description."},
+                "reference_time": {"type": "string", "description": "ISO-8601 event timestamp."},
+                "facts": {"type": "array", "description": "List of [source_id, relation, target_id, fact] tuples."}
+            },
+            "required": ["source", "content", "reference_time"]
+        }
+    },
+    {
+        "name": "temporal_graph_query",
+        "description": "Queries bi-temporal facts and community summaries at a specific point-in-time (local/global/hybrid).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "db_path": {"type": "string", "description": "SQLite DB path."},
+                "query": {"type": "string", "description": "Query string."},
+                "as_of": {"type": "string", "description": "Optional ISO-8601 point-in-time timestamp."},
+                "mode": {"type": "string", "enum": ["local", "global", "hybrid"], "default": "hybrid"},
+                "limit": {"type": "integer", "default": 20}
+            },
+            "required": ["query"]
+        }
     }
 ]
 
@@ -784,6 +868,74 @@ def _handle_synapse_lsp_health(arguments: Dict[str, Any]) -> str:
         return f"[LSP_HEALTH ERROR] {exc}"
 
 
+def _handle_symbol_overview(arguments: Dict[str, Any]) -> str:
+    repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+    target = _validate_safe_path(arguments["file_path"], allowed_root=repo)
+    depth = int(arguments.get("depth", 2))
+    from tools.context.symbol_code_editor import SymbolCodeEditor
+    editor = SymbolCodeEditor(repo_root=repo)
+    syms = editor.get_symbols_overview(target, depth=depth)
+    return json.dumps({"status": "ok", "symbols": [s.to_dict() for s in syms]}, indent=2)
+
+
+def _handle_find_symbol(arguments: Dict[str, Any]) -> str:
+    repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+    target = _validate_safe_path(arguments["file_path"], allowed_root=repo) if arguments.get("file_path") else None
+    from tools.context.symbol_code_editor import SymbolCodeEditor
+    editor = SymbolCodeEditor(repo_root=repo)
+    syms = editor.find_symbol(
+        name_path=str(arguments["name_path"]),
+        file_path=target,
+        include_body=bool(arguments.get("include_body", False)),
+    )
+    return json.dumps({"status": "ok", "symbols": [s.to_dict() for s in syms]}, indent=2)
+
+
+def _handle_find_referencing_symbols(arguments: Dict[str, Any]) -> str:
+    repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+    target = _validate_safe_path(arguments["file_path"], allowed_root=repo) if arguments.get("file_path") else None
+    from tools.context.symbol_code_editor import SymbolCodeEditor
+    editor = SymbolCodeEditor(repo_root=repo)
+    refs = editor.find_referencing_symbols(symbol_name=str(arguments["symbol_name"]), file_path=target)
+    return json.dumps({"status": "ok", "references": refs}, indent=2)
+
+
+def _handle_replace_symbol_body(arguments: Dict[str, Any]) -> str:
+    repo = _validate_safe_path(arguments.get("repo_path") or os.getcwd())
+    target = _validate_safe_path(arguments["file_path"], allowed_root=repo)
+    from tools.context.symbol_code_editor import SymbolCodeEditor
+    editor = SymbolCodeEditor(repo_root=repo)
+    rec = editor.replace_symbol_body(target, str(arguments["name_path"]), str(arguments["new_body"]))
+    return json.dumps(rec.to_dict(), indent=2)
+
+
+def _handle_temporal_graph_add_episode(arguments: Dict[str, Any]) -> str:
+    db_path = _validate_safe_path(arguments.get("db_path") or os.path.join(os.getcwd(), ".synapse", "temporal_context_graph.db"))
+    from tools.reasoning.temporal_context_graph import TemporalContextGraph
+    facts = [tuple(item) for item in (arguments.get("facts") or [])]
+    with TemporalContextGraph(db_path=db_path) as graph:
+        ep = graph.add_episode(
+            source=str(arguments["source"]),
+            content=str(arguments["content"]),
+            reference_time=str(arguments["reference_time"]),
+            facts=facts,
+        )
+    return json.dumps({"status": "ok", "episode": ep.to_dict()}, indent=2)
+
+
+def _handle_temporal_graph_query(arguments: Dict[str, Any]) -> str:
+    db_path = _validate_safe_path(arguments.get("db_path") or os.path.join(os.getcwd(), ".synapse", "temporal_context_graph.db"))
+    from tools.reasoning.temporal_context_graph import TemporalContextGraph
+    with TemporalContextGraph(db_path=db_path) as graph:
+        res = graph.query_as_of(
+            query=str(arguments.get("query", "")),
+            as_of=arguments.get("as_of"),
+            mode=arguments.get("mode", "hybrid"),
+            limit=int(arguments.get("limit", 20)),
+        )
+    return json.dumps(res, indent=2)
+
+
 TOOL_DISPATCH_TABLE: Dict[str, Any] = {
     "synapse_lint": _handle_synapse_lint,
     "synapse_verify": _handle_verify_all_gates,
@@ -809,6 +961,12 @@ TOOL_DISPATCH_TABLE: Dict[str, Any] = {
     "resolve_visual_som_coordinates": _handle_resolve_visual_som_coordinates,
     "compile_gherkin_suite": _handle_compile_gherkin_suite,
     "fuzz_api": _handle_fuzz_api,
+    "symbol_overview": _handle_symbol_overview,
+    "find_symbol": _handle_find_symbol,
+    "find_referencing_symbols": _handle_find_referencing_symbols,
+    "replace_symbol_body": _handle_replace_symbol_body,
+    "temporal_graph_add_episode": _handle_temporal_graph_add_episode,
+    "temporal_graph_query": _handle_temporal_graph_query,
 }
 
 

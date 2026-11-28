@@ -35,7 +35,8 @@ import re
 import ast
 import json
 import argparse
-from typing import Dict, Any, List, Optional, Tuple
+from dataclasses import asdict, dataclass
+from typing import Callable, Dict, Any, List, Optional, Sequence, Tuple
 
 # Enforce UTF-8 stdio
 if hasattr(sys.stdout, "reconfigure"):
@@ -305,17 +306,235 @@ class TextGradOptimizer:
         }
 
 
+@dataclass(frozen=True)
+class AutogradStepReceiptDTO:
+    step_index: int
+    variable_name: str
+    loss_before: float
+    loss_after: float
+    gradient_count: int
+    constraints_satisfied: bool
+    momentum_window: int
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+class TextVariable:
+    """Differentiable text node inside a reverse-mode textual computation DAG."""
+
+    def __init__(
+        self,
+        name: str,
+        value: str,
+        role_description: str,
+        requires_grad: bool = True,
+        predecessors: Sequence["TextVariable"] = (),
+        grad_fn: Optional[Callable[["TextVariable", str], Dict[str, str]]] = None,
+    ) -> None:
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("TextVariable name must be a non-empty string.")
+        self.name = name.strip()
+        self.value = str(value)
+        self.role_description = str(role_description)
+        self.requires_grad = bool(requires_grad)
+        self.predecessors: List["TextVariable"] = list(predecessors)
+        self.grad_fn = grad_fn
+        self.gradients: List[str] = []
+
+
+def reduce_gradients(gradients: Sequence[str]) -> str:
+    """Deduplicates and aggregates multi-path textual gradients in deterministic order."""
+    seen: set[str] = set()
+    cleaned: List[str] = []
+    for raw in gradients:
+        text = str(raw).strip()
+        if text and text not in seen:
+            seen.add(text)
+            cleaned.append(text)
+    if not cleaned:
+        return ""
+    return "\n".join(f"{idx}. {g}" for idx, g in enumerate(cleaned, start=1))
+
+
+class TextualComputationGraph:
+    """Cycle-checked reverse-mode textual autograd DAG (Stanford TextGrad pattern)."""
+
+    def __init__(self, root: TextVariable) -> None:
+        self.root = root
+
+    def topological_order(self) -> List[TextVariable]:
+        """Returns nodes in forward topological order (leaves -> root), raising ValueError on cycles."""
+        visited: Dict[int, int] = {}  # 1 = visiting, 2 = visited
+        order: List[TextVariable] = []
+
+        def _dfs(node: TextVariable) -> None:
+            nid = id(node)
+            state = visited.get(nid, 0)
+            if state == 1:
+                raise ValueError(f"Cycle detected in TextualComputationGraph at variable '{node.name}'.")
+            if state == 2:
+                return
+            visited[nid] = 1
+            for pred in node.predecessors:
+                _dfs(pred)
+            visited[nid] = 2
+            order.append(node)
+
+        _dfs(self.root)
+        return order
+
+    def backward(self, loss_feedback: str) -> List[str]:
+        """Backpropagates textual gradients in reverse topological order from root to predecessors."""
+        topo = self.topological_order()
+        reverse_order = list(reversed(topo))
+        if self.root.requires_grad and str(loss_feedback).strip():
+            self.root.gradients.append(str(loss_feedback).strip())
+
+        traversed: List[str] = []
+        for node in reverse_order:
+            traversed.append(node.name)
+            reduced = reduce_gradients(node.gradients)
+            if not reduced or node.grad_fn is None:
+                continue
+            prop_map = node.grad_fn(node, reduced) or {}
+            for pred in node.predecessors:
+                if not pred.requires_grad:
+                    continue
+                grad_msg = prop_map.get(pred.name)
+                if grad_msg and str(grad_msg).strip():
+                    pred.gradients.append(str(grad_msg).strip())
+        return traversed
+
+
+class TGDOptimizerWithMomentum:
+    """Textual Gradient Descent optimizer with bounded gradient momentum and hard constraints."""
+
+    def __init__(
+        self,
+        parameters: Sequence[TextVariable],
+        constraints: Sequence[Callable[[str], bool]] = (),
+        momentum_window: int = 3,
+    ) -> None:
+        if int(momentum_window) <= 0:
+            raise ValueError("momentum_window must be a positive integer.")
+        self.parameters = list(parameters)
+        self.constraints = list(constraints)
+        self.momentum_window = int(momentum_window)
+        self.gradient_memory: Dict[str, List[str]] = {}
+        self._step_count = 0
+
+    def zero_grad(self) -> None:
+        for param in self.parameters:
+            param.gradients.clear()
+
+    def step(
+        self,
+        updater: Callable[[TextVariable, str, Sequence[str]], str],
+        loss_evaluator: Callable[[TextVariable], float],
+    ) -> List[AutogradStepReceiptDTO]:
+        self._step_count += 1
+        receipts: List[AutogradStepReceiptDTO] = []
+        for param in self.parameters:
+            loss_before = float(loss_evaluator(param))
+            grad_count = len(param.gradients)
+            if not param.requires_grad or grad_count == 0:
+                receipts.append(
+                    AutogradStepReceiptDTO(
+                        step_index=self._step_count,
+                        variable_name=param.name,
+                        loss_before=loss_before,
+                        loss_after=loss_before,
+                        gradient_count=grad_count,
+                        constraints_satisfied=True,
+                        momentum_window=self.momentum_window,
+                    )
+                )
+                continue
+
+            reduced = reduce_gradients(param.gradients)
+            history = self.gradient_memory.setdefault(param.name, [])
+            history.append(reduced)
+            if len(history) > self.momentum_window:
+                del history[: len(history) - self.momentum_window]
+
+            candidate_val = str(updater(param, reduced, tuple(history)))
+            constraints_ok = all(bool(check(candidate_val)) for check in self.constraints)
+            if constraints_ok:
+                param.value = candidate_val
+            loss_after = float(loss_evaluator(param))
+            receipts.append(
+                AutogradStepReceiptDTO(
+                    step_index=self._step_count,
+                    variable_name=param.name,
+                    loss_before=loss_before,
+                    loss_after=loss_after,
+                    gradient_count=grad_count,
+                    constraints_satisfied=constraints_ok,
+                    momentum_window=self.momentum_window,
+                )
+            )
+        return receipts
+
+
+def run_autograd_demo() -> Dict[str, Any]:
+    """Deterministic offline demonstration of reverse-mode TextGrad DAG with momentum."""
+    prompt = TextVariable("prompt", "Write clean test", "QA prompt")
+    code = TextVariable(
+        "test_code",
+        "time.sleep(1)\nassert True",
+        "Test code",
+        predecessors=[prompt],
+        grad_fn=lambda _n, g: {"prompt": f"Avoid static sleeps: {g}"},
+    )
+    loss = TextVariable(
+        "loss",
+        "Static sleep violation",
+        "Loss",
+        predecessors=[code],
+        grad_fn=lambda _n, g: {"test_code": g},
+    )
+    graph = TextualComputationGraph(loss)
+    order = graph.backward("Replace time.sleep with web-first assertion")
+    opt = TGDOptimizerWithMomentum(
+        parameters=[code],
+        constraints=[lambda val: "assert" in val],
+        momentum_window=2,
+    )
+    receipt = opt.step(
+        updater=lambda var, _g, _m: var.value.replace("time.sleep(1)", "expect(el).to_be_visible()"),
+        loss_evaluator=lambda var: 2.0 if "time.sleep" in var.value else 0.0,
+    )[0]
+    return {
+        "status": "ok",
+        "backward_order": order,
+        "receipt": receipt.to_dict(),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="TextGrad Automatic Differentiation via Text Optimizer (Stanford Pattern)"
     )
-    parser.add_argument("--target", type=str, required=True, help="Target file path to evaluate and optimize")
+    parser.add_argument("--target", type=str, required=False, default=None, help="Target file path to evaluate and optimize")
+    parser.add_argument("--autograd-demo", action="store_true", help="Run reverse-mode textual autograd DAG demo")
     parser.add_argument("--metric", type=str, default="all", choices=["all", "clean-pom", "resilience"], help="Optimization profile metric")
     parser.add_argument("--iterations", type=int, default=3, help="Max backpropagation update iterations (default: 3)")
     parser.add_argument("--in-place", action="store_true", help="Write optimized code directly back to target file")
     parser.add_argument("--json", action="store_true", help="Output raw JSON telemetry")
 
     args = parser.parse_args()
+
+    if args.autograd_demo:
+        demo = run_autograd_demo()
+        if args.json:
+            print(json.dumps(demo, indent=2))
+        else:
+            print(demo)
+        return 0
+
+    if not args.target:
+        parser.error("the following arguments are required: --target (or pass --autograd-demo)")
 
     optimizer = TextGradOptimizer(target_path=args.target, max_iterations=args.iterations, metric=args.metric)
     result = optimizer.optimize(in_place=args.in_place)
